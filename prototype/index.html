@@ -5,314 +5,329 @@
 
 <style>
 :root{
-  --ink:#0F1218; --ink2:#161B23; --ink3:#1E2530;
-  --edge:#2B3340; --edge2:#3D4757;
-  --bone:#E9E3D5; --bone-dim:#9AA0A8; --bone-faint:#6B727C;
-  --brass:#C9A227; --brass-dim:#7A6520;
-  --fire:#E2622F; --stone:#A9A192; --bolt:#E8C33C;
+  --ink:#0C0F14; --ink2:#141922; --ink3:#1C222C;
+  --edge:#28303C; --edge2:#3A4553;
+  --bone:#E9E3D5; --bone-dim:#98A0AA; --bone-faint:#666E79;
+  --brass:#C9A227; --brass-dim:#7A6520; --brass-deep:#4A3E14;
+  --fire:#E2622F; --stone:#9FA79B; --moth:#7FA3C0;
   --blood:#B0402F; --heal:#7FA86B;
   --f-disp:"Cinzel",Georgia,"Times New Roman",serif;
   --f-body:"Spectral",Georgia,"Times New Roman",serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--ink);color:var(--bone);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+body{margin:0;background:var(--ink);color:var(--bone);font-family:var(--f-body);
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;
+  align-items:center;padding:14px;gap:10px;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
 button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 
-.app{max-width:1060px;margin:0 auto;padding:20px 20px 40px;display:grid;
-  grid-template-columns:minmax(0,1fr) 190px;
-  grid-template-areas:"head head" "field rail" "bench rail" "hand rail";
-  gap:18px 20px;align-items:start}
-@media (max-width:860px){.app{grid-template-columns:minmax(0,1fr);
-  grid-template-areas:"head" "rail" "field" "bench" "hand"}}
+/* ── 横画面の一枚絵。中身は全て em で、stage の font-size だけが縮尺 ── */
+.stage{
+  width:100%;max-width:1240px;aspect-ratio:5/3;
+  container-type:size;
+  font-size:clamp(7px, 1.28cqw, 16px);
+  position:relative;overflow:hidden;
+  background:
+    radial-gradient(120% 85% at 50% 8%, #1B2330 0%, #10141B 46%, #0A0D12 100%);
+  border:1px solid var(--edge);
+  display:flex;flex-direction:column;
+}
+.stage::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(115% 78% at 50% 44%, transparent 52%, rgba(6,8,11,.72) 100%);
+}
 
-.head{grid-area:head;display:flex;align-items:baseline;justify-content:space-between;gap:16px;
-  flex-wrap:wrap;border-bottom:1px solid var(--edge);padding-bottom:12px}
-.brand{display:flex;align-items:baseline;gap:14px}
-h1{font-family:var(--f-disp);font-weight:700;font-size:26px;letter-spacing:.16em;margin:0;text-wrap:balance}
-.tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;color:var(--brass-dim);text-transform:uppercase}
-.stage{font-family:var(--f-mono);font-size:12px;color:var(--bone-dim);display:flex;gap:16px;align-items:baseline}
-.stage b{color:var(--brass);font-weight:700}
+/* ── 上部の帯 ── */
+.topbar{
+  flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+  padding:.9em 1.6em .7em;gap:1.5em;position:relative;z-index:2;
+  border-bottom:1px solid var(--edge);
+}
+.vitals{display:flex;align-items:center;gap:1.6em}
+.vital{display:flex;align-items:baseline;gap:.45em;font-family:var(--f-mono);
+  font-variant-numeric:tabular-nums}
+.vital .lb{font-size:.72em;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-faint)}
+.vital .nb{font-size:1.35em;font-weight:700}
+.v-hp .nb{color:var(--blood)} .v-block .nb{color:var(--stone)} .v-energy .nb{color:var(--brass)}
+.hpbar{width:9em;height:.45em;background:#080B0F;border:1px solid var(--edge);position:relative}
+.hpbar i{display:block;height:100%;background:var(--blood);transition:width .25s}
 
-.sectlabel{font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--bone-faint);margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.sectlabel::after{content:"";flex:1;height:1px;background:var(--edge)}
+.title{font-family:var(--f-disp);font-size:1.25em;letter-spacing:.3em;color:var(--bone);
+  position:absolute;left:50%;top:.75em;transform:translateX(-50%);opacity:.5}
+.phase{display:flex;align-items:center;gap:.9em;font-family:var(--f-mono);font-size:.82em;
+  letter-spacing:.16em;color:var(--bone-faint);text-transform:uppercase}
+.pips{display:flex;gap:.35em}
+.pip{width:.7em;height:.7em;border:1px solid var(--brass-dim);transform:rotate(45deg)}
+.pip.on{background:var(--brass);border-color:var(--brass)}
+.pip.spent{background:var(--brass-deep);border-color:var(--brass-deep)}
 
-/* enemies */
-.field{grid-area:field}
-.foes{display:flex;gap:12px;flex-wrap:wrap}
-.foe{flex:1 1 170px;min-width:160px;max-width:250px;background:var(--ink2);
-  border:1px solid var(--edge);border-top:2px solid var(--edge2);padding:11px 12px;
-  text-align:left;position:relative;transition:border-color .12s,background .12s}
-.foe:hover:not(:disabled){background:var(--ink3)}
-.foe[aria-pressed="true"]{border-color:var(--brass);border-top-color:var(--brass);background:var(--ink3)}
-.foe.dead{opacity:.3;filter:saturate(.15)}
-.foe-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.foe-name{font-family:var(--f-disp);font-size:14.5px;letter-spacing:.06em}
-.foe-hp{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--bone-dim)}
-.bar{height:5px;background:#0A0D12;border:1px solid var(--edge);margin:8px 0;position:relative;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--blood);transition:width .2s}
-.bar .prev{position:absolute;top:0;height:100%;opacity:.9;
+/* ── 闘技場 ── */
+.arena{flex:1 1 auto;position:relative;display:flex;align-items:center;
+  justify-content:center;gap:5em;padding:.6em 3em 1.4em;z-index:2;min-height:0}
+.arena::before{
+  content:"";position:absolute;left:8%;right:8%;bottom:.9em;height:1px;
+  background:linear-gradient(90deg,transparent,var(--edge2) 22%,var(--edge2) 78%,transparent)
+}
+.foe{display:flex;flex-direction:column;align-items:center;gap:.35em;
+  padding-bottom:.4em;position:relative;transition:transform .12s;background:none}
+.foe:hover:not(:disabled) .glyph{transform:translateY(-.25em)}
+.foe.dead{opacity:.22;filter:saturate(.1)}
+.glyph{width:10em;height:10em;display:block;transition:transform .15s;color:var(--bone-dim)}
+.foe[aria-pressed="true"] .glyph{color:var(--brass)}
+.foe.flash .glyph{animation:flash .3s ease-out}
+@keyframes flash{0%{color:#fff;filter:brightness(2.4)}100%{}}
+.fname{font-family:var(--f-disp);font-size:.95em;letter-spacing:.1em;color:var(--bone-dim)}
+.foe[aria-pressed="true"] .fname{color:var(--bone)}
+.fbar{width:6.6em;height:.4em;background:#080B0F;border:1px solid var(--edge);position:relative;overflow:hidden}
+.fbar i{display:block;height:100%;background:var(--blood);transition:width .25s}
+.fbar .ghost{position:absolute;top:0;height:100%;opacity:.9;
   background:repeating-linear-gradient(135deg,var(--brass) 0 3px,transparent 3px 6px)}
-.intent{font-family:var(--f-mono);font-size:11.5px;color:var(--bone-dim)}
-.intent b{color:var(--blood);font-weight:700}
-.intentrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.pdelta{font-family:var(--f-mono);font-size:15px;font-weight:700;
-  color:var(--brass);font-variant-numeric:tabular-nums}
+.fhp{font-family:var(--f-mono);font-size:.74em;color:var(--bone-faint);font-variant-numeric:tabular-nums}
+.fatk{font-family:var(--f-mono);font-size:.74em;color:var(--bone-faint);letter-spacing:.08em}
+.fatk b{color:var(--blood);font-weight:700}
+.fdelta{position:absolute;top:-.2em;font-family:var(--f-mono);font-size:1.9em;font-weight:700;
+  color:var(--brass);font-variant-numeric:tabular-nums;text-shadow:0 0 .5em rgba(12,15,20,.95)}
+.fnum{position:absolute;left:-.1em;top:2.6em;font-family:var(--f-mono);font-size:.7em;
+  color:var(--bone-faint)}
+.aim{position:absolute;top:10.6em;width:3.2em;height:.45em;
+  border:1px solid var(--brass);border-top:0;opacity:0;transition:opacity .12s}
+.foe[aria-pressed="true"] .aim{opacity:1}
 
-/* wand */
-.bench{grid-area:bench;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px}
-@media (max-width:760px){.bench{grid-template-columns:minmax(0,1fr)}}
-.tape{background:var(--ink2);border:1px solid var(--edge);padding:12px}
-.slots{display:flex;gap:7px}
-.slot{flex:1;min-width:0;min-height:86px;border:1px dashed var(--edge2);background:#0C1016;
-  padding:8px;display:flex;flex-direction:column;gap:4px;position:relative}
-.slot.filled{border-style:solid;background:var(--ink3)}
-.slot .idx{font-family:var(--f-mono);font-size:9.5px;color:var(--bone-faint);position:absolute;top:5px;right:7px}
-.slot .empty{font-family:var(--f-mono);font-size:10.5px;color:var(--bone-faint);margin:auto;letter-spacing:.14em}
-.slot .cname{font-family:var(--f-disp);font-size:13.5px;letter-spacing:.04em;padding-right:14px}
-.slot .ckind{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
-.slot .ctext{font-size:11.5px;line-height:1.35;color:var(--bone-dim);flex:1}
-.slotctl{display:flex;gap:3px;margin-top:auto}
-.slotctl button{font-family:var(--f-mono);font-size:11px;line-height:1;padding:3px 6px;
-  border:1px solid var(--edge2);color:var(--bone-dim);background:#0A0D12}
-.slotctl button:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
-.slotctl button:disabled{opacity:.28;cursor:default}
+/* 隅のログ */
+.readout{position:absolute;right:1.4em;bottom:.7em;z-index:3;text-align:right;
+  font-family:var(--f-mono);font-size:.72em;line-height:1.6;pointer-events:none;max-width:26em}
+.readout div{white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.r-mod{color:var(--brass-dim)} .r-fire{color:var(--bone-dim)}
+.r-note{color:var(--bone-faint)} .r-foe{color:#C4776A} .r-total{color:var(--brass);font-weight:700}
 
-.binds{display:flex;gap:7px;margin-top:7px;height:22px}
+/* ── 杖のテープ ── */
+.tapewrap{flex:0 0 auto;position:relative;z-index:2;padding:0 1.6em .5em;
+  border-top:1px solid var(--edge);background:rgba(10,13,18,.55)}
+.taperow{display:flex;align-items:stretch;gap:1.4em;padding:.8em 0 .5em}
+.tapelabel{flex:0 0 1.6em;font-family:var(--f-mono);font-size:.7em;
+  letter-spacing:.1em;color:var(--bone-faint);display:flex;align-items:center;
+  justify-content:center}
+.slots{display:flex;gap:.5em;flex:1}
+.slot{flex:1;min-width:0;height:3.9em;border:1px dashed var(--edge2);background:#0A0D12;
+  padding:.4em .55em;display:flex;flex-direction:column;justify-content:center;
+  gap:.15em;position:relative;text-align:left}
+.slot.filled{border-style:solid;background:var(--ink3);border-color:var(--edge2)}
+.slot .sidx{position:absolute;top:.25em;right:.4em;font-family:var(--f-mono);
+  font-size:.62em;color:var(--bone-faint)}
+.slot .sk{font-family:var(--f-mono);font-size:.62em;letter-spacing:.16em;text-transform:uppercase}
+.slot .sn{font-family:var(--f-disp);font-size:1.02em;letter-spacing:.05em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:1em}
+.slot .sempty{font-family:var(--f-mono);font-size:.7em;color:#2E3641;letter-spacing:.2em;
+  margin:auto}
+.sctl{position:absolute;right:.3em;bottom:.25em;display:flex;gap:.15em}
+.sctl button{font-family:var(--f-mono);font-size:.62em;line-height:1;padding:.15em .3em;
+  border:1px solid var(--edge2);color:var(--bone-faint);background:#080B0F}
+.sctl button:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
+.sctl button:disabled{opacity:.25;cursor:default}
+.k-projectile{color:var(--fire)} .k-modifier{color:var(--brass)} .k-utility{color:var(--bone-faint)}
+
+.binds{display:flex;gap:.5em;height:1.35em;margin-left:calc(1.6em + 1.4em)}
 .bind{flex:1;position:relative}
-.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:9px;letter-spacing:.08em;
-  color:var(--brass-dim);display:flex;align-items:center;justify-content:center;
-  border-top:1px solid var(--brass-dim);padding:3px 4px 0;
+.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:.62em;
+  letter-spacing:.06em;color:var(--brass-dim);display:flex;align-items:center;
+  justify-content:center;border-top:1px solid var(--brass-dim);padding-top:.2em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bind.start span{border-left:1px solid var(--brass-dim)}
 .bind.end span{border-right:1px solid var(--brass-dim)}
-.bind.none span{border:0;color:var(--bone-faint)}
+.bind.none span{border:0;color:transparent}
 
-.fire-row{display:flex;gap:9px;align-items:center;margin-top:14px;flex-wrap:wrap}
-.btn{font-family:var(--f-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
-  padding:9px 16px;border:1px solid var(--edge2);background:var(--ink3);color:var(--bone);
-  transition:border-color .12s,color .12s,background .12s}
+/* ── 手札と操作 ── */
+.foot{flex:0 0 auto;display:flex;align-items:flex-end;gap:1.5em;
+  padding:.7em 1.6em 1em;z-index:2;border-top:1px solid var(--edge);
+  background:rgba(8,11,15,.7)}
+.cards{display:flex;gap:.5em;flex:1;min-width:0}
+.card{flex:0 1 10.4em;min-width:0;height:8.6em;background:var(--ink2);
+  border:1px solid var(--edge);border-top:2px solid var(--edge2);
+  padding:.5em .55em;display:flex;flex-direction:column;gap:.2em;text-align:left;
+  transition:transform .1s,border-color .12s,background .12s}
+.card:hover:not(:disabled){transform:translateY(-.45em);border-color:var(--brass-dim);
+  border-top-color:var(--brass);background:var(--ink3)}
+.card:disabled{opacity:.3;cursor:default}
+.card .ck{font-family:var(--f-mono);font-size:.6em;letter-spacing:.16em;text-transform:uppercase}
+.card .cn{font-family:var(--f-disp);font-size:1em;letter-spacing:.04em}
+.card .ct{font-size:.78em;line-height:1.35;color:var(--bone-dim);flex:1;overflow:hidden}
+.card .cc{font-family:var(--f-mono);font-size:.66em;color:var(--bone-faint);
+  border-top:1px solid var(--edge);padding-top:.25em}
+
+.acts{display:flex;flex-direction:column;gap:.4em;flex:0 0 auto;align-items:stretch}
+.btn{font-family:var(--f-mono);font-size:.78em;letter-spacing:.18em;text-transform:uppercase;
+  padding:.7em 1.4em;border:1px solid var(--edge2);background:var(--ink3);color:var(--bone);
+  white-space:nowrap;transition:border-color .12s,color .12s,background .12s}
 .btn:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
-.btn:disabled{opacity:.3;cursor:default}
+.btn:disabled{opacity:.28;cursor:default}
 .btn.cast{border-color:var(--brass);color:var(--brass);background:#1A1710}
 .btn.cast:hover:not(:disabled){background:#241F14}
-.cost{font-family:var(--f-mono);font-size:11.5px;color:var(--bone-faint);font-variant-numeric:tabular-nums}
+.hint{font-family:var(--f-mono);font-size:.66em;color:var(--bone-faint);text-align:right;
+  letter-spacing:.06em}
 
-/* readout */
-.readout{background:#0A0D12;border:1px solid var(--edge);padding:11px 13px;display:flex;flex-direction:column}
-.readout .sectlabel{margin-bottom:7px}
-.log{font-family:var(--f-mono);font-size:11.5px;line-height:1.65;flex:1;
-  min-height:150px;max-height:320px;overflow:auto}
-.log div{white-space:pre;color:var(--bone-dim)}
-.log .l-mod{color:var(--brass-dim)}
-.log .l-fire{color:var(--bone)}
-.log .l-hit{color:var(--bone-dim)}
-.log .l-kill{color:var(--brass);font-weight:700}
-.log .l-note{color:var(--bone-faint)}
-.log .l-foe{color:#D98878}
-.log .l-total{color:var(--brass);font-weight:700}
-
-/* hand */
-.hand{grid-area:hand}
-.cards{display:flex;gap:9px;flex-wrap:wrap}
-.card{width:126px;min-height:138px;background:var(--ink2);border:1px solid var(--edge);
-  padding:9px;display:flex;flex-direction:column;gap:4px;text-align:left;
-  transition:transform .1s,border-color .12s,background .12s}
-.card:hover:not(:disabled){transform:translateY(-3px);border-color:var(--brass-dim);background:var(--ink3)}
-.card:disabled{opacity:.32;cursor:default}
-.card .cname{font-family:var(--f-disp);font-size:14px;letter-spacing:.04em}
-.card .ckind{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
-.card .ctext{font-size:11.5px;line-height:1.38;color:var(--bone-dim);flex:1}
-.card .cfoot{font-family:var(--f-mono);font-size:10px;border-top:1px solid var(--edge);
-  padding-top:5px;color:var(--bone-faint);font-variant-numeric:tabular-nums}
-.k-projectile{color:var(--fire)}
-.k-modifier{color:var(--brass)}
-.k-utility{color:var(--bone-faint)}
-
-/* rail */
-.rail{grid-area:rail;display:flex;flex-direction:column;gap:14px}
-.panel{background:var(--ink2);border:1px solid var(--edge);padding:11px 12px}
-.vital{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-mono);
-  font-size:12px;font-variant-numeric:tabular-nums;padding:3px 0}
-.vital span:first-child{color:var(--bone-faint);letter-spacing:.1em;font-size:10.5px;text-transform:uppercase}
-.vital b{font-weight:700;font-size:14px}
-.v-hp b{color:var(--blood)} .v-block b{color:var(--stone)} .v-energy b{color:var(--brass)}
-.pilecount{font-family:var(--f-mono);font-size:11px;color:var(--bone-faint);display:flex;justify-content:space-between;padding:1px 0}
-
-/* overlay */
-.veil{position:fixed;inset:0;background:rgba(9,11,15,.93);display:flex;align-items:center;
-  justify-content:center;padding:24px;z-index:20}
-.veil .box{max-width:540px;background:var(--ink2);border:1px solid var(--brass-dim);
-  border-top:3px solid var(--brass);padding:26px 28px}
-.veil h2{font-family:var(--f-disp);font-size:22px;letter-spacing:.1em;margin:0 0 4px;text-wrap:balance}
-.veil .sub{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-  color:var(--brass-dim);margin-bottom:14px}
-.veil p{margin:0 0 12px;color:var(--bone-dim);max-width:62ch}
-.veil ul{margin:0 0 16px;padding-left:18px;color:var(--bone-dim)}
-.veil li{margin-bottom:5px}
+/* ── 幕 ── */
+.veil{position:absolute;inset:0;background:rgba(8,10,14,.94);display:flex;
+  align-items:center;justify-content:center;padding:2em;z-index:10}
+.veil .box{max-width:38em;background:var(--ink2);border:1px solid var(--brass-dim);
+  border-top:3px solid var(--brass);padding:1.8em 2em}
+.veil h2{font-family:var(--f-disp);font-size:1.6em;letter-spacing:.1em;margin:0 0 .2em;text-wrap:balance}
+.veil .sub{font-family:var(--f-mono);font-size:.72em;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--brass-dim);margin-bottom:1em}
+.veil p{margin:0 0 .8em;color:var(--bone-dim);font-size:.92em;line-height:1.6}
+.veil ul{margin:0 0 1em;padding-left:1.2em;color:var(--bone-dim);font-size:.92em;line-height:1.6}
 .hidden{display:none!important}
 
-/* guide */
-.guide{margin-top:14px;border-top:1px solid var(--edge);padding-top:10px}
-.guide summary{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--bone-faint);cursor:pointer;list-style:none}
-.guide summary::-webkit-details-marker{display:none}
-.guide summary::before{content:"▸ ";color:var(--brass-dim)}
-.guide details[open] summary::before{content:"▾ "}
-.guide .gbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 24px;margin-top:12px}
-.guide h3{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+/* ── 下の説明（フレーム外） ── */
+.notes{width:100%;max-width:1240px;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px 26px;
+  font-size:12.5px;line-height:1.55;color:var(--bone-dim);
+  border-top:1px solid var(--edge);padding-top:12px}
+.notes h3{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--brass);margin:0 0 5px}
-.guide p,.guide li{font-size:12.5px;line-height:1.55;color:var(--bone-dim);margin:0 0 6px}
-.guide ul{margin:0;padding-left:16px}
-.guide code{font-family:var(--f-mono);font-size:11.5px;color:var(--bone)}
-
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.notes ul{margin:0;padding-left:15px} .notes li{margin-bottom:4px}
+.notes code{font-family:var(--f-mono);font-size:11.5px;color:var(--bone)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
-<div class="app">
-  <header class="head">
-    <div class="brand">
-      <h1>詠唱順</h1>
-      <span class="tag">order test · v2</span>
+<div class="stage" id="stage">
+  <div class="topbar">
+    <div class="vitals">
+      <div class="vital v-hp"><span class="lb">体力</span><span class="nb" id="v-hp">70</span></div>
+      <div class="hpbar"><i id="hpfill" style="width:100%"></i></div>
+      <div class="vital v-block"><span class="lb">防御</span><span class="nb" id="v-block">0</span></div>
+      <div class="vital v-energy"><span class="lb">エナジー</span><span class="nb" id="v-energy">5</span></div>
     </div>
-    <div class="stage">
-      <span>戦闘 <b id="s-battle">1</b>/2</span>
-      <span>ターン <b id="s-turn">1</b></span>
+    <div class="title">詠唱順</div>
+    <div class="phase">
+      <span id="s-round">ラウンド 1</span>
+      <span class="pips" id="pips"></span>
     </div>
-  </header>
+  </div>
 
-  <section class="field">
-    <div class="sectlabel">敵列 — 貫通は右へ、波及は隣へ、分裂は順に飛ぶ</div>
-    <div class="foes" id="foes"></div>
-  </section>
+  <div class="arena" id="arena">
+    <div class="readout" id="log"></div>
+  </div>
 
-  <section class="bench">
-    <div class="tape">
-      <div class="sectlabel">杖 — 左から順に実行される</div>
+  <div class="tapewrap">
+    <div class="taperow">
+      <div class="tapelabel">杖▸</div>
       <div class="slots" id="slots"></div>
-      <div class="binds" id="binds"></div>
-      <div class="fire-row">
-        <button class="btn cast" id="btn-cast">詠唱</button>
-        <button class="btn" id="btn-end">ターン終了</button>
-        <span class="cost" id="castcost"></span>
-      </div>
     </div>
-    <div class="readout">
-      <div class="sectlabel">解決プレビュー</div>
-      <div class="log" id="log"></div>
-    </div>
-  </section>
+    <div class="binds" id="binds"></div>
+  </div>
 
-  <section class="hand">
-    <div class="sectlabel">手札 — クリックで装填。防御は即時</div>
+  <div class="foot">
     <div class="cards" id="hand"></div>
-    <details class="guide">
-      <summary>読み方</summary>
-      <div class="gbody">
-        <div>
-          <h3>杖のきまり</h3>
-          <ul>
-            <li><b>修飾</b>は単体では何もしない。バッファに積まれ、<b>後ろに来る発射体</b>に乗る。</li>
-            <li><b>発射体</b>は積まれた修飾を全て食って撃つ。撃つとバッファは空になる。</li>
-            <li>だから修飾は必ず発射体より<b>前</b>。後ろに置いた修飾は不発。</li>
-          </ul>
-          <p>テープの下の括弧が、いま何がどれに乗っているかを示す。</p>
-        </div>
-        <div>
-          <h3>積むか、撃つか</h3>
-          <p>杖は 4 枠、エナジーは毎ターン 3。<b>大きな杖は 1 ターンでは組めない</b>。</p>
-          <p>詠唱は無料だが、撃つと杖は空になる。積んでいる間は殴られ続ける。</p>
-          <p>杖の中身はターンをまたいで残る。</p>
-        </div>
-        <div>
-          <h3>幾何</h3>
-          <ul>
-            <li><code>貫通</code> 狙った敵の<b>右</b>に並ぶ敵も貫く。</li>
-            <li><code>拡大</code> 着弾点の<b>両隣</b>へ半減して届く。</li>
-            <li><code>三分裂</code> 複製が<b>隣の敵へ順に</b>飛ぶ。各威力は半減。</li>
-          </ul>
-          <p>どれも狙う敵によって結果が変わる。</p>
-        </div>
-      </div>
-    </details>
-  </section>
+    <div class="acts">
+      <button class="btn cast" id="btn-cast">詠唱</button>
+      <button class="btn" id="btn-pass">見送る</button>
+      <div class="hint" id="hint"></div>
+    </div>
+  </div>
 
-  <aside class="rail">
-    <div class="panel">
-      <div class="vital v-hp"><span>体力</span><b id="v-hp">60</b></div>
-      <div class="vital v-block"><span>防御</span><b id="v-block">0</b></div>
-      <div class="vital v-energy"><span>エナジー</span><b id="v-energy">3</b></div>
-    </div>
-    <div class="panel">
-      <div class="pilecount"><span>杖</span><span id="p-cap">0 / 4</span></div>
-      <div class="pilecount"><span>山札</span><span id="p-deck">0</span></div>
-      <div class="pilecount"><span>捨札</span><span id="p-disc">0</span></div>
-    </div>
-  </aside>
+  <div class="veil hidden" id="veil"><div class="box" id="veilbox"></div></div>
 </div>
 
-<div class="veil hidden" id="veil"><div class="box" id="veilbox"></div></div>
+<div class="notes">
+  <div>
+    <h3>杖のきまり</h3>
+    <ul>
+      <li><b>修飾</b>は単体では何もしない。バッファに積まれ、<b>後ろに来る発射体</b>に乗る。</li>
+      <li>撃つとバッファは空になる。修飾は必ず発射体より<b>前</b>。</li>
+      <li>テープ下の括弧が、いま何がどれに乗っているかを示す。</li>
+    </ul>
+  </div>
+  <div>
+    <h3>1 ラウンド = 詠唱 2 回</h3>
+    <ul>
+      <li>杖はフェーズをまたいで残る。<b>小さく 2 回</b>か、<b>積んで大きく 1 回</b>か。</li>
+      <li>敵が動くのは 2 回撃った後。<b>1 回目が 2 回目の盤面を作る</b>。</li>
+      <li>前列を倒せば貫通の届く先が変わる。通り道として敢えて残す手もある。</li>
+    </ul>
+  </div>
+  <div>
+    <h3>幾何</h3>
+    <ul>
+      <li><code>貫通</code> 狙った敵の<b>右</b>に並ぶ敵も貫く。</li>
+      <li><code>拡大</code> 着弾点の<b>両隣</b>へ半減して届く。</li>
+      <li><code>三分裂</code> 複製が<b>別の敵へ</b>飛ぶ。飛び先がなければ消える。単体には弱い。</li>
+    </ul>
+  </div>
+</div>
 
 <script>
 "use strict";
 
-/* ── カード：発射体 3 / 修飾 3 / 汎用 1 ───────────────────── */
+/* ══ カード ═══════════════════════════════════════════════ */
 const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
-
 const CARDS = {
-  fireball:{name:"火球",   type:"projectile", dmg:8, cost:2, text:"8 ダメージ。"},
-  shard:   {name:"石礫",   type:"projectile", dmg:4, cost:1, text:"4 ダメージ。安い。"},
-  bolt:    {name:"雷矢",   type:"projectile", dmg:5, cost:2, pierce:1, text:"5 ダメージ。貫通 1。"},
-
+  fireball:{name:"火球", type:"projectile", dmg:9, cost:2, text:"9 ダメージ。"},
+  shard:   {name:"石礫", type:"projectile", dmg:4, cost:1, text:"4 ダメージ。安い。"},
+  bolt:    {name:"雷矢", type:"projectile", dmg:6, cost:2, pierce:1, text:"6 ダメージ。貫通 1。"},
   split3:  {name:"三分裂", type:"modifier", cost:1, mod:{split:3},
-            text:"複製を 3 つ。隣の敵へ順に飛ぶ。各威力は半減。"},
-  pierce:  {name:"貫通",   type:"modifier", cost:1, mod:{pierce:2},
+            text:"複製を 3 つ。別の敵へ順に飛ぶ。各威力は半減。"},
+  pierce:  {name:"貫通", type:"modifier", cost:1, mod:{pierce:2},
             text:"貫通 +2。右に並ぶ敵も貫く。"},
-  enlarge: {name:"拡大",   type:"modifier", cost:1, mod:{splash:1},
-            text:"波及 +1。着弾点の両隣へ半減して届く。"},
-
-  guard:   {name:"防御",   type:"utility", cost:1, block:7, text:"防御 7 を得る。"}
+  enlarge: {name:"拡大", type:"modifier", cost:1, mod:{splash:1},
+            text:"波及 +1。着弾点の両隣へ半減。"},
+  guard:   {name:"防御", type:"utility", cost:1, block:9, text:"防御 9 を得る。"}
 };
-
-const START_DECK = [
-  "fireball","fireball","fireball",
-  "shard","shard","shard",
-  "bolt","bolt",
-  "split3","split3","pierce","pierce","enlarge",
-  "guard","guard","guard"
-];
+const START_DECK = ["fireball","fireball","fireball","shard","shard","shard","bolt","bolt",
+                    "split3","split3","pierce","pierce","enlarge","guard","guard","guard"];
 
 const BATTLES = [
-  {name:"藁の的", foes:[{name:"藁の的", hp:30, atk:5}]},
-  {name:"三体",   foes:[{name:"火蜥蜴", hp:24, atk:6},
-                        {name:"石人",   hp:22, atk:4},
-                        {name:"蟲",     hp:14, atk:3}]}
+  {name:"二体の的", foes:[{name:"藁の的", hp:26, atk:6, art:"target"},
+                          {name:"藁の的", hp:26, atk:6, art:"target"}]},
+  {name:"三体",     foes:[{name:"火蜥蜴", hp:30, atk:8, art:"salamander"},
+                          {name:"石人",   hp:28, atk:6, art:"golem"},
+                          {name:"蟲",     hp:18, atk:5, art:"worm"}]}
 ];
 
-const CAP = 4, ENERGY = 3, HAND = 5, MAXHP = 60;
+const CAP = 5, ENERGY = 5, MAXHP = 70, CASTS = 2, DRAW1 = 5, DRAW2 = 2;
 
-/* ── 状態 ─────────────────────────────────────────────── */
+/* ══ 敵の図像 ═════════════════════════════════════════════ */
+const ART = {
+  target:`<circle cx="32" cy="26" r="17" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <circle cx="32" cy="26" r="10.5" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".7"/>
+    <circle cx="32" cy="26" r="4" fill="#B0402F" opacity=".85"/>
+    <path d="M32 43 L32 60 M22 60 L42 60 M25 51 L39 51" stroke="currentColor" stroke-width="1.4" fill="none"/>`,
+  salamander:`<path d="M12 46 L26 34 L38 40 L52 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="bevel"/>
+    <path d="M26 34 L30 20 L36 30 L42 14 L46 30" fill="none" stroke="#E2622F" stroke-width="1.6" stroke-linejoin="bevel"/>
+    <circle cx="50" cy="27" r="2.4" fill="#E2622F"/>
+    <path d="M14 47 L18 55 M28 37 L30 55 M40 41 L42 55" stroke="currentColor" stroke-width="1.3"/>`,
+  golem:`<rect x="20" y="8" width="24" height="15" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <rect x="14" y="25" width="36" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="17" y="47" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <rect x="35" y="47" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M26 15 L32 15 M38 15 L38 15" stroke="#9FA79B" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M14 33 L50 33" stroke="currentColor" stroke-width="1" opacity=".5"/>`,
+  worm:`<path d="M10 44 Q18 30 26 44 Q34 30 42 44 Q50 30 56 40" fill="none"
+      stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="56" cy="38" r="3.4" fill="none" stroke="#7FA3C0" stroke-width="1.6"/>
+    <path d="M14 46 L12 56 M28 46 L27 56 M42 46 L43 56" stroke="currentColor" stroke-width="1.2"/>
+    <path d="M58 33 L62 27 M53 33 L51 26" stroke="#7FA3C0" stroke-width="1.2"/>`
+};
+
+/* ══ 状態 ═════════════════════════════════════════════════ */
 let S = null, uid = 0;
 const mk = id => Object.assign({id, uid:++uid}, CARDS[id]);
+const shuffle = a => { const r=a.slice();
+  for(let i=r.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[r[i],r[j]]=[r[j],r[i]];} return r; };
 
 function newRun(){
-  S = {battle:0, turn:1, hp:MAXHP, block:0, energy:ENERGY,
-       wand:[], hand:[], deck:[], discard:[], foes:[], target:0, over:null};
+  S = {battle:0, round:1, phase:1, hp:MAXHP, block:0, energy:ENERGY,
+       wand:[], hand:[], deck:[], discard:[], foes:[], target:0, over:null, flash:[]};
   S.deck = shuffle(START_DECK.map(mk));
   startBattle(0);
 }
-function shuffle(a){const r=a.slice();for(let i=r.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[r[i],r[j]]=[r[j],r[i]];}return r;}
-
 function startBattle(i){
-  S.battle = i; S.turn = 1; S.block = 0;
+  S.battle = i; S.round = 1; S.phase = 1; S.block = 0; S.energy = ENERGY;
   S.discard = S.discard.concat(S.wand, S.hand);
   S.wand = []; S.hand = [];
-  S.foes = BATTLES[i].foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.hp, atk:f.atk}));
+  S.foes = BATTLES[i].foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.hp, atk:f.atk, art:f.art}));
   S.target = 0;
-  S.energy = ENERGY;
-  draw(HAND);
+  draw(DRAW1);
 }
 function draw(n){
   for (let k=0;k<n;k++){
@@ -321,7 +336,7 @@ function draw(n){
   }
 }
 
-/* ── 杖 VM ───────────────────────────────────────────── */
+/* ══ 杖 VM ════════════════════════════════════════════════ */
 const newBuf = () => ({split:1, pierce:0, splash:0});
 const alive = st => st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
 function nextAlive(st, from){
@@ -329,65 +344,55 @@ function nextAlive(st, from){
   for (const i of a) if (i > from) return i;
   return a[0];
 }
-
 function hit(st, i, amount, log){
   const f = st.foes[i];
   if (!f || f.hp<=0) return;
   const d = Math.max(0, Math.round(amount));
   f.hp -= d;
-  log.push({k:"hit", t:`    ${f.name} −${d}`});
-  if (f.hp<=0){ f.hp = 0; log.push({k:"kill", t:`    ${f.name} 撃破`}); }
+  if (st.flash) st.flash.push(i);
+  log.push({k:"fire", t:`  ${f.name} −${d}`});
+  if (f.hp<=0){ f.hp = 0; log.push({k:"total", t:`  ${f.name} 撃破`}); }
 }
-
 function fire(st, card, buf, tgt, log){
   const copies = buf.split;
   const base   = card.dmg * (copies>1 ? 0.5 : 1);
   const pierce = (card.pierce||0) + buf.pierce;
   const splash = buf.splash;
-
   const tags = [];
   if (copies>1) tags.push(`分裂${copies}`);
   if (pierce)   tags.push(`貫通${pierce}`);
   if (splash)   tags.push(`波及${splash}`);
-  log.push({k:"fire", t:`▸ ${card.name}  ${Math.round(base)}${tags.length?"  ["+tags.join(" ")+"]":""}`});
+  log.push({k:"fire", t:`▸ ${card.name} ${Math.round(base)}${tags.length?" ["+tags.join(" ")+"]":""}`});
 
+  // 複製は「別の敵」へ飛ぶ。飛び先がなければ消える（単体相手では分裂は弱い）
+  const used = new Set();
   let cur = tgt;
   for (let c=0;c<copies;c++){
     let aim = cur;
-    if (!st.foes[aim] || st.foes[aim].hp<=0){
-      aim = nextAlive(st, aim);
-      if (aim<0) break;
-    }
+    if (!st.foes[aim] || st.foes[aim].hp<=0) aim = nextAlive(st, aim);
+    if (aim<0 || used.has(aim)) { if (c>0) log.push({k:"note", t:`  · 複製 ${copies-c} は飛び先なし`}); break; }
+    used.add(aim);
     for (let p=0, ptr=aim; p<=pierce && ptr<st.foes.length; p++, ptr++){
       if (st.foes[ptr].hp>0) hit(st, ptr, base, log);
     }
     if (splash){
-      for (const j of [aim-1, aim+1]){
+      for (const j of [aim-1, aim+1])
         if (st.foes[j] && st.foes[j].hp>0) hit(st, j, base*0.5*splash, log);
-      }
     }
-    cur = nextAlive(st, cur);
+    cur = nextAlive(st, aim);
     if (cur<0) break;
   }
 }
-
 function runCast(st, wand, tgt, log){
   let buf = newBuf();
   for (const c of wand){
-    if (c.type === "modifier"){
-      Object.assign(buf, c.mod);
-      log.push({k:"mod", t:`+ ${c.name}  → バッファ`});
-    } else if (c.type === "projectile"){
-      fire(st, c, buf, tgt, log);
-      buf = newBuf();
-    }
+    if (c.type === "modifier"){ Object.assign(buf, c.mod); log.push({k:"mod", t:`+ ${c.name}`}); }
+    else if (c.type === "projectile"){ fire(st, c, buf, tgt, log); buf = newBuf(); }
   }
   const tail = [];
   for (let j=wand.length-1; j>=0 && wand[j].type==="modifier"; j--) tail.unshift(wand[j].name);
-  if (tail.length) log.push({k:"note", t:`· 不発：${tail.join("・")}（後ろに発射体がない）`});
+  if (tail.length) log.push({k:"note", t:`· 不発：${tail.join("・")}`});
 }
-
-/* ── プレビュー：盤面を複製して同じ VM を走らせる ─────────── */
 function preview(){
   if (!S.wand.length) return {log:[], hp:S.foes.map(f=>f.hp)};
   const st = {foes:S.foes.map(f=>({name:f.name, hp:f.hp}))};
@@ -396,13 +401,13 @@ function preview(){
   return {log, hp:st.foes.map(f=>f.hp)};
 }
 
-/* ── 行動 ─────────────────────────────────────────────── */
+/* ══ 行動 ═════════════════════════════════════════════════ */
 function loadCard(i){
   const c = S.hand[i];
   if (!c || S.over || S.energy < c.cost) return;
   if (c.type === "utility"){
-    S.energy -= c.cost; S.hand.splice(i,1); S.discard.push(c);
-    S.block += c.block; render(); return;
+    S.energy -= c.cost; S.hand.splice(i,1); S.discard.push(c); S.block += c.block;
+    return render();
   }
   if (S.wand.length >= CAP) return;
   S.energy -= c.cost; S.hand.splice(i,1); S.wand.push(c);
@@ -411,8 +416,7 @@ function loadCard(i){
 function unload(i){
   if (S.over) return;
   const c = S.wand.splice(i,1)[0];
-  S.hand.push(c);
-  S.energy = Math.min(ENERGY, S.energy + c.cost);
+  S.hand.push(c); S.energy = Math.min(ENERGY, S.energy + c.cost);
   render();
 }
 function move(i, d){
@@ -426,54 +430,63 @@ function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render
 function cast(){
   if (!S.wand.length || S.over) return;
   const log = [];
+  S.flash = [];
   runCast(S, S.wand, S.target, log);
   S.discard = S.discard.concat(S.wand);
   S.wand = [];
   if (!S.foes.some(f=>f.hp>0)) return winBattle();
-  render(log);
+  if (!S.foes[S.target] || S.foes[S.target].hp<=0){
+    const n = nextAlive(S, -1); if (n>=0) S.target = n;
+  }
+  advance(log);
 }
+function pass(){ if (!S.over) advance([{k:"note", t:"· 見送った"}]); }
 
-function endTurn(){
-  if (S.over) return;
-  const log = [];
+/** フェーズを進める。2 回目の後に敵が動く。 */
+function advance(log){
+  if (S.phase < CASTS){
+    S.phase++;
+    S.energy = ENERGY;
+    draw(DRAW2);
+    return render(log);
+  }
   for (const f of S.foes){
     if (f.hp<=0) continue;
     let d = f.atk;
-    const absorbed = Math.min(S.block, d);
-    S.block -= absorbed; d -= absorbed;
+    const abs = Math.min(S.block, d);
+    S.block -= abs; d -= abs;
     S.hp -= d;
-    log.push({k:"foe", t:`${f.name} の攻撃  −${d}${absorbed?`（防御 ${absorbed} 吸収）`:""}`});
+    log.push({k:"foe", t:`${f.name} の攻撃 −${d}${abs?`（防御 ${abs}）`:""}`});
   }
   if (S.hp <= 0) return lose();
-  S.turn++;
-  S.energy = ENERGY;
-  S.block = 0;
-  S.discard = S.discard.concat(S.hand);
-  S.hand = [];
-  draw(HAND);
+  S.round++; S.phase = 1;
+  S.energy = ENERGY; S.block = 0;
+  S.discard = S.discard.concat(S.hand); S.hand = [];
+  draw(DRAW1);
   render(log);
 }
 
-/* ── 結末 ─────────────────────────────────────────────── */
+/* ══ 結末 ═════════════════════════════════════════════════ */
 function winBattle(){
   if (S.battle === 0){
-    S.hp = Math.min(MAXHP, S.hp + 12);
+    S.hp = Math.min(MAXHP, S.hp + 14);
     veil(`<h2>的を崩した</h2><div class="sub">battle 1 cleared</div>
-      <p>次は 3 体が横に並ぶ。ここから <b>貫通・拡大・三分裂</b> が意味を持ちはじめる。
-      どの敵を狙うかで、同じ杖でも結果が変わる。</p>
-      <p style="color:var(--heal)">体力を 12 回復した。</p>
+      <p>次は 3 体。<b>1 回目の詠唱が 2 回目の盤面を作る</b>——前列を倒せば貫通の届く先が変わり、
+      残せば通り道になる。どちらを選ぶかがこの戦闘の中身です。</p>
+      <p style="color:var(--heal)">体力を 14 回復した。</p>
       <button class="btn cast" id="veilgo">進む</button>`,
       ()=>{ hideVeil(); startBattle(1); render(); });
   } else {
     S.over = "win";
     veil(`<h2>三体を退けた</h2><div class="sub">prototype cleared</div>
-      <p>確かめたいのは 1 点だけ——<b>並べ替えるために手が止まったか</b>。</p>
+      <p>今回の変更で見たいのはここです。</p>
       <ul>
-        <li>順序を悩んだ瞬間があったか</li>
-        <li>「積んでから撃つ」を選んだターンがあったか</li>
-        <li>それとも毎ターン同じ並びに落ち着いたか</li>
+        <li>「小さく 2 回」と「積んで大きく 1 回」を選び分けたか</li>
+        <li>1 回目の結果を見て 2 回目の狙いや並びを変えたか</li>
+        <li>それとも、2 回とも同じことをしていたか</li>
       </ul>
-      <p>3 つ目なら、足すべきは機能ではなく、順序に意味を与える別の何かです。</p>
+      <p>3 つ目なら、詠唱どうしがまだ独立しています。次に足すのは
+      <b>1 回目が 2 回目を強化するカード</b>——つまりバフです。</p>
       <button class="btn cast" id="veilgo">最初から</button>`,
       ()=>{ hideVeil(); newRun(); render(); });
   }
@@ -481,97 +494,100 @@ function winBattle(){
 function lose(){
   S.over = "lose";
   veil(`<h2>詠唱は途絶えた</h2><div class="sub">defeated</div>
-    <p>積んでいる間は無防備です。大きな杖を組むターンと、防御に回すターンの配分がこのゲームの中身。</p>
+    <p>敵が動くのは 2 回撃った後。積むターンと防御に回すターンの配分がこのゲームの中身です。</p>
     <button class="btn cast" id="veilgo">最初から</button>`,
     ()=>{ hideVeil(); newRun(); render(); });
 }
 function veil(html, cb){
-  const v = document.getElementById("veil");
   document.getElementById("veilbox").innerHTML = html;
-  v.classList.remove("hidden");
+  document.getElementById("veil").classList.remove("hidden");
   const b = document.getElementById("veilgo");
   if (b){ b.onclick = cb; b.focus(); }
 }
 function hideVeil(){ document.getElementById("veil").classList.add("hidden"); }
 
-/* ── 結合括弧 ─────────────────────────────────────────── */
+/* ══ 結合括弧 ═════════════════════════════════════════════ */
 function analyzeGroups(wand){
   const out = []; let i = 0;
   while (i < wand.length){
     if (wand[i].type === "modifier"){
       let j = i;
       while (j < wand.length && wand[j].type === "modifier") j++;
-      if (j < wand.length){ mark(out, i, j, "修飾 ▸ " + wand[j].name); i = j+1; }
-      else { mark(out, i, j-1, "不発 — 発射体なし"); i = j; }
+      if (j < wand.length){ mark(out, i, j, "▸ " + wand[j].name); i = j+1; }
+      else { mark(out, i, j-1, "不発"); i = j; }
       continue;
     }
-    out[i] = {pos:"start end", label:"発射"};
-    i++;
+    out[i] = {pos:"start end", label:"発射"}; i++;
   }
   return out;
 }
 function mark(out, a, b, label){
-  for (let k=a;k<=b;k++){
-    out[k] = {pos: (k===a&&k===b)?"start end" : k===a?"start" : k===b?"end" : "mid",
-              label: k===a ? label : ""};
-  }
+  for (let k=a;k<=b;k++)
+    out[k] = {pos:(k===a&&k===b)?"start end":k===a?"start":k===b?"end":"mid", label:k===a?label:""};
 }
 
-/* ── 描画 ─────────────────────────────────────────────── */
+/* ══ 描画 ═════════════════════════════════════════════════ */
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $ = id => document.getElementById(id);
 
 function render(extraLog){
   const pv = preview();
 
-  document.getElementById("s-battle").textContent = S.battle+1;
-  document.getElementById("s-turn").textContent = S.turn;
+  $("v-hp").textContent = Math.max(0,S.hp);
+  $("hpfill").style.width = Math.max(0, S.hp/MAXHP*100) + "%";
+  $("v-block").textContent = S.block;
+  $("v-energy").textContent = S.energy;
+  $("s-round").textContent = `ラウンド ${S.round}`;
+  $("pips").innerHTML = Array.from({length:CASTS}, (_,i)=>
+    `<span class="pip ${i+1===S.phase?"on":i+1<S.phase?"spent":""}"></span>`).join("");
 
-  const foes = document.getElementById("foes");
-  foes.innerHTML = "";
+  // 敵
+  const arena = $("arena");
+  [...arena.querySelectorAll(".foe")].forEach(n=>n.remove());
   S.foes.forEach((f,i)=>{
-    const el = document.createElement("button");
-    el.className = "foe" + (f.hp<=0 ? " dead" : "");
-    el.setAttribute("aria-pressed", String(S.target===i));
-    el.disabled = f.hp<=0;
+    const b = document.createElement("button");
+    b.className = "foe" + (f.hp<=0 ? " dead" : "") + (S.flash.includes(i) ? " flash" : "");
+    b.setAttribute("aria-pressed", String(S.target===i));
+    b.disabled = f.hp<=0;
     const after = pv.hp[i], delta = f.hp - after;
-    const wNow = Math.max(0, f.hp/f.maxHp*100), wAfter = Math.max(0, after/f.maxHp*100);
-    el.innerHTML =
-      `<div class="foe-top"><span class="foe-name">${i+1}. ${esc(f.name)}</span>`+
-      `<span class="foe-hp">${f.hp} / ${f.maxHp}</span></div>`+
-      `<div class="bar"><i style="width:${wAfter}%"></i>`+
-      (delta>0?`<span class="prev" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+`</div>`+
-      `<div class="intentrow"><span class="intent">${f.hp>0?`攻撃 <b>${f.atk}</b>`:`—`}</span>`+
-      (delta>0?`<span class="pdelta">−${delta}</span>`:``)+`</div>`;
-    el.onclick = ()=>selectTarget(i);
-    foes.appendChild(el);
+    const wNow = Math.max(0,f.hp/f.maxHp*100), wAfter = Math.max(0,after/f.maxHp*100);
+    b.innerHTML =
+      (delta>0?`<span class="fdelta">−${delta}</span>`:``)+
+      `<span class="fnum">${i+1}</span>`+
+      `<svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">${ART[f.art]}</svg>`+
+      `<span class="fname">${esc(f.name)}</span>`+
+      `<span class="fbar"><i style="width:${wAfter}%"></i>`+
+      (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+`</span>`+
+      `<span class="fhp">${f.hp} / ${f.maxHp}</span>`+
+      `<span class="fatk">${f.hp>0?`攻撃 <b>${f.atk}</b>`:"—"}</span>`+
+      `<span class="aim"></span>`;
+    b.onclick = ()=>selectTarget(i);
+    arena.insertBefore(b, $("log"));
   });
+  S.flash = [];
 
-  const slots = document.getElementById("slots");
-  slots.innerHTML = "";
+  // 杖
+  const slots = $("slots"); slots.innerHTML = "";
   for (let i=0;i<CAP;i++){
     const c = S.wand[i];
     const d = document.createElement("div");
     d.className = "slot" + (c ? " filled" : "");
     if (c){
-      d.innerHTML = `<span class="idx">${i+1}</span>`+
-        `<div class="ckind k-${c.type}">${KIND_JA[c.type]}</div>`+
-        `<div class="cname">${esc(c.name)}</div>`+
-        `<div class="ctext">${esc(c.text)}</div>`+
-        `<div class="slotctl">
+      d.title = c.text;
+      d.innerHTML = `<span class="sidx">${i+1}</span>`+
+        `<span class="sk k-${c.type}">${KIND_JA[c.type]}</span>`+
+        `<span class="sn">${esc(c.name)}</span>`+
+        `<span class="sctl">
            <button data-a="l" ${i===0?"disabled":""} title="左へ">◀</button>
            <button data-a="r" ${i===S.wand.length-1?"disabled":""} title="右へ">▶</button>
-           <button data-a="x" title="手札に戻す">✕</button></div>`;
+           <button data-a="x" title="手札に戻す">✕</button></span>`;
       d.querySelector('[data-a="l"]').onclick = ()=>move(i,-1);
       d.querySelector('[data-a="r"]').onclick = ()=>move(i,1);
       d.querySelector('[data-a="x"]').onclick = ()=>unload(i);
-    } else {
-      d.innerHTML = `<span class="idx">${i+1}</span><span class="empty">空</span>`;
-    }
+    } else d.innerHTML = `<span class="sidx">${i+1}</span><span class="sempty">空</span>`;
     slots.appendChild(d);
   }
-
-  const binds = document.getElementById("binds");
-  binds.innerHTML = "";
+  const binds = $("binds"); binds.innerHTML = "";
   const g = analyzeGroups(S.wand);
   for (let i=0;i<CAP;i++){
     const d = document.createElement("div");
@@ -580,57 +596,38 @@ function render(extraLog){
     binds.appendChild(d);
   }
 
-  document.getElementById("castcost").textContent =
-    S.wand.length ? `詠唱は無料。撃つと杖は空になる。` : `杖が空。手札から装填する。`;
-  const cb = document.getElementById("btn-cast");
-  cb.disabled = !S.wand.length || !!S.over; cb.onclick = cast;
-  const eb = document.getElementById("btn-end");
-  eb.disabled = !!S.over; eb.onclick = endTurn;
-
-  const logEl = document.getElementById("log");
-  logEl.innerHTML = "";
+  // ログ（隅・最大6行）
   const lines = [];
-  if (extraLog && extraLog.length){
-    lines.push({k:"note", t:"── 直前 ──"}, ...extraLog, {k:"note", t:""});
-  }
+  if (extraLog && extraLog.length) lines.push(...extraLog);
   if (S.wand.length){
-    lines.push({k:"note", t:`── いま詠唱すると（狙い：${S.foes[S.target]?S.foes[S.target].name:"—"}）──`});
     lines.push(...pv.log);
-    const total = S.foes.reduce((a,f,i)=>a + Math.max(0, f.hp - pv.hp[i]), 0);
-    lines.push({k:"note", t:""}, {k:"total", t:`合計 ${total} ダメージ`});
-  } else if (!extraLog || !extraLog.length){
-    lines.push({k:"note", t:"カードを装填すると、ここに結果が出る。"},
-               {k:"note", t:"盤面を複製して同じ処理を走らせているので、"},
-               {k:"note", t:"表示と実際の結果は必ず一致する。"});
+    const total = S.foes.reduce((a,f,i)=>a+Math.max(0,f.hp-pv.hp[i]),0);
+    lines.push({k:"total", t:`合計 ${total}`});
   }
-  for (const l of lines){
-    const d = document.createElement("div");
-    d.className = "l-" + l.k; d.textContent = l.t;
-    logEl.appendChild(d);
-  }
+  $("log").innerHTML = lines.slice(-6)
+    .map(l=>`<div class="r-${l.k}">${esc(l.t)}</div>`).join("");
 
-  const hand = document.getElementById("hand");
-  hand.innerHTML = "";
+  // 手札
+  const hand = $("hand"); hand.innerHTML = "";
   S.hand.forEach((c,i)=>{
     const b = document.createElement("button");
     b.className = "card";
     b.disabled = !!S.over || S.energy < c.cost ||
                  (c.type !== "utility" && S.wand.length >= CAP);
     b.innerHTML =
-      `<div class="ckind k-${c.type}">${KIND_JA[c.type]}</div>`+
-      `<div class="cname">${esc(c.name)}</div>`+
-      `<div class="ctext">${esc(c.text)}</div>`+
-      `<div class="cfoot">⚡${c.cost}${c.type==="utility"?"　即時":""}</div>`;
+      `<span class="ck k-${c.type}">${KIND_JA[c.type]}</span>`+
+      `<span class="cn">${esc(c.name)}</span>`+
+      `<span class="ct">${esc(c.text)}</span>`+
+      `<span class="cc">⚡${c.cost}${c.type==="utility"?"　即時":""}</span>`;
     b.onclick = ()=>loadCard(i);
     hand.appendChild(b);
   });
 
-  document.getElementById("v-hp").textContent = Math.max(0,S.hp) + " / " + MAXHP;
-  document.getElementById("v-block").textContent = S.block;
-  document.getElementById("v-energy").textContent = S.energy + " / " + ENERGY;
-  document.getElementById("p-cap").textContent = S.wand.length + " / " + CAP;
-  document.getElementById("p-deck").textContent = S.deck.length;
-  document.getElementById("p-disc").textContent = S.discard.length;
+  const cb = $("btn-cast"); cb.disabled = !S.wand.length || !!S.over; cb.onclick = cast;
+  const pb = $("btn-pass"); pb.disabled = !!S.over; pb.onclick = pass;
+  $("hint").textContent = S.phase < CASTS
+    ? `撃たずに次の詠唱へ回せる（杖は残る）`
+    : `この詠唱の後、敵が動く`;
 }
 
 newRun();

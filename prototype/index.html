@@ -46,6 +46,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 /* ═══ 画面1：射的屋 ═══ */
 #board{position:absolute;inset:0;width:100%;height:100%;display:block}
 #prizes{position:absolute;inset:0;pointer-events:none;z-index:2}
+#fx{position:absolute;inset:0;width:100%;height:100%;display:block;
+  image-rendering:pixelated;pointer-events:none;z-index:4}
 #sign{position:absolute;left:50%;top:1.2%;transform:translateX(-50%);z-index:3;
   width:26%;height:11.5%;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:.1em;pointer-events:none}
@@ -195,6 +197,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <canvas id="board"></canvas>
     <div id="sign"><b>射 的</b><i>SHATEKI</i></div>
     <div id="prizes"></div>
+    <canvas id="fx"></canvas>
     <div class="hud">
       <div class="l">
         <span class="chip solid">第<b id="s-floor">1</b>層</span>
@@ -446,7 +449,7 @@ function cardHTML(c, opt){
 
 /* ═══════ 剛体（OBB）— 押す・ぶつかる・傾く・倒れる ═══════
    当たったら落ちる、ではなく、当たった点に力積を与えて結果を計算する。 */
-const GRAV_A = 210, DAMP = 0.06, ADAMP = 0.10;
+const GRAV_A = 210, DAMP = 0.55, ADAMP = 0.85;
 const REST = 0.02, MU = 0.55;          // 反発・摩擦（滑るより倒れやすく）
 const ITER = 10, SLOP = 0.02, CORR = 0.7;
 
@@ -560,6 +563,7 @@ function fire(){
     S.shots.push({x:GUN.x, y:GUN.y, tx:ret.x+o.x, ty:ret.y+o.y, t:0, live:true});
   }
   S.mode = "shot";
+  S.settle = 0; S.frames = 0;
   renderHud();
 }
 function land(sh){
@@ -642,14 +646,18 @@ function physics(){
   for (const s of sparks){ s.vy += GRAV_A*DT*0.5; s.x += s.vx*DT; s.y += s.vy*DT; s.t -= DT*2.2; }
   sparks = sparks.filter(s=>s.t>0);
   S.settle = S.prizes.some(p=>p.state==="live" &&
-    (Math.abs(p.b.vx)>0.6 || Math.abs(p.b.vy)>0.6 || Math.abs(p.b.av)>0.05))
+    (Math.abs(p.b.vx)>1.6 || Math.abs(p.b.vy)>1.6 || Math.abs(p.b.av)>0.14))
     ? 0 : (S.settle||0) + 1;
   S.frames = (S.frames||0) + 1;
+  if (S.frames > 420){                       // 保険：止まらない時は強制的に止める
+    for (const p of S.prizes)
+      if (p.state === "live"){ p.b.vx = 0; p.b.vy = 0; p.b.av = 0; }
+  }
 }
 function settled(){
   if (S.shots.some(sh=>sh.live)) return false;
-  if (S.frames > 900) return true;              // 保険
-  return (S.settle||0) > 24;
+  if (S.frames > 450) return true;              // 保険
+  return (S.settle||0) > 10;
 }
 
 /* ═══════ 杖 VM ═══════ */
@@ -819,7 +827,10 @@ const PX = 3;                                  // 1 ゲーム単位 = 3 ドッ�
 const DEP = 4;                                 // 奥行き（上面・側面の見え幅）
 
 function fitCanvas(){
-  cv.width = GW*PX; cv.height = GH*PX;         // 低解像度で描いて拡大
+  cv.width = GW*PX; cv.height = GH*PX;
+  const f = document.getElementById('fx');
+  f.width = GW*PX; f.height = GH*PX;
+  f.getContext('2d').imageSmoothingEnabled = false;         // 低解像度で描いて拡大
   ctx.imageSmoothingEnabled = false;
 }
 const X = v => Math.round(v*PX), Y = v => Math.round(v*PX);
@@ -859,7 +870,6 @@ function drawBoard(){
   ctx.fillRect(X(192), Y(11), X(6), Y(97));
 
   // 倒れた札は棚より奥
-  for (const p of S.prizes) if (p.state === "live" && p.b.y > FLOOR-14) drawPrize(p);
 
   // 棚（板と金の縁）
   for (const sh of SHELVES){
@@ -869,11 +879,6 @@ function drawBoard(){
     ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(3.4), R-L, PX);
   }
 
-  // 火花
-  for (const sp of sparks){
-    ctx.fillStyle = `rgba(224,178,60,${sp.t})`;
-    ctx.fillRect(X(sp.x), Y(sp.y), PX*2, PX*2);
-  }
 
   // 上の帯と看板（HUD と同じ意匠）
   ctx.fillStyle = "#0E1226"; ctx.fillRect(0, 0, cv.width, Y(12));
@@ -890,30 +895,6 @@ function drawBoard(){
   }
   ctx.fillStyle = "#8A6E22"; ctx.fillRect(X(72), Y(1), X(56), Y(11));
   ctx.fillStyle = "#1B2036"; ctx.fillRect(X(72)+PX, Y(1)+PX, X(56)-PX*2, Y(11)-PX*2);
-
-  // 照準
-  if (S.phase==="shoot" && S.mode === "aim" && S.corks > 0){
-    const r = S.gun.spread;
-    ctx.strokeStyle = "rgba(232,84,50,.40)"; ctx.lineWidth = PX;
-    ctx.setLineDash([2*PX, 2*PX]);
-    ctx.beginPath(); ctx.arc(X(ret.x), Y(ret.y), r*PX, 0, Math.PI*2); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.strokeStyle = "#E85432"; ctx.lineWidth = PX*1.4;
-    ctx.beginPath(); ctx.arc(X(ret.x), Y(ret.y), 5*PX, 0, Math.PI*2); ctx.stroke();
-    ctx.beginPath();
-    for (const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
-      ctx.moveTo(X(ret.x)+dx*3.4*PX, Y(ret.y)+dy*3.4*PX);
-      ctx.lineTo(X(ret.x)+dx*8.5*PX, Y(ret.y)+dy*8.5*PX);
-    }
-    ctx.stroke();
-  }
-
-  // 飛んでいる弾
-  for (const sh of S.shots){
-    if (!sh.live) continue;
-    const cx = sh.x + (sh.tx-sh.x)*sh.t, cy = sh.y + (sh.ty-sh.y)*sh.t;
-    ctx.fillStyle = "#F2DDAC"; ctx.fillRect(X(cx)-PX, Y(cy)-PX*2, PX*2, PX*4);
-  }
 
   // 手前の台
   ctx.fillStyle = "#1B2036"; ctx.fillRect(0, Y(106), cv.width, Y(6));
@@ -933,6 +914,42 @@ function drawBoard(){
   ctx.fillStyle = "#232941"; ctx.fillRect(-32*PX, -2*PX, 3*PX, 4*PX);
   ctx.restore();
 
+}
+
+/** 前面レイヤ：照準・弾・火花（札の DOM より手前に出す） */
+const fxc = document.getElementById("fx");
+const fx = fxc.getContext("2d");
+function drawFx(){
+  if (!S) return;
+  fx.clearRect(0,0,fxc.width,fxc.height);
+  // 照準
+  if (S.phase==="shoot" && S.mode === "aim" && S.corks > 0){
+    const r = S.gun.spread;
+    fx.strokeStyle = "rgba(232,84,50,.40)"; fx.lineWidth = PX;
+    fx.setLineDash([2*PX, 2*PX]);
+    fx.beginPath(); fx.arc(X(ret.x), Y(ret.y), r*PX, 0, Math.PI*2); fx.stroke();
+    fx.setLineDash([]);
+    fx.strokeStyle = "#E85432"; fx.lineWidth = PX*1.4;
+    fx.beginPath(); fx.arc(X(ret.x), Y(ret.y), 5*PX, 0, Math.PI*2); fx.stroke();
+    fx.beginPath();
+    for (const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
+      fx.moveTo(X(ret.x)+dx*3.4*PX, Y(ret.y)+dy*3.4*PX);
+      fx.lineTo(X(ret.x)+dx*8.5*PX, Y(ret.y)+dy*8.5*PX);
+    }
+    fx.stroke();
+  }
+
+  // 飛んでいる弾
+  for (const sh of S.shots){
+    if (!sh.live) continue;
+    const cx = sh.x + (sh.tx-sh.x)*sh.t, cy = sh.y + (sh.ty-sh.y)*sh.t;
+    fx.fillStyle = "#F2DDAC"; fx.fillRect(X(cx)-PX, Y(cy)-PX*2, PX*2, PX*4);
+  }
+
+  for (const sp of sparks){
+    fx.fillStyle = `rgba(224,178,60,${sp.t})`;
+    fx.fillRect(X(sp.x), Y(sp.y), PX*2, PX*2);
+  }
 }
 
 /** 棚の札を、戦闘とまったく同じ .card 部品で配置する */
@@ -969,27 +986,27 @@ function aimFromEvent(ev){
   ret.x = Math.max(8, Math.min(GW-8, (ev.clientX - r.left) / r.width  * GW));
   ret.y = Math.max(16, Math.min(103,  (ev.clientY - r.top ) / r.height * GH));
 }
-cv.addEventListener("pointermove", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawBoard(); } });
-cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawBoard(); } });
+cv.addEventListener("pointermove", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawFx(); } });
+cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawFx(); } });
 window.addEventListener("keydown", ev=>{
   if (!S || S.over) return;
   if (S.phase === "shoot"){
     if (S.mode!=="aim") return;
     const step = ev.shiftKey ? 1 : 4;
-    if (ev.key==="ArrowRight"){ ret.x = Math.min(GW-8, ret.x+step); drawBoard(); ev.preventDefault(); }
-    if (ev.key==="ArrowLeft"){  ret.x = Math.max(8,    ret.x-step); drawBoard(); ev.preventDefault(); }
-    if (ev.key==="ArrowUp"){    ret.y = Math.max(16,   ret.y-step); drawBoard(); ev.preventDefault(); }
-    if (ev.key==="ArrowDown"){  ret.y = Math.min(103,  ret.y+step); drawBoard(); ev.preventDefault(); }
+    if (ev.key==="ArrowRight"){ ret.x = Math.min(GW-8, ret.x+step); drawFx(); ev.preventDefault(); }
+    if (ev.key==="ArrowLeft"){  ret.x = Math.max(8,    ret.x-step); drawFx(); ev.preventDefault(); }
+    if (ev.key==="ArrowUp"){    ret.y = Math.max(16,   ret.y-step); drawFx(); ev.preventDefault(); }
+    if (ev.key==="ArrowDown"){  ret.y = Math.min(103,  ret.y+step); drawFx(); ev.preventDefault(); }
     if (ev.key===" "){ fire(); ev.preventDefault(); }
     if (ev.key==="Enter"){ toFight(); ev.preventDefault(); }
   } else if (ev.key===" "){ cast(); ev.preventDefault(); }
 });
-new ResizeObserver(()=>{ fitCanvas(); drawBoard(); syncPrizes(); }).observe(cv);
+new ResizeObserver(()=>{ fitCanvas(); drawBoard(); syncPrizes(); drawFx(); }).observe(cv);
 
 function tick(){
   if (S && (S.mode === "shot" || S.mode === "sim")){
-    for (let k=0;k<3;k++) physics();
-    drawBoard(); syncPrizes();
+    for (let k=0;k<4;k++) physics();
+    drawBoard(); syncPrizes(); drawFx();
     renderShootFoot();
     if (settled()){
       if (S.corks > 0){ S.mode = "aim"; renderHud(); }
@@ -1034,7 +1051,7 @@ function render(){
   renderHud();
   $("shoot").classList.toggle("off", S.phase!=="shoot");
   $("fight").classList.toggle("off", S.phase!=="fight");
-  if (S.phase === "shoot"){ fitCanvas(); drawBoard(); syncPrizes(); return; }
+  if (S.phase === "shoot"){ fitCanvas(); drawBoard(); syncPrizes(); drawFx(); return; }
 
   const pv = preview();
 

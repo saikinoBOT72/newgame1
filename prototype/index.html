@@ -64,6 +64,41 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .gotcard{font-family:var(--f-body);font-size:.74em;padding:.25em .6em;
   background:#171B33;border:2px solid;font-weight:400}
 
+/* ═══ 画面0：ダンジョン ═══ */
+#dungeon{background:#0C0F1E}
+.map{position:absolute;inset:14% 6% 12%;}
+.corr{position:absolute;background:#2A3050;z-index:1}
+.room{position:absolute;width:6.2em;height:6.2em;transform:translate(-50%,-50%);
+  background:#1B2036;border:3px solid #333B5C;display:flex;align-items:center;
+  justify-content:center;z-index:2;transition:border-color .1s,background .1s}
+.room .rspr{width:3.4em;height:3.4em;image-rendering:pixelated}
+.room.done{opacity:.4}
+.room.here{border-color:var(--gold);background:#241F14;box-shadow:3px 3px 0 rgba(224,178,60,.35)}
+.room.open{border-color:#6FA8D6;cursor:pointer}
+.room.open:hover{background:#22304A;border-color:var(--gold)}
+.room.locked{opacity:.55;cursor:default}
+.you{position:absolute;width:1.5em;height:2em;background:var(--gold);
+  border:2px solid #F0D07A;box-shadow:0 -.7em 0 -.25em var(--gold);
+  transform:translate(-50%,-50%);z-index:3;
+  transition:left .18s steps(4),top .18s steps(4)}
+.dtip{position:absolute;left:0;right:0;bottom:3.5%;text-align:center;
+  font-family:var(--f-mono);font-size:.8em;color:var(--faint);letter-spacing:.1em}
+
+/* ═══ 画面3：報酬 ═══ */
+#reward{background:#0C0F1E;align-items:center;justify-content:center}
+.rwrap{display:flex;flex-direction:column;align-items:center;gap:.9em;padding:2em}
+.rwrap h2{font-family:var(--f-disp);font-size:1.7em;margin:0;color:var(--gold);letter-spacing:.1em}
+.rwrap p{margin:0;color:var(--mute);font-size:.9em}
+.picks3{display:flex;gap:1.2em;align-items:stretch}
+.pk{width:11em;min-height:13em;background:#1B2036;border:3px solid #39415F;
+  padding:.8em .7em;display:flex;flex-direction:column;align-items:center;gap:.5em;
+  transition:border-color .1s,background .1s;text-align:center}
+.pk:hover{border-color:var(--gold);background:#241F14}
+.pk .pkh{font-family:var(--f-mono);font-size:.58em;letter-spacing:.2em;color:var(--faint)}
+.pk .pkn{font-family:var(--f-disp);font-size:1.05em;color:var(--ivory)}
+.pk .pkd{font-size:.72em;color:var(--mute);line-height:1.4;margin-top:auto}
+.pk .card{pointer-events:none;box-shadow:none;margin:0}
+
 /* ═══ 画面2：戦闘（2枚目の参照） ═══ */
 #fight{background:#12162E}
 .arena{flex:1 1 auto;display:flex;align-items:center;justify-content:center;
@@ -218,6 +253,32 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     </div>
   </div>
 
+  <!-- ══ 画面0：ダンジョン ══ -->
+  <div class="screen off" id="dungeon">
+    <div class="hud">
+      <div class="l">
+        <span class="chip solid"><b id="d-floor">1</b> 階</span>
+        <span class="chip">札 <b id="d-pool">17</b></span>
+      </div>
+      <div class="r">
+        <span class="chip">体力 <b class="hp" id="d-hp">70</b></span>
+        <span class="chip" id="d-gun">威力 1.0</span>
+      </div>
+    </div>
+    <div class="map" id="map"></div>
+    <div class="dtip" id="dtip">進む部屋を選ぶ</div>
+  </div>
+
+  <!-- ══ 画面3：報酬 ══ -->
+  <div class="screen off" id="reward">
+    <div class="rwrap">
+      <h2 id="r-title">報酬</h2>
+      <p id="r-sub"></p>
+      <div class="picks3" id="r-picks"></div>
+      <button class="btn" id="r-reroll">引き直す<small id="r-rr"></small></button>
+    </div>
+  </div>
+
   <!-- ══ 画面2：戦闘 ══ -->
   <div class="screen off" id="fight">
     <div class="hud">
@@ -243,6 +304,15 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 </div>
 
 <div class="notes">
+  <div>
+    <h3>流れ</h3>
+    <ul>
+      <li>ダンジョンの部屋を選んで進む。<b>戦闘</b>に入ると射的が始まる。</li>
+      <li>勝つと <b>3 つから 1 つ</b>（札の追加 / 鉄砲の強化）。<b>引き直し</b>が 1 回。</li>
+      <li><b>宝箱</b>は札 3 枚から 1 枚、<b>休息</b>は体力回復。</li>
+      <li><b>ボス</b>の報酬は根本的な強化（コルク +1・杖の容量 +1 など）。勝つと次の階へ。</li>
+    </ul>
+  </div>
   <div>
     <h3>射的</h3>
     <ul>
@@ -289,16 +359,18 @@ const CARDS = {
   enlarge: {name:"拡大",  type:"modifier", mod:{splash:1}, art:null, text:"波及 +1"},
   guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御 9（即時）"}
 };
-const POOL = ["fireball","fireball","fireball","shard","shard","shard","bolt","bolt",
-              "split3","split3","pierce","pierce","pierce","enlarge","enlarge","guard","guard"];
+for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 
-const BATTLES = [
-  {name:"一体", foes:[{name:"スライム", hp:28, atk:8, spr:"slime"}]},
-  {name:"三体", foes:[{name:"火蜥蜴", hp:30, atk:8, spr:"salamander"},
-                      {name:"石人",   hp:28, atk:6, spr:"golem"},
-                      {name:"蟲",     hp:18, atk:5, spr:"worm"}]}
+const POOL0 = ["fireball","fireball","fireball","shard","shard","shard","bolt","bolt",
+               "split3","split3","pierce","pierce","pierce","enlarge","enlarge","guard","guard"];
+
+const FOEDEX = [
+  {name:"スライム", hp:26, atk:7, spr:"slime"},
+  {name:"火蜥蜴",   hp:30, atk:8, spr:"salamander"},
+  {name:"石人",     hp:34, atk:6, spr:"golem"},
+  {name:"蟲",       hp:20, atk:5, spr:"worm"}
 ];
-const CAP = 5, CORKS = 2, MAXHP = 70;
+const MAXHP0 = 70;
 
 /* ═══════ 射的台（鏡像：銃は右手前） ═══════ */
 const CARD_AR = 5/7;                            // カードの縦横比。全画面で共通
@@ -330,27 +402,27 @@ const mk = id => Object.assign({id, uid:++uid}, CARDS[id]);
 const rnd = n => Math.random()*n;
 
 function newRun(){
-  S = {battle:0, round:1, hp:MAXHP, block:0, corks:CORKS, swaps:1,
-       wand:[], foes:[], target:0, over:null, mode:"aim", phase:"shoot",
-       prizes:[], shots:[], log:[], flash:[],
-       gun:Object.assign({}, BASE_GUN), owned:[]};
-  startBattle(0);
-}
-function startBattle(i){
-  S.battle = i; S.round = 1; S.block = 0;
-  S.foes = BATTLES[i].foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.hp, atk:f.atk, spr:f.spr}));
-  S.target = 0;
-  newRound();
-}
-function newRound(){
-  S.corks = CORKS; S.swaps = 1; S.wand = []; S.mode = "aim";
-  S.phase = "shoot"; S.shots = []; sparks = [];
+  S = {floor:1, hp:MAXHP0, maxHp:MAXHP0, block:0, corks:2, swaps:1,
+       corkMax:2, swapMax:1, cap:5,
+       pool:POOL0.slice(), gun:Object.assign({}, BASE_GUN), owned:[], core:[],
+       wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
+       prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
+       rooms:[], at:0, roffer:[], rkind:"battle", rerolls:1, boss:false};
+  S.rooms = genFloor(1);
+  S.rooms[0].done = true;
   stockShelves();
 }
+/** 1 ラウンド分の準備。コルクを戻して棚を並べ直す。 */
+function newRound(){
+  S.corks = S.corkMax; S.swaps = S.swapMax; S.wand = []; S.mode = "aim";
+  S.shots = []; sparks = [];
+  stockShelves();
+}
+
 /** 棚ごとに 2〜3 の束。1 束 = 下 2 枚 + その上に 1 枚。
     支え関係は書かない。ただ積むだけで、あとは剛体演算が決める。 */
 function newCard(x, y){
-  return {card: mk(POOL[Math.floor(rnd(POOL.length))]),
+  return {card: mk(S.pool[Math.floor(rnd(S.pool.length))]),
           b: mkBody(x, y, PW, PH, false), state:"live"};
 }
 function stockShelves(){
@@ -415,7 +487,20 @@ const ICONS = {
   guard:{p:["","#3F79A8","#6FA8D6","#255170","#A8D8F0"], d:[
     "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]}
 };
+const ROOMSPR = {
+  battle:{p:["","#E8836F","#8A3A2E","#F2C8BE"], d:[
+    "00000330","00003310","00033100","10331000","01310010","00100110","01001110","11011100"]},
+  chest:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+    "00000000","01111110","12222221","11111111","12211221","12233221","12222221","01111110"]},
+  rest:{p:["","#5FA86B","#2E6B38","#9CE0A4"], d:[
+    "00000000","01100110","13311331","13333331","01333310","00133100","00013000","00000000"]},
+  boss:{p:["","#C93A2C","#6E1A12","#F0A08A"], d:[
+    "00111100","01333310","13311331","13111131","13322331","01311310","00111100","01011010"]},
+  start:{p:["","#98A0B8","#3E4560","#D8DEEE"], d:[
+    "00011000","00133100","01333310","01311310","01311310","01333310","00133100","00011000"]}
+};
 function spriteSVG(sp, cls){
+  if (!sp) return "";
   let r = "";
   sp.d.forEach((row, y)=>{
     let x = 0;
@@ -596,7 +681,7 @@ function collect(card){
     S.log.push({k:"mod", t:`${card.name} → 防御 +${card.block}`});
     return;
   }
-  if (S.wand.length >= CAP){ S.log.push({k:"foe", t:`${card.name} は溢れた`}); return; }
+  if (S.wand.length >= S.cap){ S.log.push({k:"foe", t:`${card.name} は溢れた`}); return; }
   S.wand.push(card);
 }
 
@@ -721,7 +806,112 @@ function preview(){
   return {log, hp:st.foes.map(f=>f.hp)};
 }
 
-/* ═══════ 進行 ═══════ */
+/* ═══════ ダンジョン ═══════ */
+const ROOM_JA = {battle:"戦闘", chest:"宝箱", rest:"休息", boss:"ボス", start:"入口"};
+
+function genFloor(fl){
+  const cols = [];
+  cols.push([{t:"start"}]);
+  for (let c=1;c<=3;c++){
+    const n = 2;
+    const row = [];
+    for (let r=0;r<n;r++){
+      const roll = rnd(1);
+      row.push({t: roll < 0.62 ? "battle" : roll < 0.84 ? "chest" : "rest"});
+    }
+    if (!row.some(x=>x.t==="battle")) row[0].t = "battle";
+    cols.push(row);
+  }
+  cols.push([{t:"boss"}]);
+  const rooms = [];
+  cols.forEach((col, ci)=>{
+    col.forEach((rm, ri)=>{
+      rm.col = ci;
+      rm.x = 6 + ci*22;
+      rm.y = col.length === 1 ? 50 : (ri === 0 ? 26 : 74);
+      rm.i = rooms.length; rm.done = false; rm.next = [];
+      rooms.push(rm);
+    });
+  });
+  for (let ci=0; ci<cols.length-1; ci++)
+    for (const a of cols[ci]) for (const b of cols[ci+1]) a.next.push(b.i);
+  return rooms;
+}
+
+function makeFoes(kind, fl){
+  const n = kind === "boss" ? 3 : (rnd(1) < 0.55 ? 2 : 1);
+  const k = 1 + (fl-1)*0.30 + (kind === "boss" ? 0.55 : 0);
+  const pick = FOEDEX.slice().sort(()=>Math.random()-.5).slice(0, n);
+  return pick.map(f=>({name:f.name, spr:f.spr,
+                       hp: Math.round(f.hp*k), maxHp: Math.round(f.hp*k),
+                       atk: Math.max(3, Math.round(f.atk*(1+(fl-1)*0.18)))}));
+}
+
+function toDungeon(){ S.phase = "dungeon"; render(); }
+
+function enterRoom(i){
+  const rm = S.rooms[i];
+  if (!rm || rm.done) return;
+  const here = S.rooms[S.at];
+  if (!here.next.includes(i)) return;
+  S.at = i; rm.done = true;
+  if (rm.t === "rest"){
+    S.hp = Math.min(S.maxHp, S.hp + 26);
+    S.note = "焚き火で休んだ。体力 +26";
+    return render();
+  }
+  if (rm.t === "chest"){
+    return showReward("chest");
+  }
+  S.foes = makeFoes(rm.t, S.floor);
+  S.target = 0; S.block = 0; S.round = 1;
+  S.boss = rm.t === "boss";
+  newRound();
+  S.phase = "shoot";
+  render();
+}
+
+/* ═══════ 報酬 ═══════ */
+const CORE = [
+  {id:"cork", name:"弾薬箱", note:"コルクが 1 発増える", apply:()=>{ S.corkMax++; }},
+  {id:"cap",  name:"長い杖", note:"杖の容量 +1", apply:()=>{ S.cap++; }},
+  {id:"swap", name:"手直し", note:"詠唱前の入れ替え +1", apply:()=>{ S.swapMax++; }},
+  {id:"tough",name:"厚い外套", note:"最大体力 +25 して全回復", apply:()=>{ S.maxHp += 25; S.hp = S.maxHp; }}
+];
+function rewardPool(kind){
+  if (kind === "boss") return CORE.filter(c=>!S.core.includes(c.id));
+  const cards = Object.keys(CARDS).map(id=>({kind:"card", id}));
+  if (kind === "chest") return cards;
+  return cards.concat(UPGRADES.filter(u=>!S.owned.includes(u.id)).map(u=>({kind:"gun", u})));
+}
+function showReward(kind){
+  S.phase = "reward"; S.rkind = kind; S.rerolls = 1;
+  rollReward();
+}
+function rollReward(){
+  const pool = rewardPool(S.rkind).slice().sort(()=>Math.random()-.5);
+  S.roffer = pool.slice(0, 3);
+  render();
+}
+function takeReward(k){
+  const o = S.roffer[k];
+  if (!o) return;
+  if (S.rkind === "boss"){ o.apply(); S.core.push(o.id); nextFloor(); return; }
+  if (o.kind === "card") S.pool.push(o.id);
+  else { o.u.apply(S.gun); S.owned.push(o.u.id); }
+  S.note = o.kind === "card" ? `${CARDS[o.id].name} を仕入れた` : `${o.u.name}`;
+  toDungeon();
+}
+function nextFloor(){
+  S.floor++;
+  S.rooms = genFloor(S.floor);
+  S.at = 0; S.rooms[0].done = true;
+  S.hp = Math.min(S.maxHp, S.hp + 12);
+  S.note = `${S.floor} 階へ降りた`;
+  toDungeon();
+}
+
+/* ═══════ 戦闘の進行 ═══════ */
 function toFight(){
   if (S.phase !== "shoot") return;
   S.corks = 0; S.shots = []; S.phase = "fight"; S.mode = "arrange";
@@ -755,40 +945,17 @@ function cast(){
   const keep = S.log.slice();
   newRound();
   S.log = keep;
+  S.phase = "shoot";
   render();
 }
-
 function winBattle(){
-  if (S.battle === 0){
-    S.hp = Math.min(MAXHP, S.hp + 14);
-    const pick = UPGRADES.filter(u=>!S.owned.includes(u.id)).sort(()=>Math.random()-.5).slice(0,3);
-    veil(`<h2>スライムを倒した</h2><div class="sub">鉄砲を強化する</div>
-      <p>体力を 14 回復した。次は 3 体。ここから <b>貫通・拡大・三分裂</b> が効いてくる。</p>
-      <div class="picks">${pick.map(u=>
-        `<button class="pick" data-pick="${u.id}"><b>${u.name}</b><span>${u.note}</span></button>`).join("")}</div>`,
-      null);
-    for (const u of pick)
-      document.querySelector(`[data-pick="${u.id}"]`).onclick = ()=>{
-        u.apply(S.gun); S.owned.push(u.id);
-        hideVeil(); startBattle(1); render();
-      };
-  } else {
-    S.over = "win";
-    veil(`<h2>三体を退けた</h2><div class="sub">prototype cleared</div>
-      <p>今回見たいのはここです。</p>
-      <ul>
-        <li>「あの景品を先に落としたい」と思って狙ったか</li>
-        <li>景品を別の景品に倒し込んで順番を作ったか</li>
-        <li>それとも、当たれば何でもよかったか</li>
-      </ul>
-      <button class="btn go" id="veilgo">最初から</button>`,
-      ()=>{ hideVeil(); newRun(); render(); });
-  }
+  clearPrizes();
+  showReward(S.boss ? "boss" : "battle");
 }
 function lose(){
   S.over = "lose";
-  veil(`<h2>詠唱は途絶えた</h2><div class="sub">defeated</div>
-    <p>防御の景品を落とすか、火力を取るか。コルク 2 発の配分がこのゲームの中身です。</p>
+  veil(`<h2>探索は終わった</h2><div class="sub">${S.floor} 階 / 札 ${S.pool.length} 枚</div>
+    <p>倒れた札の順序がそのまま呪文になる。狙いを組み立て直して、もう一度。</p>
     <button class="btn go" id="veilgo">最初から</button>`,
     ()=>{ hideVeil(); newRun(); render(); });
 }
@@ -899,7 +1066,7 @@ function drawBoard(){
   // 手前の台
   ctx.fillStyle = "#1B2036"; ctx.fillRect(0, Y(106), cv.width, Y(6));
   ctx.fillStyle = "#39415F"; ctx.fillRect(0, Y(106), cv.width, PX);
-  for (let i=0;i<CORKS;i++){
+  for (let i=0;i<S.corkMax;i++){
     ctx.fillStyle = i < S.corks ? "#E0B23C" : "#3A4160";
     ctx.fillRect(X(138+i*6), Y(108), PX*3, PX*3);
   }
@@ -1022,13 +1189,13 @@ const $ = id => document.getElementById(id);
 
 function renderHud(){
   for (const [a,b] of [["s-floor","f-floor"],["s-round","f-round"],["s-hp","f-hp"],["s-block","f-block"]]){
-    const v = a==="s-floor" ? S.battle+1 : a==="s-round" ? S.round
+    const v = a==="s-floor" ? S.floor : a==="s-round" ? S.round
             : a==="s-hp" ? Math.max(0,S.hp) : S.block;
     $(a).textContent = v; $(b).textContent = v;
   }
-  $("corks").innerHTML = Array.from({length:CORKS},(_,i)=>
+  $("corks").innerHTML = Array.from({length:S.corkMax},(_,i)=>
     `<span class="ck ${i<S.corks?"on":""}"></span>`).join("");
-  $("f-swap").textContent = S.swaps>0 ? "入れ替え 1" : "入れ替え済み";
+  $("f-swap").textContent = `入れ替え ${S.swaps}`;
   $("s-gun").textContent = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}` + (S.gun.pellets>1?` ・弾 ${S.gun.pellets}`:"")
                          + (S.gun.blast?` ・爆風 ${S.gun.blast}`:"");
   renderShootFoot();
@@ -1047,10 +1214,78 @@ function renderShootFoot(){
   fb.onclick = fire;
 }
 
+function renderDungeon(){
+  $("d-floor").textContent = S.floor;
+  $("d-pool").textContent  = S.pool.length;
+  $("d-hp").textContent    = Math.max(0,S.hp) + " / " + S.maxHp;
+  $("d-gun").textContent   = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}`;
+  const map = $("map"); map.innerHTML = "";
+  const here = S.rooms[S.at];
+  // 通路
+  for (const r of S.rooms)
+    for (const j of r.next){
+      const q = S.rooms[j], mx = (r.x+q.x)/2;
+      const seg = (l,t,w,h)=>{ const d=document.createElement("div"); d.className="corr";
+        d.style.cssText=`left:${l}%;top:${t}%;width:${w}%;height:${h}%`; map.appendChild(d); };
+      seg(Math.min(r.x,mx), r.y-0.7, Math.abs(mx-r.x), 1.4);
+      seg(mx-0.35, Math.min(r.y,q.y), 0.7, Math.abs(q.y-r.y));
+      seg(Math.min(mx,q.x), q.y-0.7, Math.abs(q.x-mx), 1.4);
+    }
+  // 部屋
+  for (const r of S.rooms){
+    const b = document.createElement("button");
+    const open = here.next.includes(r.i) && !r.done;
+    b.className = "room " + (r.i===S.at ? "here" : r.done ? "done" : open ? "open" : "locked");
+    b.style.left = r.x + "%"; b.style.top = r.y + "%";
+    b.disabled = !open;
+    b.title = ROOM_JA[r.t];
+    b.innerHTML = spriteSVG(ROOMSPR[r.t], "rspr");
+    b.onclick = ()=>enterRoom(r.i);
+    map.appendChild(b);
+  }
+  const you = document.createElement("div");
+  you.className = "you";
+  you.style.left = here.x + "%"; you.style.top = (here.y + 7.5) + "%";
+  map.appendChild(you);
+  $("dtip").textContent = S.note || "光っている部屋を選んで進む";
+  S.note = "";
+}
+
+function renderReward(){
+  const boss = S.rkind === "boss", chest = S.rkind === "chest";
+  $("r-title").textContent = boss ? "ボスを退けた" : chest ? "宝箱" : "戦利品";
+  $("r-sub").textContent = boss ? "根本的な強化をひとつ選ぶ"
+    : chest ? "札をひとつ選んで仕入れる" : "札か、鉄砲の強化をひとつ選ぶ";
+  const host = $("r-picks"); host.innerHTML = "";
+  S.roffer.forEach((o,k)=>{
+    const b = document.createElement("button");
+    b.className = "pk";
+    if (boss)
+      b.innerHTML = `<span class="pkh">根本強化</span><span class="pkn">${esc(o.name)}</span>`+
+                    `<span class="pkd">${esc(o.note)}</span>`;
+    else if (o.kind === "card"){
+      const w = document.createElement("div");
+      w.innerHTML = `<span class="pkh">札を仕入れる</span>` + cardHTML(CARDS[o.id], {});
+      b.innerHTML = w.innerHTML;
+      b.querySelector(".card").style.fontSize = "1em";
+    } else
+      b.innerHTML = `<span class="pkh">鉄砲の強化</span><span class="pkn">${esc(o.u.name)}</span>`+
+                    `<span class="pkd">${esc(o.u.note)}</span>`;
+    b.onclick = ()=>takeReward(k);
+    host.appendChild(b);
+  });
+  const rr = $("r-reroll");
+  rr.disabled = S.rerolls <= 0;
+  $("r-rr").textContent = `のこり ${S.rerolls}`;
+  rr.onclick = ()=>{ if (S.rerolls>0){ S.rerolls--; rollReward(); } };
+}
+
 function render(){
-  renderHud();
-  $("shoot").classList.toggle("off", S.phase!=="shoot");
-  $("fight").classList.toggle("off", S.phase!=="fight");
+  if (S.phase !== "dungeon" && S.phase !== "reward") renderHud();
+  for (const id of ["dungeon","shoot","fight","reward"])
+    $(id).classList.toggle("off", S.phase !== id);
+  if (S.phase === "dungeon") return renderDungeon();
+  if (S.phase === "reward")  return renderReward();
   if (S.phase === "shoot"){ fitCanvas(); drawBoard(); syncPrizes(); drawFx(); return; }
 
   const pv = preview();
@@ -1094,7 +1329,7 @@ function render(){
   const hand = $("hand"); hand.innerHTML = "";
   const n = Math.max(S.wand.length, 1);
   const mid = (n-1)/2;
-  for (let i=0;i<CAP;i++){
+  for (let i=0;i<S.cap;i++){
     const c = S.wand[i];
     if (!c) continue;
     const w = document.createElement("div");

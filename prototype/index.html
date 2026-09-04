@@ -235,8 +235,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
     <ul>
       <li>照準を合わせて撃つ。弾は<b>点線の円の中にばらけて</b>飛ぶ。</li>
       <li><b>落ちた順がそのまま杖の順序</b>になる。</li>
-      <li><b>下段を撃つと、支えを失った上段も落ちる（下 → 上 の 2 枚）。</b>
-          上段だけを撃てば 1 枚。<b>これが順序を作る主な手段。</b></li>
+      <li>札は <b>下 2 枚 + 上 1 枚の束</b>で並ぶ。
+          <b>下のどちらかを撃つと、支えを失った上も落ちる（下 → 上 の 2 枚）。</b>
+          上だけを撃てば 1 枚。<b>これが順序を作る主な手段。</b></li>
       <li>コルクは 1 ラウンドに 2 発。散り・弾数・威力・爆風は強化で変わる。</li>
     </ul>
   </div>
@@ -328,25 +329,24 @@ const CAP = 5, CORKS = 2, MAXHP = 70;
 const CARD_AR = 5/7;                            // カードの縦横比。全画面で共通
 const GW = 200, GH = 112, FLOOR = 106;
 const SHELVES = [
-  {y:42, x0:30, x1:150},
-  {y:70, x0:26, x1:158},
-  {y:98, x0:22, x1:146}
+  {y:50, x0:26, x1:170},
+  {y:92, x0:20, x1:164}
 ];
 const GUN = {x:172, y:108};
-const GRAV = 190, KNOCK_MIN = 18;
-const PH = 12.5, PW = PH*CARD_AR, DT = 1/120;   // 5:7（戦闘の札と同じ比率）
+const GRAV = 190;
+const PH = 17, PW = PH*CARD_AR, DT = 1/120;     // 5:7（戦闘の札と完全に同じ比率）
 
 /* 鉄砲の性能。ここが将来の強化軸そのもの。 */
-const BASE_GUN = {power:1.0, spread:5, pellets:1, blast:0};
+const BASE_GUN = {power:1.0, spread:9, pellets:1, blast:0};
 const UPGRADES = [
-  {id:"aim",   name:"銃身の削り出し", note:"散り 5 → 2.5（命中力）",
-   apply:g=>{ g.spread = 2.5; }},
-  {id:"shot",  name:"散弾に詰め替え", note:"弾 1 → 3 発・散り 11・威力 0.7 倍",
-   apply:g=>{ g.pellets = 3; g.spread = 11; g.power *= 0.7; }},
+  {id:"aim",   name:"銃身の削り出し", note:"散り 9 → 4.5（命中力）",
+   apply:g=>{ g.spread = 4.5; }},
+  {id:"shot",  name:"散弾に詰め替え", note:"弾 1 → 3 発・散り 18・威力 0.7 倍",
+   apply:g=>{ g.pellets = 3; g.spread = 18; g.power *= 0.7; }},
   {id:"power", name:"火薬増し",       note:"威力 1.6 倍（連鎖が伸びる）",
    apply:g=>{ g.power *= 1.6; }},
-  {id:"bazooka",name:"筒を太く",      note:"着弾点の周囲 14 も巻き込む（バズーカ）",
-   apply:g=>{ g.blast = 14; g.spread += 3; }}
+  {id:"bazooka",name:"筒を太く",      note:"着弾点の周囲 18 も巻き込む（バズーカ）",
+   apply:g=>{ g.blast = 18; g.spread += 4; }}
 ];
 
 let S = null, uid = 0, sparks = [];
@@ -372,22 +372,24 @@ function newRound(){
   S.phase = "shoot"; S.shots = []; sparks = [];
   stockShelves();
 }
-/** 棚ごとに 2〜3 の山を作る。山は 1〜2 段。 */
+/** 棚ごとに 2〜3 の束。1 束 = 下 2 枚 + その上に 1 枚。 */
+function newCard(x, y, lv){
+  return {card: mk(POOL[Math.floor(rnd(POOL.length))]),
+          x, y, vx:0, vy:0, rot:0, spin:0, state:"stand", lv, props:null};
+}
 function stockShelves(){
   S.prizes = [];
   SHELVES.forEach(sh=>{
     const n = 2 + (rnd(1) < 0.5 ? 1 : 0);
-    const span = sh.x1 - sh.x0 - PW, slot = span/n;
+    const bw = PW*2 + 1;                                  // 束の幅
+    const span = sh.x1 - sh.x0 - bw, slot = span/n;
     for (let k=0;k<n;k++){
-      const x = sh.x0 + PW/2 + slot*(k+0.5) + (rnd(slot*0.4) - slot*0.2);
-      const tall = 1 + (rnd(1) < 0.58 ? 1 : 0);
-      let below = null;
-      for (let lv=0; lv<tall; lv++){
-        const p = {card: mk(POOL[Math.floor(rnd(POOL.length))]),
-                   x, y: sh.y - PH/2 - lv*PH, vx:0, vy:0, rot:0, spin:0,
-                   state:"stand", lv, below};
-        S.prizes.push(p); below = p;
-      }
+      const cx = sh.x0 + bw/2 + slot*k + slot*0.5 + (rnd(slot*0.3) - slot*0.15);
+      const bl = newCard(cx - PW/2 - 0.5, sh.y - PH/2, 0);
+      const br = newCard(cx + PW/2 + 0.5, sh.y - PH/2, 0);
+      const tp = newCard(cx, sh.y - PH/2 - PH, 1);
+      tp.props = [bl, br];                                // 上は下 2 枚に支えられる
+      S.prizes.push(bl, br, tp);
     }
   });
 }
@@ -440,7 +442,7 @@ function land(sh){
 /** 倒す。当たった景品は必ず奥へ倒れて落ちる。 */
 function knock(p, dir, mag){
   if (p.state !== "stand") return;
-  p.state = "fly"; p.vx = dir*mag; p.vy = -18; p.budget = 1;
+  p.state = "fly"; p.vx = dir*mag; p.vy = -18;
   p.spin = (0.9 + Math.abs(mag)/90) * (dir>=0 ? 1 : -1);   // 奥へ倒れる回転
   for (let i=0;i<7;i++)
     sparks.push({x:p.x, y:p.y, vx:(rnd(60)-30), vy:-rnd(50), t:1});
@@ -452,26 +454,17 @@ function physics(){
     sh.t += DT*7;
     if (sh.t >= 1){ sh.t = 1; sh.live = false; land(sh); }
   }
-  // 支えを失った段は落ちる。下の段の方が低いので必ず先に着地する。
+  // 支えを失った上の札は落ちる。下の方が低い位置にいるので必ず先に着地する。
   for (const p of S.prizes){
-    if (p.state === "stand" && p.below && p.below.state !== "stand")
-      knock(p, p.below.vx >= 0 ? 1 : -1, Math.abs(p.below.vx)*0.35 + 8);
+    if (p.state !== "stand" || !p.props) continue;
+    const gone = p.props.find(q => q.state !== "stand");
+    if (gone) knock(p, gone.vx >= 0 ? 1 : -1, Math.abs(gone.vx)*0.3 + 7);
   }
   for (const p of S.prizes){
     if (p.state !== "fly") continue;
     p.vy += GRAV*DT; p.x += p.vx*DT; p.y += p.vy*DT;
     p.rot += p.spin * DT * 4.2;
     if (Math.abs(p.rot) > 1.5) p.rot = 1.5 * Math.sign(p.rot);   // 倒れきったら止める
-    if (p.budget > 0 && Math.abs(p.vx) > KNOCK_MIN){
-      for (const q of S.prizes){
-        if (q === p || q.state !== "stand") continue;
-        if (Math.abs(p.x - q.x) < PW && Math.abs(p.y - q.y) < PH){
-          knock(q, p.vx >= 0 ? 1 : -1, Math.abs(p.vx)*0.42 + 6);
-          p.vx *= 0.42; p.budget = 0;
-          break;
-        }
-      }
-    }
     if (p.y > FLOOR || p.x < -18 || p.x > GW+18){ p.state = "landed"; collect(p.card); }
   }
   for (const s of sparks){ s.vy += GRAV*DT*0.5; s.x += s.vx*DT; s.y += s.vy*DT; s.t -= DT*2.2; }
@@ -479,7 +472,7 @@ function physics(){
 }
 function settled(){
   if (S.shots.some(sh=>sh.live)) return false;
-  if (S.prizes.some(p => p.state === "stand" && p.below && p.below.state !== "stand")) return false;
+  if (S.prizes.some(p => p.state === "stand" && p.props && p.props.some(q=>q.state!=="stand"))) return false;
   return !S.prizes.some(p => p.state === "fly");
 }
 function collect(card){
@@ -694,7 +687,7 @@ const TONE = {
   utility:   {edge:"#2F4A63", fill:"#1B2740", tint:"#6FA8D6"}
 };
 
-/** 棚の上の景品を、戦闘と同じ意匠の札として描く */
+/** 戦闘とまったく同じ意匠・同じ縦横比の札。厚みは付けない。 */
 function drawPrize(p){
   const t = TONE[p.card.type];
   ctx.save();
@@ -703,22 +696,23 @@ function drawPrize(p){
     ctx.globalAlpha = .95;
   }
   const L = X(p.x-PW/2), T = Y(p.y-PH/2), R = X(p.x+PW/2), B = Y(p.y+PH/2);
-  const dx = Math.round(DEP*PX), dy = -Math.round(DEP*PX*0.55);
-  // 厚み（上面・側面）で立体に見せる
-  ctx.fillStyle = "#3A4160";
-  ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L+dx,T+dy); ctx.lineTo(R+dx,T+dy); ctx.lineTo(R,T);
-  ctx.closePath(); ctx.fill();
-  ctx.fillStyle = "#141A30";
-  ctx.beginPath(); ctx.moveTo(R,T); ctx.lineTo(R+dx,T+dy); ctx.lineTo(R+dx,B+dy); ctx.lineTo(R,B);
-  ctx.closePath(); ctx.fill();
-  // 札の面
-  ctx.fillStyle = t.edge; ctx.fillRect(L, T, R-L, B-T);
-  ctx.fillStyle = t.fill; ctx.fillRect(L+PX, T+PX, R-L-PX*2, B-T-PX*2);
-  // 絵の枠（後で画像を入れる場所）
-  const iw = R-L-PX*4, ih = Math.round((B-T)*0.42);
-  ctx.fillStyle = "#12162A"; ctx.fillRect(L+PX*2, T+PX*4, iw, ih);
-  ctx.fillStyle = t.tint;
-  ctx.fillRect(L+PX*2 + Math.round(iw/2) - PX*2, T+PX*4 + Math.round(ih/2) - PX*2, PX*4, PX*4);
+  const w = R-L, h = B-T;
+  // 影（棚に立っていることだけ示す）
+  if (p.state === "stand"){
+    ctx.fillStyle = "rgba(0,0,0,.45)";
+    ctx.fillRect(L+PX, B, w, PX);
+  }
+  ctx.fillStyle = t.edge; ctx.fillRect(L, T, w, h);                 // 枠
+  ctx.fillStyle = t.fill; ctx.fillRect(L+PX, T+PX, w-PX*2, h-PX*2); // 面
+  const ix = L+PX*2, iw = w-PX*4;
+  const iy = T+PX*3, ih = Math.round(h*0.40);
+  ctx.fillStyle = "#0E1226"; ctx.fillRect(ix, iy, iw, ih);          // 絵の枠
+  ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = PX;
+  ctx.strokeRect(ix+PX/2, iy+PX/2, iw-PX, ih-PX);
+  ctx.fillStyle = t.tint;                                            // 仮の中身
+  ctx.fillRect(ix + Math.round(iw/2) - PX*2, iy + Math.round(ih/2) - PX*2, PX*4, PX*4);
+  ctx.fillStyle = "rgba(255,255,255,.10)";                           // 名前の帯
+  ctx.fillRect(ix, iy+ih+PX, iw, PX);
   ctx.restore();
 }
 
@@ -740,14 +734,10 @@ function drawBoard(){
 
   // 棚（板と金の縁）
   for (const sh of SHELVES){
-    const L = X(sh.x0-3), R = X(sh.x1+3), T = Y(sh.y);
-    const dx = Math.round(DEP*PX), dy = -Math.round(DEP*PX*0.55);
-    ctx.fillStyle = "#454E70";
-    ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L+dx,T+dy); ctx.lineTo(R+dx,T+dy); ctx.lineTo(R,T);
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = "#2C3455"; ctx.fillRect(L, T, R-L, Y(4.6));
+    const L = X(sh.x0-4), R = X(sh.x1+4), T = Y(sh.y);
+    ctx.fillStyle = "#2C3455"; ctx.fillRect(L, T, R-L, Y(3.4));
     ctx.fillStyle = "#8A6E22"; ctx.fillRect(L, T, R-L, PX);
-    ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(4.6), R-L, PX);
+    ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(3.4), R-L, PX);
   }
   const standing = S.prizes.filter(p=>p.state==="stand").sort((a,b)=>a.y-b.y);
   for (const p of standing) drawPrize(p);
@@ -823,15 +813,15 @@ function drawBoard(){
 function drawLabels(){
   lx.clearRect(0,0,lb.width,lb.height);
   lx.textAlign = "center"; lx.textBaseline = "middle";
-  const fs = Math.max(8, 3.5*LS);
+  const fs = Math.max(8, 3.8*LS);
   lx.font = `700 ${fs}px "Zen Kaku Gothic New", sans-serif`;
   for (const p of S.prizes){
     if (p.state === "landed") continue;
     lx.save();
-    lx.translate(LX(p.x), LY(p.y + PH*0.24));
+    lx.translate(LX(p.x), LY(p.y + PH*0.27));
     if (p.state === "fly") lx.rotate(p.rot);
-    lx.fillStyle = "rgba(0,0,0,.75)";
-    lx.fillText(p.card.name, 0.8*LS, 0.8*LS);
+    lx.fillStyle = "rgba(0,0,0,.8)";
+    lx.fillText(p.card.name, 0.7*LS, 0.7*LS);
     lx.fillStyle = "#EDE7DA";
     lx.fillText(p.card.name, 0, 0);
     lx.restore();
@@ -846,7 +836,7 @@ function drawLabels(){
 function aimFromEvent(ev){
   const r = cv.getBoundingClientRect();
   ret.x = Math.max(8, Math.min(GW-8, (ev.clientX - r.left) / r.width  * GW));
-  ret.y = Math.max(18, Math.min(103,  (ev.clientY - r.top ) / r.height * GH));
+  ret.y = Math.max(16, Math.min(103,  (ev.clientY - r.top ) / r.height * GH));
 }
 cv.addEventListener("pointermove", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawBoard(); } });
 cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); fire(); } });
@@ -857,7 +847,7 @@ window.addEventListener("keydown", ev=>{
     const step = ev.shiftKey ? 1 : 4;
     if (ev.key==="ArrowRight"){ ret.x = Math.min(GW-8, ret.x+step); drawBoard(); ev.preventDefault(); }
     if (ev.key==="ArrowLeft"){  ret.x = Math.max(8,    ret.x-step); drawBoard(); ev.preventDefault(); }
-    if (ev.key==="ArrowUp"){    ret.y = Math.max(18,   ret.y-step); drawBoard(); ev.preventDefault(); }
+    if (ev.key==="ArrowUp"){    ret.y = Math.max(16,   ret.y-step); drawBoard(); ev.preventDefault(); }
     if (ev.key==="ArrowDown"){  ret.y = Math.min(103,  ret.y+step); drawBoard(); ev.preventDefault(); }
     if (ev.key===" "){ fire(); ev.preventDefault(); }
     if (ev.key==="Enter"){ toFight(); ev.preventDefault(); }

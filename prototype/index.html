@@ -44,11 +44,19 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .ck.on{background:var(--gold);border-color:#F0D07A}
 
 /* ═══ 画面1：射的屋 ═══ */
-#board,#labels{position:absolute;inset:0;width:100%;height:100%;display:block}
+#board{position:absolute;inset:0;width:100%;height:100%;display:block}
+#prizes{position:absolute;inset:0;pointer-events:none;z-index:2}
+#sign{position:absolute;left:50%;top:1.2%;transform:translateX(-50%);z-index:3;
+  width:26%;height:11.5%;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:.1em;pointer-events:none}
+#sign b{font-family:var(--f-disp);font-size:1.55em;letter-spacing:.42em;
+  color:var(--gold);text-indent:.42em;line-height:1}
+#sign i{font-family:var(--f-mono);font-style:normal;font-size:.6em;letter-spacing:.3em;
+  color:var(--gold-dim);text-indent:.3em}
+#prizes .card{position:absolute;transform-origin:50% 50%;box-shadow:2px 3px 0 rgba(0,0,0,.7)}
 #board{image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;touch-action:none}
-#labels{pointer-events:none}
-.shootfoot{position:absolute;left:0;bottom:0;display:flex;align-items:center;
-  padding:.7em 1.4em 1em;z-index:6;gap:1em}
+.shootfoot{position:absolute;left:0;bottom:0;display:flex;align-items:flex-end;
+  padding:.7em 1.4em 1em;z-index:6;gap:.7em}
 .tip{font-family:var(--f-mono);font-size:.72em;color:var(--faint);letter-spacing:.04em}
 .got{display:flex;gap:.4em;align-items:center}
 .gotcard{font-family:var(--f-body);font-size:.74em;padding:.25em .6em;
@@ -135,8 +143,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .btn:hover:not(:disabled){filter:brightness(1.25)}
 .btn:disabled{opacity:.3;cursor:default}
 .btn.go{background:#E8892E;border-color:#F5BE7C;color:#2A1704;box-shadow:3px 3px 0 rgba(0,0,0,.8)}
-.btn.go small{display:block;font-family:var(--f-mono);font-size:.62em;font-weight:400;
-  letter-spacing:.1em;opacity:.75}
+.btn small{display:block;font-family:var(--f-mono);font-size:.62em;font-weight:400;
+  letter-spacing:.1em;opacity:.7;margin-top:.15em}
 .bindrow{position:absolute;left:50%;bottom:12.4em;transform:translateX(-50%);display:flex;
   gap:.55em;z-index:4;pointer-events:none}
 .bind{width:8.4em;height:1.3em;position:relative}
@@ -185,7 +193,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   <!-- ══ 画面1：射的屋 ══ -->
   <div class="screen" id="shoot">
     <canvas id="board"></canvas>
-    <canvas id="labels"></canvas>
+    <div id="sign"><b>射 的</b><i>SHATEKI</i></div>
+    <div id="prizes"></div>
     <div class="hud">
       <div class="l">
         <span class="chip solid">第<b id="s-floor">1</b>層</span>
@@ -199,7 +208,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
       </div>
     </div>
     <div class="shootfoot">
-      <button class="btn go" id="btn-next">詠唱へ<small>enter</small></button>
+      <button class="btn go" id="btn-fire">射撃<small>space</small></button>
+      <button class="btn" id="btn-next">詠唱へ<small>enter</small></button>
       <div class="got" id="got"></div>
       <span class="tip" id="tip"></span>
     </div>
@@ -279,51 +289,12 @@ const CARDS = {
 const POOL = ["fireball","fireball","fireball","shard","shard","shard","bolt","bolt",
               "split3","split3","pierce","pierce","pierce","enlarge","enlarge","guard","guard"];
 
-const ICON = {
-  fireball:`<path d="M16 4c3 6-2 8 0 12 1.6 3.2 6 2 6 7a6 6 0 0 1-12 0c0-4 2-5 2-8 0 0-4 3-4 8a8 8 0 0 0 16 0C24 14 18 12 16 4z" fill="#E2622F"/>`,
-  shard:`<path d="M6 20 L12 7 L22 10 L26 22 L16 28z" fill="#9C8F78" stroke="#6E6455" stroke-width="1.4"/>`,
-  bolt:`<path d="M18 3 L8 17h6l-3 12 13-16h-7z" fill="#E8C33C"/>`,
-  split3:`<g stroke="#E0B23C" stroke-width="2.2" fill="none" stroke-linecap="round">
-    <path d="M6 26 L14 12"/><path d="M16 27 L16 10"/><path d="M26 26 L18 12"/></g>
-    <circle cx="16" cy="7" r="2.6" fill="#E0B23C"/>`,
-  pierce:`<g stroke="#E0B23C" stroke-width="2.2" fill="none" stroke-linecap="round">
-    <path d="M3 16 H27"/><path d="M21 10 L27 16 L21 22"/></g>
-    <circle cx="11" cy="16" r="3.2" fill="none" stroke="#8A6E22" stroke-width="1.6"/>
-    <circle cx="19" cy="16" r="3.2" fill="none" stroke="#8A6E22" stroke-width="1.6"/>`,
-  enlarge:`<circle cx="16" cy="16" r="3.4" fill="#E0B23C"/>
-    <circle cx="16" cy="16" r="8" fill="none" stroke="#E0B23C" stroke-width="1.8" opacity=".7"/>
-    <circle cx="16" cy="16" r="13" fill="none" stroke="#E0B23C" stroke-width="1.4" opacity=".38"/>`,
-  guard:`<path d="M16 3 L27 7v9c0 7-5 11-11 13-6-2-11-6-11-13V7z" fill="#2C4A63" stroke="#6FA8D6" stroke-width="1.8"/>
-    <path d="M16 10v11M11 15h10" stroke="#9FD0EA" stroke-width="1.8" stroke-linecap="round"/>`
-};
-
 const BATTLES = [
-  {name:"一体", foes:[{name:"スライム", hp:28, atk:8, art:"slime"}]},
-  {name:"三体", foes:[{name:"火蜥蜴", hp:30, atk:8, art:"salamander"},
-                      {name:"石人",   hp:28, atk:6, art:"golem"},
-                      {name:"蟲",     hp:18, atk:5, art:"worm"}]}
+  {name:"一体", foes:[{name:"スライム", hp:28, atk:8, spr:"slime"}]},
+  {name:"三体", foes:[{name:"火蜥蜴", hp:30, atk:8, spr:"salamander"},
+                      {name:"石人",   hp:28, atk:6, spr:"golem"},
+                      {name:"蟲",     hp:18, atk:5, spr:"worm"}]}
 ];
-const ART = {
-  slime:`<path d="M6 46 Q6 22 32 22 Q58 22 58 46 Q58 50 54 50 H10 Q6 50 6 46z" fill="#4FBF5A" stroke="#2E7A38" stroke-width="2"/>
-    <ellipse cx="32" cy="50" rx="26" ry="4" fill="#3C9E46"/>
-    <circle cx="24" cy="36" r="2.6" fill="#123018"/><circle cx="40" cy="36" r="2.6" fill="#123018"/>
-    <path d="M27 42 Q32 46 37 42" stroke="#123018" stroke-width="2" fill="none" stroke-linecap="round"/>
-    <ellipse cx="22" cy="29" rx="5" ry="3" fill="#95E39D" opacity=".65"/>`,
-  salamander:`<path d="M8 46 L26 32 L38 39 L56 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="bevel"/>
-    <path d="M26 32 L30 16 L37 29 L45 10 L49 29" fill="none" stroke="#E2622F" stroke-width="2.2" stroke-linejoin="bevel"/>
-    <circle cx="54" cy="25" r="3" fill="#E2622F"/>
-    <path d="M11 48 L15 60 M28 35 L30 60 M40 40 L44 60" stroke="currentColor" stroke-width="1.8"/>`,
-  golem:`<rect x="19" y="5" width="26" height="16" fill="none" stroke="currentColor" stroke-width="2.4"/>
-    <rect x="11" y="24" width="42" height="23" fill="none" stroke="currentColor" stroke-width="2.8"/>
-    <rect x="16" y="49" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"/>
-    <rect x="35" y="49" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"/>
-    <path d="M26 14 L34 14" stroke="#9FA79B" stroke-width="3.4" stroke-linecap="round"/>`,
-  worm:`<path d="M6 44 Q17 26 28 44 Q39 26 50 44 Q57 30 61 40" fill="none"
-      stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="61" cy="38" r="4" fill="none" stroke="#7FA3C0" stroke-width="2"/>
-    <path d="M11 48 L9 60 M30 48 L29 60 M48 48 L51 60" stroke="currentColor" stroke-width="1.6"/>`
-};
-
 const CAP = 5, CORKS = 2, MAXHP = 70;
 
 /* ═══════ 射的台（鏡像：銃は右手前） ═══════ */
@@ -344,8 +315,8 @@ const UPGRADES = [
    apply:g=>{ g.spread = 3.5; }},
   {id:"shot",  name:"散弾に詰め替え", note:"弾 1 → 3 発・散り 16・威力 0.7 倍",
    apply:g=>{ g.pellets = 3; g.spread = 16; g.power *= 0.7; }},
-  {id:"power", name:"火薬増し",       note:"威力 1.6 倍（連鎖が伸びる）",
-   apply:g=>{ g.power *= 1.6; }},
+  {id:"power", name:"火薬増し",       note:"威力 1.8 倍（倒れやすくなる）",
+   apply:g=>{ g.power *= 1.8; }},
   {id:"bazooka",name:"筒を太く",      note:"着弾点の周囲 18 も巻き込む（バズーカ）",
    apply:g=>{ g.blast = 18; g.spread += 4; }}
 ];
@@ -364,7 +335,7 @@ function newRun(){
 }
 function startBattle(i){
   S.battle = i; S.round = 1; S.block = 0;
-  S.foes = BATTLES[i].foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.hp, atk:f.atk, art:f.art}));
+  S.foes = BATTLES[i].foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.hp, atk:f.atk, spr:f.spr}));
   S.target = 0;
   newRound();
 }
@@ -398,6 +369,79 @@ function stockShelves(){
     }
   });
   S.settle = 0; S.frames = 0;
+  if (typeof clearPrizes === 'function') clearPrizes();
+}
+
+
+/* ═══════ ドット絵スプライト（1 文字 = 1 ピクセル） ═══════ */
+const SPRITES = {
+  slime:{p:["","#4FBF5A","#2E7A38","#9CE8A4","#0E2A14"], d:[
+    "0000000000000000","0000000000000000","0000011111100000","0000111111111000",
+    "0001331111111100","0011331111111110","0111111111111110","0111141111411110",
+    "0111111111111110","0111111441111110","0111111111111110","0111111111111110",
+    "0111111111111110","0122222222222210","0000000000000000","0000000000000000"]},
+  salamander:{p:["","#E2622F","#9C3A14","#F0A055","#2A1008"], d:[
+    "0000000000000000","0000000003330000","0000000033133000","0000000331113300",
+    "0000003311111330","0000033111111133","0011111111111114","0111111111111110",
+    "0111111111111110","0122111111112210","0012000110002100","0012000110002100",
+    "0011000110001100","0000000000000000","0000000000000000","0000000000000000"]},
+  golem:{p:["","#8E9AA8","#5A6472","#C2CCD8","#20262E"], d:[
+    "0000011111100000","0000133333100000","0000144444100000","0000133333100000",
+    "0011111111111100","0133333333333100","0133344444333100","0133344444333100",
+    "0133333333333100","0122222222222100","0011111001111100","0133331001333100",
+    "0122221001222100","0011111001111100","0000000000000000","0000000000000000"]},
+  worm:{p:["","#7FA3C0","#3E5A75","#B8D6EA","#12202C"], d:[
+    "0000000000000000","0000000000000110","0011000110001331","0133101331013331",
+    "1333313333133331","1333313333133441","1333313333133331","1333313333133331",
+    "0133313333133331","0122212222122221","0012000120001220","0012000120001200",
+    "0000000000000000","0000000000000000","0000000000000000","0000000000000000"]}
+};
+const ICONS = {
+  fireball:{p:["","#E2622F","#F0A055","#8E2E0E"], d:[
+    "00011000","00121000","01221100","01222110","12222211","12222211","01222110","00111100"]},
+  shard:{p:["","#9FA79B","#6E7468","#C8CFC2"], d:[
+    "00011000","00133100","01333310","13333321","13333221","01332210","00122100","00000000"]},
+  bolt:{p:["","#E8C33C","#F5E08A","#8A6E22"], d:[
+    "00001110","00011100","00111000","01112100","11122100","00021000","00210000","00100000"]},
+  split3:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+    "00033000","00011000","00111100","01100110","01000010","11000011","10000001","00000000"]},
+  pierce:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+    "00000000","00100100","00100100","11111113","00111133","00100100","00100100","00000000"]},
+  enlarge:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+    "00222200","02000020","20133102","20133102","20133102","20133102","02000020","00222200"]},
+  guard:{p:["","#3F79A8","#6FA8D6","#255170","#A8D8F0"], d:[
+    "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]}
+};
+function spriteSVG(sp, cls){
+  let r = "";
+  sp.d.forEach((row, y)=>{
+    let x = 0;
+    while (x < row.length){
+      const c = row[x];
+      if (c === "0"){ x++; continue; }
+      let w = 1;
+      while (x+w < row.length && row[x+w] === c) w++;
+      r += `<rect x="${x}" y="${y}" width="${w}" height="1" fill="${sp.p[+c]}"/>`;
+      x += w;
+    }
+  });
+  return `<svg class="${cls}" viewBox="0 0 ${sp.d[0].length} ${sp.d.length}" `+
+         `shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
+
+/* ═══════ カード部品（射的も戦闘も同じものを使う） ═══════ */
+function cardHTML(c, opt){
+  opt = opt || {};
+  return `<div class="card t-${c.type}">`+
+    (opt.idx ? `<span class="cidx">${opt.idx}</span>` : ``)+
+    `<span class="cname">${esc(c.name)}</span>`+
+    `<span class="cart">${c.art ? `<img src="${c.art}" alt="">`
+        : spriteSVG(ICONS[c.id], "cicon")}</span>`+
+    `<span class="ckind">${KIND_JA[c.type]}</span>`+
+    `<span class="ctext">${esc(c.text)}</span>`+
+    (opt.bind ? `<span class="cbind">${esc(opt.bind)}</span>` : ``)+
+    (opt.swap ? `<button class="cswap" title="右と入れ替え">⇄</button>` : ``)+
+  `</div>`;
 }
 
 /* ═══════ 剛体（OBB）— 押す・ぶつかる・傾く・倒れる ═══════
@@ -523,7 +567,7 @@ function land(sh){
   const dx = sh.tx - sh.x, dy = sh.ty - sh.y;
   const L = Math.hypot(dx, dy) || 1;
   const dir = {x: dx/L, y: dy/L};
-  const P = 1100 * g.power;                       // 力積の大きさ
+  const P = 800 * g.power;                       // 力積の大きさ
   const hitP = bodyAt(sh.tx, sh.ty);
   if (hitP) impulseAt(hitP.b, sh.tx, sh.ty, dir.x*P, dir.y*P - P*0.15);
   else S.log.push({k:"foe", t:"外した"});
@@ -771,24 +815,14 @@ function mark(out,a,b,label){
 /* ═══════ 射的屋の描画（擬似3Dのドット絵） ═══════ */
 const cv = document.getElementById("board");
 const ctx = cv.getContext("2d");
-const lb = document.getElementById("labels");
-const lx = lb.getContext("2d");
 const PX = 3;                                  // 1 ゲーム単位 = 3 ドット
 const DEP = 4;                                 // 奥行き（上面・側面の見え幅）
-let LS = 1, LSY = 1;                           // 文字レイヤの倍率（縦横別）
 
 function fitCanvas(){
   cv.width = GW*PX; cv.height = GH*PX;         // 低解像度で描いて拡大
   ctx.imageSmoothingEnabled = false;
-  const r = cv.getBoundingClientRect();
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  lb.width  = Math.max(1, Math.round(r.width*dpr));
-  lb.height = Math.max(1, Math.round(r.height*dpr));
-  LS = lb.width / GW;
-  LSY = lb.height / GH;
 }
 const X = v => Math.round(v*PX), Y = v => Math.round(v*PX);
-const LX = v => v*LS, LY = v => v*LSY;
 
 /** 前面・上面・側面を描いて立体に見せる */
 function block(cx, cy, w, h, front, top, side, dep){
@@ -811,29 +845,6 @@ const TONE = {
 };
 
 /** 戦闘とまったく同じ意匠・同じ縦横比の札。厚みは付けない。 */
-function drawPrize(p){
-  const t = TONE[p.card.type];
-  const b = p.b;
-  ctx.save();
-  ctx.translate(X(b.x), Y(b.y));
-  ctx.rotate(b.a);
-  ctx.translate(-X(b.x), -Y(b.y));
-  const L = X(b.x-PW/2), T = Y(b.y-PH/2), R = X(b.x+PW/2), B = Y(b.y+PH/2);
-  const w = R-L, h = B-T;
-  ctx.fillStyle = t.edge; ctx.fillRect(L, T, w, h);                 // 枠
-  ctx.fillStyle = t.fill; ctx.fillRect(L+PX, T+PX, w-PX*2, h-PX*2); // 面
-  const ix = L+PX*2, iw = w-PX*4;
-  const iy = T+PX*3, ih = Math.round(h*0.40);
-  ctx.fillStyle = "#0E1226"; ctx.fillRect(ix, iy, iw, ih);          // 絵の枠
-  ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = PX;
-  ctx.strokeRect(ix+PX/2, iy+PX/2, iw-PX, ih-PX);
-  ctx.fillStyle = t.tint;                                            // 仮の中身
-  ctx.fillRect(ix + Math.round(iw/2) - PX*2, iy + Math.round(ih/2) - PX*2, PX*4, PX*4);
-  ctx.fillStyle = "rgba(255,255,255,.10)";                           // 名前の帯
-  ctx.fillRect(ix, iy+ih+PX, iw, PX);
-  ctx.restore();
-}
-
 function drawBoard(){
   if (!S) return;
   ctx.clearRect(0,0,cv.width,cv.height);
@@ -857,8 +868,6 @@ function drawBoard(){
     ctx.fillStyle = "#8A6E22"; ctx.fillRect(L, T, R-L, PX);
     ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(3.4), R-L, PX);
   }
-  const on = S.prizes.filter(p=>p.state==="live" && p.b.y <= FLOOR-14).sort((a,b)=>a.b.y-b.b.y);
-  for (const p of on) drawPrize(p);
 
   // 火花
   for (const sp of sparks){
@@ -924,32 +933,35 @@ function drawBoard(){
   ctx.fillStyle = "#232941"; ctx.fillRect(-32*PX, -2*PX, 3*PX, 4*PX);
   ctx.restore();
 
-  drawLabels();
 }
 
-/** 文字だけ高解像度で重ねる（低解像度だと日本語が潰れるため） */
-function drawLabels(){
-  lx.clearRect(0,0,lb.width,lb.height);
-  lx.textAlign = "center"; lx.textBaseline = "middle";
-  const fs = Math.max(8, 3.8*LS);
-  lx.font = `700 ${fs}px "Zen Kaku Gothic New", sans-serif`;
+/** 棚の札を、戦闘とまったく同じ .card 部品で配置する */
+const prizeHost = document.getElementById("prizes");
+let prizeEls = new Map();
+function syncPrizes(){
+  if (!S) return;
+  const rect = cv.getBoundingClientRect();
+  const fs = (PW / GW * rect.width) / 8;          // .card は 8em 幅
   for (const p of S.prizes){
-    if (p.state !== "live") continue;
-    lx.save();
-    lx.translate(LX(p.b.x), LY(p.b.y));
-    lx.rotate(p.b.a);
-    lx.translate(0, LY(PH*0.27) - LY(0));
-    lx.fillStyle = "rgba(0,0,0,.8)";
-    lx.fillText(p.card.name, 0.7*LS, 0.7*LS);
-    lx.fillStyle = "#EDE7DA";
-    lx.fillText(p.card.name, 0, 0);
-    lx.restore();
+    let el = prizeEls.get(p);
+    if (p.state !== "live"){
+      if (el){ el.remove(); prizeEls.delete(p); }
+      continue;
+    }
+    if (!el){
+      const w = document.createElement("div");
+      w.innerHTML = cardHTML(p.card, {});
+      el = w.firstChild;
+      prizeHost.appendChild(el);
+      prizeEls.set(p, el);
+    }
+    el.style.fontSize = fs + "px";
+    el.style.left = (p.b.x / GW * 100) + "%";
+    el.style.top  = (p.b.y / GH * 100) + "%";
+    el.style.transform = `translate(-50%,-50%) rotate(${p.b.a}rad)`;
   }
-  lx.font = `${Math.max(11, 7.5*LS)}px "DotGothic16", monospace`;
-  lx.fillStyle = "#E0B23C"; lx.fillText("射 的", LX(100), LY(5.2));
-  lx.font = `${Math.max(6, 2.8*LS)}px "Silkscreen", monospace`;
-  lx.fillStyle = "#8A6E22"; lx.fillText("SHATEKI", LX(100), LY(10.4));
 }
+function clearPrizes(){ for (const el of prizeEls.values()) el.remove(); prizeEls.clear(); }
 
 /* ═══════ 入力 ═══════ */
 function aimFromEvent(ev){
@@ -958,7 +970,7 @@ function aimFromEvent(ev){
   ret.y = Math.max(16, Math.min(103,  (ev.clientY - r.top ) / r.height * GH));
 }
 cv.addEventListener("pointermove", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawBoard(); } });
-cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); fire(); } });
+cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawBoard(); } });
 window.addEventListener("keydown", ev=>{
   if (!S || S.over) return;
   if (S.phase === "shoot"){
@@ -972,12 +984,12 @@ window.addEventListener("keydown", ev=>{
     if (ev.key==="Enter"){ toFight(); ev.preventDefault(); }
   } else if (ev.key===" "){ cast(); ev.preventDefault(); }
 });
-new ResizeObserver(()=>{ fitCanvas(); drawBoard(); }).observe(cv);
+new ResizeObserver(()=>{ fitCanvas(); drawBoard(); syncPrizes(); }).observe(cv);
 
 function tick(){
   if (S && (S.mode === "shot" || S.mode === "sim")){
-    for (let k=0;k<6;k++) physics();
-    drawBoard();
+    for (let k=0;k<3;k++) physics();
+    drawBoard(); syncPrizes();
     renderShootFoot();
     if (settled()){
       if (S.corks > 0){ S.mode = "aim"; renderHud(); }
@@ -1000,27 +1012,29 @@ function renderHud(){
   $("corks").innerHTML = Array.from({length:CORKS},(_,i)=>
     `<span class="ck ${i<S.corks?"on":""}"></span>`).join("");
   $("f-swap").textContent = S.swaps>0 ? "入れ替え 1" : "入れ替え済み";
-  $("s-gun").textContent = `散り ${S.gun.spread}` + (S.gun.pellets>1?` ・弾 ${S.gun.pellets}`:"")
-                         + (S.gun.power!==1?` ・威力 ${S.gun.power.toFixed(1)}`:"")
+  $("s-gun").textContent = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}` + (S.gun.pellets>1?` ・弾 ${S.gun.pellets}`:"")
                          + (S.gun.blast?` ・爆風 ${S.gun.blast}`:"");
   renderShootFoot();
 }
 function renderShootFoot(){
   $("tip").textContent = (S.mode==="sim"||S.mode==="shot") ? "…"
-    : S.corks>0 ? "狙いを合わせてクリック（矢印キーと Space も可・Shift で微調整）"
+    : S.corks>0 ? "画面をクリック / 矢印キーで狙いを動かし、射撃ボタン（Space）で撃つ"
     : "コルクを使い切った";
   $("got").innerHTML = S.wand.map((c,i)=>{
     const col = c.type==="projectile" ? "#E2622F" : c.type==="modifier" ? "#E0B23C" : "#6FA8D6";
     return `<span class="gotcard" style="border-color:${col};color:${col}">${i+1}. ${esc(c.name)}</span>`;
   }).join("");
-  $("btn-next").disabled = S.mode==="sim";
+  $("btn-next").disabled = S.mode!=="aim";
+  const fb = $("btn-fire");
+  fb.disabled = S.mode!=="aim" || !S.corks;
+  fb.onclick = fire;
 }
 
 function render(){
   renderHud();
   $("shoot").classList.toggle("off", S.phase!=="shoot");
   $("fight").classList.toggle("off", S.phase!=="fight");
-  if (S.phase === "shoot"){ fitCanvas(); drawBoard(); return; }
+  if (S.phase === "shoot"){ fitCanvas(); drawBoard(); syncPrizes(); return; }
 
   const pv = preview();
 
@@ -1036,7 +1050,7 @@ function render(){
     b.innerHTML =
       (f.hp>0?`<span class="intent">⚔ 攻撃 ${f.atk}</span>`:`<span class="intent" style="visibility:hidden">—</span>`)+
       `<span class="fname">${esc(f.name)}</span>`+
-      `<svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">${ART[f.art]}</svg>`+
+      spriteSVG(SPRITES[f.spr], "glyph")+
       `<span class="tgt">${S.target===i?"▼ TARGET ▼":"　"}</span>`+
       `<span class="fbar"><i style="width:${wAfter}%"></i>`+
         (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
@@ -1066,20 +1080,11 @@ function render(){
   for (let i=0;i<CAP;i++){
     const c = S.wand[i];
     if (!c) continue;
-    const d = document.createElement("div");
-    d.className = "card t-" + c.type;
+    const w = document.createElement("div");
+    w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i], swap:i+1 < S.wand.length});
+    const d = w.firstChild;
     d.style.marginLeft = i ? ".55em" : "0";
     d.style.transform = `rotate(${(i-mid)*3.4}deg) translateY(${Math.abs(i-mid)*0.5}em)`;
-    d.innerHTML =
-      `<span class="cidx">${i+1}</span>`+
-      `<span class="cname">${esc(c.name)}</span>`+
-      `<span class="cart">${c.art
-          ? `<img src="${c.art}" alt="">`
-          : `<svg class="cicon" viewBox="0 0 32 32" aria-hidden="true">${ICON[c.id]}</svg>`}</span>`+
-      `<span class="ckind">${KIND_JA[c.type]}</span>`+
-      `<span class="ctext">${esc(c.text)}</span>`+
-      (bindLabel[i] ? `<span class="cbind">${esc(bindLabel[i])}</span>` : ``)+
-      (i+1 < S.wand.length ? `<button class="cswap" title="右と入れ替え">⇄</button>` : ``);
     const sw = d.querySelector(".cswap");
     if (sw){ sw.disabled = S.swaps<=0; sw.onclick = e=>{ e.stopPropagation(); swapAt(i); }; }
     hand.appendChild(d);

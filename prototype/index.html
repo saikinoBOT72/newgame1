@@ -1,198 +1,216 @@
 <title>射的詠唱</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap">
 
 <style>
 :root{
-  --ink:#0C0F14; --ink2:#141922; --ink3:#1C222C;
-  --edge:#28303C; --edge2:#3A4553;
-  --bone:#E9E3D5; --bone-dim:#98A0AA; --bone-faint:#666E79;
-  --brass:#C9A227; --brass-dim:#7A6520; --brass-deep:#463B14;
-  --fire:#E2622F; --stone:#9FA79B; --moth:#7FA3C0;
-  --blood:#B0402F; --heal:#7FA86B;
-  --f-disp:"Cinzel",Georgia,"Times New Roman",serif;
-  --f-body:"Spectral",Georgia,"Times New Roman",serif;
-  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  /* 戦闘（2枚目の参照：暗い藍） */
+  --night:#0B0D18; --night2:#141833; --panel:#1B2036; --panel2:#232941;
+  --line:#2E3550; --line2:#414A6B;
+  --ivory:#EDE7DA; --mute:#98A0B8; --faint:#646C86;
+  --gold:#E0B23C; --gold-dim:#8A6E22;
+  --ember:#E2622F; --amber:#E8892E; --blood:#C0392B; --jade:#5FA86B; --sky:#6FA8D6;
+  /* 射的屋（1枚目の参照：暖色の縁日） */
+  --f-disp:"Kaisei Decol",Georgia,serif;
+  --f-body:"Zen Kaku Gothic New",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--ink);color:var(--bone);font-family:var(--f-body);
-  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;
-  align-items:center;padding:14px;gap:10px;min-height:100vh}
+body{margin:0;background:#07080F;color:var(--ivory);font-family:var(--f-body);
+  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;
+  padding:14px;gap:10px;min-height:100vh}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
-button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-.stage{
-  width:100%;max-width:1240px;aspect-ratio:5/3;
-  container-type:size;font-size:clamp(7px,1.28cqw,16px);
-  position:relative;overflow:hidden;display:flex;flex-direction:column;
-  background:radial-gradient(120% 90% at 40% 6%, #1B2330 0%, #10141B 48%, #090C11 100%);
-  border:1px solid var(--edge);
-}
+.stage{width:100%;max-width:1280px;aspect-ratio:16/9;container-type:size;
+  font-size:clamp(7px,1.22cqw,17px);position:relative;overflow:hidden;
+  border:1px solid #222840;background:var(--night)}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column}
+.screen.off{display:none}
 
-/* ── 上帯 ── */
-.topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
-  gap:1.4em;padding:.75em 1.5em .6em;border-bottom:1px solid var(--edge);z-index:3}
-.vitals{display:flex;align-items:center;gap:1.5em}
-.vital{display:flex;align-items:baseline;gap:.45em;font-family:var(--f-mono);
-  font-variant-numeric:tabular-nums}
-.vital .lb{font-size:.72em;letter-spacing:.18em;text-transform:uppercase;color:var(--bone-faint)}
-.vital .nb{font-size:1.3em;font-weight:700}
-.v-hp .nb{color:var(--blood)} .v-block .nb{color:var(--stone)}
-.hpbar{width:8em;height:.42em;background:#080B0F;border:1px solid var(--edge)}
-.hpbar i{display:block;height:100%;background:var(--blood);transition:width .25s}
-.title{font-family:var(--f-disp);font-size:1.1em;letter-spacing:.28em;opacity:.45;
-  position:absolute;left:50%;top:.85em;transform:translateX(-50%)}
-.right{display:flex;align-items:center;gap:1.1em;font-family:var(--f-mono);font-size:.8em;
-  letter-spacing:.14em;color:var(--bone-faint);text-transform:uppercase}
-.corks{display:flex;gap:.35em}
-.cork{width:.62em;height:.62em;border-radius:50%;border:1px solid var(--brass-dim)}
-.cork.on{background:var(--brass);border-color:var(--brass)}
-.cork.spent{background:var(--brass-deep);border-color:var(--brass-deep)}
+/* ═══ HUD（両画面共通） ═══ */
+.hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
+  justify-content:space-between;padding:.85em 1.4em;z-index:6;pointer-events:none;gap:1em}
+.hud .l,.hud .r{display:flex;align-items:center;gap:.7em}
+.chip{font-family:var(--f-mono);font-size:.72em;letter-spacing:.1em;padding:.3em .7em;
+  background:rgba(10,12,22,.78);border:1px solid var(--line);color:var(--mute);
+  border-radius:.25em;white-space:nowrap}
+.chip.solid{background:var(--panel);color:var(--ivory)}
+.chip b{color:var(--ivory);font-weight:700}
+.chip .hp{color:#E4614F} .chip .bk{color:var(--sky)}
+.corks{display:flex;gap:.3em;align-items:center}
+.ck{width:.55em;height:.72em;border-radius:.3em .3em .12em .12em;background:#4A3C22;
+  border:1px solid #6B5730}
+.ck.on{background:#E8C98A;border-color:#F2DDAC}
 
-/* ── 本体 ── */
-.main{flex:1 1 auto;display:flex;min-height:0;z-index:2}
-.gallery{flex:1 1 62%;min-width:0;position:relative;display:flex;flex-direction:column}
-canvas{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
-.gtip{position:absolute;left:1.1em;bottom:.6em;font-family:var(--f-mono);font-size:.72em;
-  color:var(--bone-faint);letter-spacing:.06em;pointer-events:none}
+/* ═══ 画面1：射的屋 ═══ */
+#shoot canvas{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+.shootfoot{position:absolute;left:0;bottom:0;display:flex;align-items:center;
+  padding:.7em 1.4em 1em;z-index:6;gap:1em}
+.tip{font-family:var(--f-mono);font-size:.74em;color:#C7B48A;letter-spacing:.04em;
+  text-shadow:0 1px 3px rgba(0,0,0,.9)}
+.got{display:flex;gap:.4em;align-items:center}
+.gotcard{font-family:var(--f-body);font-size:.74em;padding:.25em .6em;border-radius:.2em;
+  background:rgba(12,10,8,.8);border:1px solid;font-weight:700}
 
-.side{flex:0 0 38%;border-left:1px solid var(--edge);display:flex;flex-direction:column;
-  background:rgba(9,12,17,.5);min-width:0}
-.sidehead{font-family:var(--f-mono);font-size:.68em;letter-spacing:.24em;text-transform:uppercase;
-  color:var(--bone-faint);padding:.7em 1.2em .4em;display:flex;align-items:center;gap:.7em}
-.sidehead::after{content:"";flex:1;height:1px;background:var(--edge)}
-.foes{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;
-  gap:.5em;padding:.2em 1.2em .8em;min-height:0}
-.foe{display:flex;align-items:center;gap:.7em;padding:.4em .6em;text-align:left;
-  border:1px solid transparent;position:relative;transition:border-color .12s,background .12s}
-.foe:hover:not(:disabled){background:rgba(255,255,255,.03)}
-.foe[aria-pressed="true"]{border-color:var(--brass);background:#171410}
-.foe.dead{opacity:.22;filter:saturate(.1)}
-.foe.flash{animation:flash .28s ease-out}
-@keyframes flash{0%{background:#4A2018}100%{}}
-.glyph{width:3.6em;height:3.6em;flex:0 0 auto;color:var(--bone-dim)}
-.foe[aria-pressed="true"] .glyph{color:var(--brass)}
-.finfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:.15em}
-.frow{display:flex;justify-content:space-between;align-items:baseline;gap:.5em}
-.fname{font-family:var(--f-disp);font-size:.95em;letter-spacing:.08em;color:var(--bone-dim);
+/* ═══ 画面2：戦闘（2枚目の参照） ═══ */
+#fight{background:
+  radial-gradient(78% 58% at 50% 30%, #1E2444 0%, #131731 45%, #0A0C17 100%)}
+.arena{flex:1 1 auto;display:flex;align-items:center;justify-content:center;
+  gap:1.6em;padding:3.6em 2em 1em;min-height:0;z-index:2}
+.foe{position:relative;width:15.5em;padding:.7em .7em 0;border-radius:.45em;
+  background:linear-gradient(180deg,#171B33 0%,#0F1226 100%);
+  border:2px solid #2C3350;display:flex;flex-direction:column;align-items:center;gap:.5em;
+  transition:border-color .15s,transform .15s;text-align:center}
+.foe:hover:not(:disabled){transform:translateY(-.25em)}
+.foe[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 1.6em rgba(224,178,60,.16)}
+.foe.dead{opacity:.2;filter:grayscale(1)}
+.foe.hurt{animation:hurt .3s ease-out}
+@keyframes hurt{0%{background:#3A1414;transform:translateX(-.3em)}100%{}}
+.intent{font-family:var(--f-mono);font-size:.78em;font-weight:700;letter-spacing:.06em;
+  padding:.22em .8em;border-radius:.2em;background:#3A1418;border:1px solid #6A2A2A;
+  color:#E8836F;display:flex;align-items:center;gap:.4em;margin-top:-.1em}
+.fname{font-family:var(--f-disp);font-size:1.3em;color:var(--ivory);letter-spacing:.05em}
+.glyph{width:8.4em;height:8.4em;color:var(--mute)}
+.foe[aria-pressed="true"] .glyph{color:var(--gold)}
+.tgt{font-family:var(--f-mono);font-size:.62em;letter-spacing:.28em;color:var(--gold-dim)}
+.foe[aria-pressed="true"] .tgt{color:var(--gold)}
+.fbar{width:100%;height:1.35em;background:#0A0C16;border-radius:0 0 .3em .3em;
+  border-top:1px solid #2C3350;position:relative;overflow:hidden}
+.fbar i{position:absolute;inset:0;right:auto;background:linear-gradient(180deg,#D64A3C,#9E2E24);
+  transition:width .25s}
+.fbar .ghost{position:absolute;top:0;bottom:0;
+  background:repeating-linear-gradient(135deg,rgba(224,178,60,.85) 0 4px,transparent 4px 8px)}
+.fbar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--f-mono);font-size:.68em;font-weight:700;color:#fff;
+  text-shadow:0 1px 2px rgba(0,0,0,.8);font-variant-numeric:tabular-nums}
+.fdelta{position:absolute;top:.3em;right:.4em;font-family:var(--f-mono);font-size:1.5em;
+  font-weight:700;color:var(--gold);text-shadow:0 2px 6px #000;font-variant-numeric:tabular-nums}
+
+/* 手前の帯：杖（＝手札の扇） */
+.hand{flex:0 0 auto;position:relative;height:13.4em;z-index:3}
+.handrow{position:absolute;left:50%;bottom:1.1em;transform:translateX(-50%);
+  display:flex;align-items:flex-end}
+.card{position:relative;width:8em;height:12em;border-radius:.5em;
+  background:linear-gradient(180deg,#252B44 0%,#171B30 100%);
+  border:2px solid #39415F;display:flex;flex-direction:column;align-items:center;
+  padding:1.5em .6em .6em;gap:.25em;transform-origin:50% 130%;
+  transition:transform .14s,border-color .14s,box-shadow .14s;
+  box-shadow:0 .5em 1.4em rgba(0,0,0,.55)}
+.card:hover{transform:translateY(-1.5em) scale(1.05) rotate(0deg)!important;z-index:9;
+  border-color:var(--gold);box-shadow:0 .8em 2em rgba(0,0,0,.7)}
+.card.t-projectile{border-color:#7A3524;background:linear-gradient(180deg,#3A2028 0%,#1C1524 100%)}
+.card.t-modifier{border-color:#6A5320}
+.card.t-utility{border-color:#2F4A63}
+.cidx{position:absolute;top:-.55em;left:-.55em;width:2em;height:2em;border-radius:.3em;
+  background:#0F1226;border:2px solid #4B5578;display:flex;align-items:center;
+  justify-content:center;font-family:var(--f-mono);font-size:.8em;font-weight:700;color:var(--ivory)}
+.card.t-projectile .cidx{border-color:#9C4630;color:#F0A08A}
+.card.t-modifier .cidx{border-color:var(--gold-dim);color:var(--gold)}
+.cname{font-family:var(--f-disp);font-size:1.02em;letter-spacing:.03em;line-height:1.1}
+.cicon{width:3.6em;height:3.6em;margin:.15em 0}
+.ctext{font-size:.72em;line-height:1.3;color:var(--mute);margin-top:auto}
+.ckind{font-family:var(--f-mono);font-size:.56em;letter-spacing:.2em;color:var(--faint)}
+.cswap{position:absolute;top:-.5em;right:-.5em;width:1.8em;height:1.8em;border-radius:50%;
+  background:#0F1226;border:1px solid var(--line2);font-family:var(--f-mono);font-size:.72em;
+  display:flex;align-items:center;justify-content:center;color:var(--mute);z-index:4}
+.cswap:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+.cswap:disabled{display:none}
+.cbind{width:100%;text-align:center;margin-top:.25em;padding-top:.25em;
+  border-top:1px solid rgba(224,178,60,.28);
+  font-family:var(--f-mono);font-size:.6em;letter-spacing:.04em;color:var(--gold-dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.foe[aria-pressed="true"] .fname{color:var(--bone)}
-.fhp{font-family:var(--f-mono);font-size:.72em;color:var(--bone-faint);font-variant-numeric:tabular-nums}
-.fbar{height:.36em;background:#080B0F;border:1px solid var(--edge);position:relative;overflow:hidden}
-.fbar i{display:block;height:100%;background:var(--blood);transition:width .25s}
-.fbar .ghost{position:absolute;top:0;height:100%;opacity:.9;
-  background:repeating-linear-gradient(135deg,var(--brass) 0 3px,transparent 3px 6px)}
-.fatk{font-family:var(--f-mono);font-size:.7em;color:var(--bone-faint)}
-.fatk b{color:var(--blood);font-weight:700}
-.fdelta{font-family:var(--f-mono);font-size:1.15em;font-weight:700;color:var(--brass);
-  font-variant-numeric:tabular-nums;flex:0 0 auto}
-.readout{padding:.3em 1.2em .8em;font-family:var(--f-mono);font-size:.7em;line-height:1.62;
-  color:var(--bone-faint);min-height:5.4em}
-.readout div{white-space:pre;overflow:hidden;text-overflow:ellipsis}
-.r-mod{color:var(--brass-dim)} .r-fire{color:var(--bone-dim)}
-.r-foe{color:#C4776A} .r-total{color:var(--brass);font-weight:700}
+.card.t-modifier .cbind{color:var(--gold)}
 
-/* ── 杖 ── */
-.wandbar{flex:0 0 auto;border-top:1px solid var(--edge);background:rgba(10,13,18,.72);
-  padding:.55em 1.5em .45em;z-index:3;display:flex;align-items:flex-start;gap:1.3em}
-.wandcol{flex:1;min-width:0}
-.wlabel{font-family:var(--f-mono);font-size:.66em;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--bone-faint);margin-bottom:.35em;display:flex;gap:1em;align-items:baseline}
-.wlabel em{font-style:normal;color:var(--brass-dim);letter-spacing:.06em}
-.slots{display:flex;gap:.45em}
-.slot{flex:1;min-width:0;height:3.2em;border:1px dashed #232B36;background:#080B10;
-  padding:.35em .5em;display:flex;flex-direction:column;justify-content:center;gap:.1em;
-  position:relative;text-align:left}
-.slot.filled{border-style:solid;border-color:var(--edge2);background:var(--ink3)}
-.slot .sidx{position:absolute;top:.2em;right:.35em;font-family:var(--f-mono);font-size:.6em;
-  color:var(--bone-faint)}
-.slot .sk{font-family:var(--f-mono);font-size:.6em;letter-spacing:.14em;text-transform:uppercase}
-.slot .sn{font-family:var(--f-disp);font-size:1em;letter-spacing:.04em;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;padding-right:.8em}
-.slot .sempty{font-family:var(--f-mono);font-size:.66em;color:#242C37;letter-spacing:.18em;margin:auto}
-.swap{position:absolute;right:.25em;bottom:.2em;font-family:var(--f-mono);font-size:.6em;
-  line-height:1;padding:.12em .3em;border:1px solid var(--edge2);color:var(--bone-faint);
-  background:#080B0F}
-.swap:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
-.swap:disabled{opacity:.2;cursor:default}
-.binds{display:flex;gap:.45em;height:1.05em;margin-top:.2em}
-.bind{flex:1;position:relative}
-.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:.6em;color:var(--brass-dim);
-  display:flex;align-items:center;justify-content:center;border-top:1px solid var(--brass-dim);
-  padding-top:.15em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bind.start span{border-left:1px solid var(--brass-dim)}
-.bind.end span{border-right:1px solid var(--brass-dim)}
+.fightfoot{position:absolute;right:1.6em;bottom:1.4em;display:flex;flex-direction:column;
+  gap:.5em;align-items:flex-end;z-index:5}
+.btn{font-family:var(--f-body);font-weight:700;font-size:.92em;letter-spacing:.1em;
+  padding:.6em 1.5em;border-radius:.3em;border:2px solid #4B5578;background:#20263C;
+  color:var(--ivory);transition:filter .12s,border-color .12s}
+.btn:hover:not(:disabled){filter:brightness(1.25)}
+.btn:disabled{opacity:.3;cursor:default}
+.btn.go{background:linear-gradient(180deg,#E8892E,#C4661C);border-color:#F0A85A;color:#231404}
+.btn.go small{display:block;font-family:var(--f-mono);font-size:.62em;font-weight:400;
+  letter-spacing:.1em;opacity:.75}
+.bindrow{position:absolute;left:50%;bottom:12.4em;transform:translateX(-50%);display:flex;
+  gap:.55em;z-index:4;pointer-events:none}
+.bind{width:8.4em;height:1.3em;position:relative}
+.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:.6em;color:var(--gold-dim);
+  display:flex;align-items:center;justify-content:center;border-top:1px solid var(--gold-dim);
+  padding-top:.2em;white-space:nowrap;overflow:hidden}
+.bind.start span{border-left:1px solid var(--gold-dim)}
+.bind.end span{border-right:1px solid var(--gold-dim)}
 .bind.none span{border:0;color:transparent}
-.k-projectile{color:var(--fire)} .k-modifier{color:var(--brass)} .k-utility{color:var(--stone)}
+.log{position:absolute;left:1.6em;bottom:1.4em;font-family:var(--f-mono);font-size:.72em;
+  line-height:1.6;color:var(--faint);z-index:5;pointer-events:none}
+.log div{white-space:pre}
+.l-mod{color:var(--gold-dim)} .l-fire{color:var(--mute)}
+.l-foe{color:#C4776A} .l-total{color:var(--gold);font-weight:700}
 
-.acts{flex:0 0 auto;display:flex;flex-direction:column;gap:.3em;align-items:stretch;padding-top:.95em}
-.btn{font-family:var(--f-mono);font-size:.74em;letter-spacing:.18em;text-transform:uppercase;
-  padding:.55em 1.2em;border:1px solid var(--edge2);background:var(--ink3);color:var(--bone);
-  white-space:nowrap;transition:border-color .12s,color .12s,background .12s}
-.btn:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
-.btn:disabled{opacity:.26;cursor:default}
-.btn.cast{border-color:var(--brass);color:var(--brass);background:#1A1710}
-.btn.cast:hover:not(:disabled){background:#241F14}
-
-/* ── 幕 ── */
-.veil{position:absolute;inset:0;background:rgba(8,10,14,.94);display:flex;align-items:center;
-  justify-content:center;padding:2em;z-index:10}
-.veil .box{max-width:38em;background:var(--ink2);border:1px solid var(--brass-dim);
-  border-top:3px solid var(--brass);padding:1.7em 2em}
-.veil h2{font-family:var(--f-disp);font-size:1.5em;letter-spacing:.1em;margin:0 0 .2em;text-wrap:balance}
-.veil .sub{font-family:var(--f-mono);font-size:.7em;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--brass-dim);margin-bottom:1em}
-.veil p{margin:0 0 .75em;color:var(--bone-dim);font-size:.9em;line-height:1.6}
-.veil ul{margin:0 0 1em;padding-left:1.2em;color:var(--bone-dim);font-size:.9em;line-height:1.6}
+/* ═══ 幕 ═══ */
+.veil{position:absolute;inset:0;background:rgba(6,8,14,.93);display:flex;align-items:center;
+  justify-content:center;padding:2em;z-index:20}
+.veil .box{max-width:36em;background:var(--panel);border:2px solid var(--gold-dim);
+  border-top:4px solid var(--gold);border-radius:.4em;padding:1.7em 2em}
+.veil h2{font-family:var(--f-disp);font-size:1.5em;margin:0 0 .15em;letter-spacing:.06em}
+.veil .sub{font-family:var(--f-mono);font-size:.68em;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--gold-dim);margin-bottom:1em}
+.veil p{margin:0 0 .7em;color:var(--mute);font-size:.9em;line-height:1.65}
+.veil ul{margin:0 0 1em;padding-left:1.2em;color:var(--mute);font-size:.9em;line-height:1.65}
 .hidden{display:none!important}
 
-.notes{width:100%;max-width:1240px;display:grid;
+.notes{width:100%;max-width:1280px;display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 26px;
-  font-size:12.5px;line-height:1.55;color:var(--bone-dim);
-  border-top:1px solid var(--edge);padding-top:12px}
+  font-size:12.5px;line-height:1.6;color:var(--mute);border-top:1px solid #222840;padding-top:12px}
 .notes h3{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--brass);margin:0 0 5px}
+  color:var(--gold);margin:0 0 5px}
 .notes ul{margin:0;padding-left:15px} .notes li{margin-bottom:4px}
-.notes code{font-family:var(--f-mono);font-size:11.5px;color:var(--bone)}
+.notes code{font-family:var(--f-mono);font-size:11.5px;color:var(--ivory)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
 <div class="stage" id="stage">
-  <div class="topbar">
-    <div class="vitals">
-      <div class="vital v-hp"><span class="lb">体力</span><span class="nb" id="v-hp">70</span></div>
-      <div class="hpbar"><i id="hpfill" style="width:100%"></i></div>
-      <div class="vital v-block"><span class="lb">防御</span><span class="nb" id="v-block">0</span></div>
+
+  <!-- ══ 画面1：射的屋 ══ -->
+  <div class="screen" id="shoot">
+    <canvas id="board"></canvas>
+    <div class="hud">
+      <div class="l">
+        <span class="chip solid">第<b id="s-floor">1</b>層</span>
+        <span class="chip">ラウンド <b id="s-round">1</b></span>
+      </div>
+      <div class="r">
+        <span class="chip">体力 <b class="hp" id="s-hp">70</b></span>
+        <span class="chip">防御 <b class="bk" id="s-block">0</b></span>
+        <span class="chip">コルク <span class="corks" id="corks"></span></span>
+      </div>
     </div>
-    <div class="title">射的詠唱</div>
-    <div class="right">
-      <span id="s-round">ラウンド 1</span>
-      <span>コルク</span><span class="corks" id="corks"></span>
+    <div class="shootfoot">
+      <button class="btn go" id="btn-next">詠唱へ<small>enter</small></button>
+      <div class="got" id="got"></div>
+      <span class="tip" id="tip"></span>
     </div>
   </div>
 
-  <div class="main">
-    <div class="gallery">
-      <canvas id="board"></canvas>
-      <div class="gtip" id="gtip"></div>
+  <!-- ══ 画面2：戦闘 ══ -->
+  <div class="screen off" id="fight">
+    <div class="hud">
+      <div class="l">
+        <span class="chip solid">第<b id="f-floor">1</b>層</span>
+        <span class="chip">ラウンド <b id="f-round">1</b></span>
+      </div>
+      <div class="r">
+        <span class="chip">体力 <b class="hp" id="f-hp">70</b></span>
+        <span class="chip">防御 <b class="bk" id="f-block">0</b></span>
+        <span class="chip" id="f-swap">入れ替え 1</span>
+      </div>
     </div>
-    <div class="side">
-      <div class="sidehead">敵列 — 貫通は下へ抜ける</div>
-      <div class="foes" id="foes"></div>
-      <div class="readout" id="log"></div>
-    </div>
-  </div>
-
-  <div class="wandbar">
-    <div class="wandcol">
-      <div class="wlabel"><span>杖 — 落ちた順</span><em id="swapinfo"></em></div>
-      <div class="slots" id="slots"></div>
-      <div class="binds" id="binds"></div>
-    </div>
-    <div class="acts">
-      <button class="btn cast" id="btn-cast">詠唱</button>
-      <button class="btn" id="btn-stop">撃ち止め</button>
+    <div class="arena" id="foes"></div>
+    <div class="hand"><div class="handrow" id="hand"></div></div>
+    <div class="log" id="log"></div>
+    <div class="fightfoot">
+      <button class="btn go" id="btn-cast">詠唱<small>space</small></button>
     </div>
   </div>
 
@@ -203,8 +221,8 @@ canvas{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
   <div>
     <h3>射的</h3>
     <ul>
-      <li>棚の景品をコルクで撃ち落とす。<b>落ちた順がそのまま杖の順序</b>になる。</li>
-      <li>景品は撃たれると棚を滑る。<b>隣の景品を巻き込める</b>。落ちて下の棚を崩すこともある。</li>
+      <li>棚の景品をコルクで撃つ。当たった景品は<b>奥へ倒れて棚の裏に落ちる</b>。</li>
+      <li><b>落ちた順がそのまま杖の順序</b>。倒れる景品は隣を巻き込む。</li>
       <li>コルクは 1 ラウンドに 2 発。点線は最初の接触までしか出ない。</li>
     </ul>
   </div>
@@ -219,8 +237,8 @@ canvas{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
   <div>
     <h3>幾何</h3>
     <ul>
-      <li><code>貫通</code> 狙った敵の<b>下</b>に並ぶ敵も貫く。</li>
-      <li><code>拡大</code> 着弾点の<b>上下</b>へ半減して届く。</li>
+      <li><code>貫通</code> 狙った敵の<b>右</b>に並ぶ敵も貫く。</li>
+      <li><code>拡大</code> 着弾点の<b>両隣</b>へ半減して届く。</li>
       <li><code>三分裂</code> 複製が<b>別の敵へ</b>飛ぶ。飛び先がなければ消える。</li>
       <li><code>防御</code> は落ちた時点で即座に防御になる。杖には入らない。</li>
     </ul>
@@ -230,7 +248,7 @@ canvas{width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
 <script>
 "use strict";
 
-/* ══════ カード ══════ */
+/* ═══════ カード ═══════ */
 const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
 const CARDS = {
   fireball:{name:"火球",  type:"projectile", dmg:9, text:"9 ダメージ"},
@@ -241,60 +259,74 @@ const CARDS = {
   enlarge: {name:"拡大",  type:"modifier", mod:{splash:1}, text:"波及 +1"},
   guard:   {name:"防御",  type:"utility", block:9, text:"防御 9（即時）"}
 };
-/* 景品プール：ここを増やす・強くするのが将来の成長軸 */
 const POOL = ["fireball","fireball","fireball","shard","shard","shard","bolt","bolt",
               "split3","split3","pierce","pierce","pierce","enlarge","enlarge","guard","guard"];
 
+const ICON = {
+  fireball:`<path d="M16 4c3 6-2 8 0 12 1.6 3.2 6 2 6 7a6 6 0 0 1-12 0c0-4 2-5 2-8 0 0-4 3-4 8a8 8 0 0 0 16 0C24 14 18 12 16 4z" fill="#E2622F"/>`,
+  shard:`<path d="M6 20 L12 7 L22 10 L26 22 L16 28z" fill="#9C8F78" stroke="#6E6455" stroke-width="1.4"/>`,
+  bolt:`<path d="M18 3 L8 17h6l-3 12 13-16h-7z" fill="#E8C33C"/>`,
+  split3:`<g stroke="#E0B23C" stroke-width="2.2" fill="none" stroke-linecap="round">
+    <path d="M6 26 L14 12"/><path d="M16 27 L16 10"/><path d="M26 26 L18 12"/></g>
+    <circle cx="16" cy="7" r="2.6" fill="#E0B23C"/>`,
+  pierce:`<g stroke="#E0B23C" stroke-width="2.2" fill="none" stroke-linecap="round">
+    <path d="M3 16 H27"/><path d="M21 10 L27 16 L21 22"/></g>
+    <circle cx="11" cy="16" r="3.2" fill="none" stroke="#8A6E22" stroke-width="1.6"/>
+    <circle cx="19" cy="16" r="3.2" fill="none" stroke="#8A6E22" stroke-width="1.6"/>`,
+  enlarge:`<circle cx="16" cy="16" r="3.4" fill="#E0B23C"/>
+    <circle cx="16" cy="16" r="8" fill="none" stroke="#E0B23C" stroke-width="1.8" opacity=".7"/>
+    <circle cx="16" cy="16" r="13" fill="none" stroke="#E0B23C" stroke-width="1.4" opacity=".38"/>`,
+  guard:`<path d="M16 3 L27 7v9c0 7-5 11-11 13-6-2-11-6-11-13V7z" fill="#2C4A63" stroke="#6FA8D6" stroke-width="1.8"/>
+    <path d="M16 10v11M11 15h10" stroke="#9FD0EA" stroke-width="1.8" stroke-linecap="round"/>`
+};
+
 const BATTLES = [
-  {name:"二体の的", foes:[{name:"藁の的", hp:26, atk:6, art:"target"},
-                          {name:"藁の的", hp:26, atk:6, art:"target"}]},
-  {name:"三体",     foes:[{name:"火蜥蜴", hp:30, atk:8, art:"salamander"},
-                          {name:"石人",   hp:28, atk:6, art:"golem"},
-                          {name:"蟲",     hp:18, atk:5, art:"worm"}]}
+  {name:"一体", foes:[{name:"スライム", hp:28, atk:8, art:"slime"}]},
+  {name:"三体", foes:[{name:"火蜥蜴", hp:30, atk:8, art:"salamander"},
+                      {name:"石人",   hp:28, atk:6, art:"golem"},
+                      {name:"蟲",     hp:18, atk:5, art:"worm"}]}
 ];
+const ART = {
+  slime:`<path d="M6 46 Q6 22 32 22 Q58 22 58 46 Q58 50 54 50 H10 Q6 50 6 46z" fill="#4FBF5A" stroke="#2E7A38" stroke-width="2"/>
+    <ellipse cx="32" cy="50" rx="26" ry="4" fill="#3C9E46"/>
+    <circle cx="24" cy="36" r="2.6" fill="#123018"/><circle cx="40" cy="36" r="2.6" fill="#123018"/>
+    <path d="M27 42 Q32 46 37 42" stroke="#123018" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="22" cy="29" rx="5" ry="3" fill="#95E39D" opacity=".65"/>`,
+  salamander:`<path d="M8 46 L26 32 L38 39 L56 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="bevel"/>
+    <path d="M26 32 L30 16 L37 29 L45 10 L49 29" fill="none" stroke="#E2622F" stroke-width="2.2" stroke-linejoin="bevel"/>
+    <circle cx="54" cy="25" r="3" fill="#E2622F"/>
+    <path d="M11 48 L15 60 M28 35 L30 60 M40 40 L44 60" stroke="currentColor" stroke-width="1.8"/>`,
+  golem:`<rect x="19" y="5" width="26" height="16" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    <rect x="11" y="24" width="42" height="23" fill="none" stroke="currentColor" stroke-width="2.8"/>
+    <rect x="16" y="49" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="35" y="49" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"/>
+    <path d="M26 14 L34 14" stroke="#9FA79B" stroke-width="3.4" stroke-linecap="round"/>`,
+  worm:`<path d="M6 44 Q17 26 28 44 Q39 26 50 44 Q57 30 61 40" fill="none"
+      stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="61" cy="38" r="4" fill="none" stroke="#7FA3C0" stroke-width="2"/>
+    <path d="M11 48 L9 60 M30 48 L29 60 M48 48 L51 60" stroke="currentColor" stroke-width="1.6"/>`
+};
 
 const CAP = 5, CORKS = 2, MAXHP = 70;
 
-const ART = {
-  target:`<circle cx="32" cy="28" r="16" fill="none" stroke="currentColor" stroke-width="2"/>
-    <circle cx="32" cy="28" r="9" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".7"/>
-    <circle cx="32" cy="28" r="3.6" fill="#B0402F"/>
-    <path d="M32 44 L32 60 M23 60 L41 60" stroke="currentColor" stroke-width="1.6"/>`,
-  salamander:`<path d="M10 46 L26 34 L38 40 L54 26" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linejoin="bevel"/>
-    <path d="M26 34 L30 19 L36 30 L43 13 L47 30" fill="none" stroke="#E2622F" stroke-width="1.8" stroke-linejoin="bevel"/>
-    <circle cx="52" cy="27" r="2.6" fill="#E2622F"/>
-    <path d="M13 48 L17 58 M28 37 L30 58 M40 41 L43 58" stroke="currentColor" stroke-width="1.5"/>`,
-  golem:`<rect x="20" y="7" width="24" height="15" fill="none" stroke="currentColor" stroke-width="2"/>
-    <rect x="13" y="25" width="38" height="21" fill="none" stroke="currentColor" stroke-width="2.4"/>
-    <rect x="17" y="48" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"/>
-    <rect x="35" y="48" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"/>
-    <path d="M26 15 L33 15" stroke="#9FA79B" stroke-width="3" stroke-linecap="round"/>`,
-  worm:`<path d="M9 44 Q18 29 27 44 Q36 29 45 44 Q53 30 58 39" fill="none"
-      stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-    <circle cx="58" cy="37" r="3.6" fill="none" stroke="#7FA3C0" stroke-width="1.8"/>
-    <path d="M13 47 L11 58 M29 47 L28 58 M45 47 L47 58" stroke="currentColor" stroke-width="1.4"/>`
-};
-
-/* ══════ 射的台（軽い物理） ══════
-   剛体はやらない。棚の上を滑る／落ちる／下の棚を巻き込む、の 3 挙動だけ。 */
-const GW = 200, GH = 150, FLOOR = 130;
+/* ═══════ 射的台（鏡像：銃は右手前） ═══════ */
+const GW = 200, GH = 112, FLOOR = 96;
 const SHELVES = [
-  {y:44,  x0:55, x1:168},
-  {y:72,  x0:45, x1:158},
-  {y:100, x0:62, x1:178}
+  {y:38, x0:32, x1:145},
+  {y:62, x0:42, x1:155},
+  {y:86, x0:22, x1:138}
 ];
-const GUN = {x:14, y:141};
-const GRAV = 190, SPEED = 212;
-const PW = 14, PH = 17;                    // 景品の寸法
-const DT = 1/120;
+const GUN = {x:176, y:99};
+const GRAV = 190, SPEED = 212, KNOCK_MIN = 18;
+const PW = 12, PH = 14, DT = 1/120;
 
-let S = null, uid = 0, aimA = 0.95, anim = null;
+let S = null, uid = 0, aimA = 0.75, sparks = [];
 const mk = id => Object.assign({id, uid:++uid}, CARDS[id]);
 const rnd = n => Math.random()*n;
 
 function newRun(){
   S = {battle:0, round:1, hp:MAXHP, block:0, corks:CORKS, swaps:1,
-       wand:[], foes:[], target:0, over:null, mode:"aim",
+       wand:[], foes:[], target:0, over:null, mode:"aim", phase:"shoot",
        prizes:[], cork:null, log:[], flash:[]};
   startBattle(0);
 }
@@ -305,28 +337,25 @@ function startBattle(i){
   newRound();
 }
 function newRound(){
-  S.corks = CORKS; S.swaps = 1; S.wand = []; S.mode = "aim"; S.cork = null;
+  S.corks = CORKS; S.swaps = 1; S.wand = []; S.mode = "aim";
+  S.phase = "shoot"; S.cork = null; sparks = [];
   stockShelves();
 }
-
-/** 棚に景品を並べる */
 function stockShelves(){
   S.prizes = [];
-  SHELVES.forEach((sh,si)=>{
+  SHELVES.forEach(sh=>{
     const n = 2 + (rnd(1) < 0.55 ? 1 : 0);
     const span = sh.x1 - sh.x0 - PW, slot = span/n;
     for (let k=0;k<n;k++){
       const x = sh.x0 + PW/2 + slot*(k+0.5) + (rnd(slot*0.62) - slot*0.31);
       S.prizes.push({card: mk(POOL[Math.floor(rnd(POOL.length))]),
-                     x, y: sh.y - PH/2, vx:0, vy:0, shelf:si, state:"stand"});
+                     x, y: sh.y - PH/2, vx:0, vy:0, rot:0, spin:0, state:"stand"});
     }
   });
 }
 
-/* ── コルクの軌道（決定論的） ── */
-function stepCork(c){
-  c.vy += GRAV*DT; c.x += c.vx*DT; c.y += c.vy*DT;
-}
+/* ── コルク（左向きに飛ぶ） ── */
+function stepCork(c){ c.vy += GRAV*DT; c.x += c.vx*DT; c.y += c.vy*DT; }
 function corkHitsPrize(c){
   for (const p of S.prizes){
     if (p.state !== "stand") continue;
@@ -334,9 +363,8 @@ function corkHitsPrize(c){
   }
   return null;
 }
-/** 照準：最初の接触までだけを返す */
 function aimPath(){
-  const c = {x:GUN.x, y:GUN.y, vx:Math.cos(aimA)*SPEED, vy:-Math.sin(aimA)*SPEED};
+  const c = {x:GUN.x, y:GUN.y, vx:-Math.cos(aimA)*SPEED, vy:-Math.sin(aimA)*SPEED};
   const pts = [{x:c.x, y:c.y}];
   for (let i=0;i<900;i++){
     stepCork(c);
@@ -346,23 +374,22 @@ function aimPath(){
   }
   return pts;
 }
-
 function fire(){
   if (S.mode !== "aim" || !S.corks) return;
   S.corks--;
-  S.cork = {x:GUN.x, y:GUN.y, vx:Math.cos(aimA)*SPEED, vy:-Math.sin(aimA)*SPEED, live:true};
+  S.cork = {x:GUN.x, y:GUN.y, vx:-Math.cos(aimA)*SPEED, vy:-Math.sin(aimA)*SPEED, live:true};
   S.mode = "sim";
-  render();
+  renderHud();
 }
 
-/** 倒す。当たった景品は必ず落ちるので「当てたのに何も貰えない」が起きない。 */
-const KNOCK_MIN = 18;          // これ未満は巻き込まない。連鎖の長さは主に弾道の幾何が決める
+/** 倒す。当たった景品は必ず奥へ倒れて落ちる。 */
 function knock(p, dir, mag){
   if (p.state !== "stand") return;
-  p.state = "fly"; p.vx = dir*mag; p.vy = -18; p.budget = 1;  // 巻き込めるのは1つまで
+  p.state = "fly"; p.vx = dir*mag; p.vy = -18; p.budget = 1;
+  p.spin = (0.9 + Math.abs(mag)/90) * (dir>=0 ? 1 : -1);   // 奥へ倒れる回転
+  for (let i=0;i<7;i++)
+    sparks.push({x:p.x, y:p.y, vx:(rnd(60)-30), vy:-rnd(50), t:1});
 }
-
-/** 物理を 1 ステップ。棚を滑らせず、倒れて飛ぶだけ。 */
 function physics(){
   if (S.cork && S.cork.live){
     stepCork(S.cork);
@@ -374,13 +401,11 @@ function physics(){
       S.cork.live = false;
     }
   }
-
   for (const p of S.prizes){
     if (p.state !== "fly") continue;
     p.vy += GRAV*DT; p.x += p.vx*DT; p.y += p.vy*DT;
-
-    // 立っている景品を巻き込む ＝ 連鎖。落下順がそのまま杖の順序になる。
-    // 1 個につき 1 回まで、かつ勢いが残っている時だけ。放っておくと雪崩になる。
+    p.rot += p.spin * DT * 4.2;
+    if (Math.abs(p.rot) > 1.5) p.rot = 1.5 * Math.sign(p.rot);   // 倒れきったら止める
     if (p.budget > 0 && Math.abs(p.vx) > KNOCK_MIN){
       for (const q of S.prizes){
         if (q === p || q.state !== "stand") continue;
@@ -391,15 +416,15 @@ function physics(){
         }
       }
     }
-
     if (p.y > FLOOR || p.x < -18 || p.x > GW+18){ p.state = "landed"; collect(p.card); }
   }
+  for (const s of sparks){ s.vy += GRAV*DT*0.5; s.x += s.vx*DT; s.y += s.vy*DT; s.t -= DT*2.2; }
+  sparks = sparks.filter(s=>s.t>0);
 }
 function settled(){
   if (S.cork && S.cork.live) return false;
   return !S.prizes.some(p => p.state === "fly");
 }
-
 function collect(card){
   if (card.type === "utility"){
     S.block += card.block;
@@ -408,10 +433,9 @@ function collect(card){
   }
   if (S.wand.length >= CAP){ S.log.push({k:"foe", t:`${card.name} は溢れた`}); return; }
   S.wand.push(card);
-  S.log.push({k:"fire", t:`${S.wand.length}. ${card.name}`});
 }
 
-/* ══════ 杖 VM ══════ */
+/* ═══════ 杖 VM ═══════ */
 const newBuf = () => ({split:1, pierce:0, splash:0});
 const alive = st => st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
 function nextAlive(st, from){
@@ -472,28 +496,27 @@ function preview(){
   return {log, hp:st.foes.map(f=>f.hp)};
 }
 
-/* ══════ 進行 ══════ */
+/* ═══════ 進行 ═══════ */
+function toFight(){
+  if (S.phase !== "shoot") return;
+  S.corks = 0; S.phase = "fight"; S.mode = "arrange";
+  render();
+}
 function swapAt(i){
   if (S.swaps<=0 || i<0 || i+1>=S.wand.length) return;
   [S.wand[i], S.wand[i+1]] = [S.wand[i+1], S.wand[i]];
   S.swaps--; render();
 }
 function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); } }
-function stopShooting(){ if (S.mode==="aim"){ S.corks = 0; S.mode = "arrange"; render(); } }
-
 function cast(){
-  if (S.over || !S.wand.length) return;
-  S.log = [];
-  S.flash = [];
-  runCast(S, S.wand, S.target, S.log);
+  if (S.over || S.phase !== "fight") return;
+  S.log = []; S.flash = [];
+  if (S.wand.length) runCast(S, S.wand, S.target, S.log);
   S.wand = [];
   if (!S.foes.some(f=>f.hp>0)) return winBattle();
   if (!S.foes[S.target] || S.foes[S.target].hp<=0){
     const n = nextAlive(S,-1); if (n>=0) S.target = n;
   }
-  enemyTurn();
-}
-function enemyTurn(){
   for (const f of S.foes){
     if (f.hp<=0) continue;
     let d = f.atk;
@@ -504,18 +527,20 @@ function enemyTurn(){
   }
   if (S.hp <= 0) return lose();
   S.round++; S.block = 0;
+  const keep = S.log.slice();
   newRound();
+  S.log = keep;
   render();
 }
 
 function winBattle(){
   if (S.battle === 0){
     S.hp = Math.min(MAXHP, S.hp + 14);
-    veil(`<h2>的を崩した</h2><div class="sub">battle 1 cleared</div>
+    veil(`<h2>スライムを倒した</h2><div class="sub">第 1 層 突破</div>
       <p>次は 3 体。ここから <b>貫通・拡大・三分裂</b> が効いてくる。
       修飾を先に落とせるかどうかで、同じ景品でも威力が桁違いに変わります。</p>
-      <p style="color:var(--heal)">体力を 14 回復した。</p>
-      <button class="btn cast" id="veilgo">進む</button>`,
+      <p style="color:var(--jade)">体力を 14 回復した。</p>
+      <button class="btn go" id="veilgo">進む</button>`,
       ()=>{ hideVeil(); startBattle(1); render(); });
   } else {
     S.over = "win";
@@ -523,12 +548,10 @@ function winBattle(){
       <p>今回見たいのはここです。</p>
       <ul>
         <li>「あの景品を先に落としたい」と思って狙ったか</li>
-        <li>景品を別の景品にぶつけて順番を作ったか</li>
+        <li>景品を別の景品に倒し込んで順番を作ったか</li>
         <li>それとも、当たれば何でもよかったか</li>
       </ul>
-      <p>3 つ目なら、射的と杖はまだ別のゲームです。景品の配置を狙って組めるよう、
-      棚の並びかコルクの挙動を作り込む方向になります。</p>
-      <button class="btn cast" id="veilgo">最初から</button>`,
+      <button class="btn go" id="veilgo">最初から</button>`,
       ()=>{ hideVeil(); newRun(); render(); });
   }
 }
@@ -536,7 +559,7 @@ function lose(){
   S.over = "lose";
   veil(`<h2>詠唱は途絶えた</h2><div class="sub">defeated</div>
     <p>防御の景品を落とすか、火力を取るか。コルク 2 発の配分がこのゲームの中身です。</p>
-    <button class="btn cast" id="veilgo">最初から</button>`,
+    <button class="btn go" id="veilgo">最初から</button>`,
     ()=>{ hideVeil(); newRun(); render(); });
 }
 function veil(html, cb){
@@ -547,7 +570,7 @@ function veil(html, cb){
 }
 function hideVeil(){ document.getElementById("veil").classList.add("hidden"); }
 
-/* ══════ 結合括弧 ══════ */
+/* ═══════ 結合括弧 ═══════ */
 function analyzeGroups(wand){
   const out = []; let i = 0;
   while (i < wand.length){
@@ -567,214 +590,343 @@ function mark(out,a,b,label){
     out[k] = {pos:(k===a&&k===b)?"start end":k===a?"start":k===b?"end":"mid", label:k===a?label:""};
 }
 
-/* ══════ 盤面の描画 ══════ */
+/* ═══════ 射的屋の描画 ═══════ */
 const cv = document.getElementById("board");
 const ctx = cv.getContext("2d");
 let VIEW = {s:1, ox:0, oy:0};
-
 function fitCanvas(){
   const r = cv.getBoundingClientRect();
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   cv.width = Math.max(1, Math.round(r.width*dpr));
   cv.height = Math.max(1, Math.round(r.height*dpr));
-  const s = Math.min(cv.width/GW, cv.height/GH);
+  const s = Math.min(cv.width/GW, cv.height/GH);      // 全体を必ず収める
   VIEW = {s, ox:(cv.width - GW*s)/2, oy:(cv.height - GH*s)/2};
 }
 const TX = x => VIEW.ox + x*VIEW.s;
 const TY = y => VIEW.oy + y*VIEW.s;
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawPrize(p){
+  const s = VIEW.s;
+  const w = PW*s, h = PH*s;
+  const col = p.card.type==="projectile" ? "#E2622F"
+            : p.card.type==="modifier"   ? "#E0B23C" : "#6FA8D6";
+  ctx.save();
+  ctx.translate(TX(p.x), TY(p.y + PH/2));      // 台座を軸に倒れる
+  ctx.rotate(p.rot);
+  if (p.state === "fly"){
+    const k = 1 - Math.min(.35, Math.abs(p.rot)*.22);
+    ctx.scale(k, k);                            // 奥に行くほど小さく
+    ctx.globalAlpha = 0.92;
+  }
+  // 影
+  if (p.state === "stand"){
+    ctx.fillStyle = "rgba(60,30,10,.45)";
+    ctx.beginPath(); ctx.ellipse(0, 1.5*s, w*0.6, 2*s, 0, 0, Math.PI*2); ctx.fill();
+  }
+  // 台紙
+  roundRect(-w/2, -h, w, h, 1.6*s);
+  ctx.fillStyle = "#F2E6C8"; ctx.fill();
+  ctx.strokeStyle = "#8B6A3A"; ctx.lineWidth = Math.max(1, 1*s); ctx.stroke();
+  // 色帯
+  ctx.fillStyle = col;
+  roundRect(-w/2, -h, w, h*0.3, 1.6*s); ctx.fill();
+  // 文字
+  ctx.fillStyle = "#33261A";
+  ctx.font = `700 ${Math.max(7, 3.2*s)}px "Zen Kaku Gothic New", sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const nm = p.card.name;
+  if (nm.length <= 2) ctx.fillText(nm, 0, -h*0.36);
+  else { ctx.fillText(nm.slice(0,2), 0, -h*0.46); ctx.fillText(nm.slice(2), 0, -h*0.20); }
+  ctx.restore();
+}
 
 function drawBoard(){
   if (!S) return;
   const s = VIEW.s;
   ctx.clearRect(0,0,cv.width,cv.height);
 
-  // 背景の暖簾
-  const g = ctx.createLinearGradient(0, TY(0), 0, TY(GH));
-  g.addColorStop(0, "#161C26"); g.addColorStop(1, "#0A0D12");
-  ctx.fillStyle = g; ctx.fillRect(TX(0), TY(0), GW*s, GH*s);
+  // ── 夜と屋台の奥 ──
+  let g = ctx.createLinearGradient(0, TY(0), 0, TY(GH));
+  g.addColorStop(0,"#1A1230"); g.addColorStop(.45,"#241A2E"); g.addColorStop(1,"#150F1C");
+  ctx.fillStyle = g; ctx.fillRect(0,0,cv.width,cv.height);
+  // 遠景の灯り
+  for (let i=0;i<14;i++){
+    const x = (i*37 % 200), y = 6 + (i*23 % 18);
+    ctx.fillStyle = `rgba(255,200,120,${0.05 + (i%3)*0.03})`;
+    ctx.beginPath(); ctx.arc(TX(x), TY(y), 2.4*s, 0, Math.PI*2); ctx.fill();
+  }
+  // 板壁
+  ctx.fillStyle = "#3A2617";
+  ctx.fillRect(TX(6), TY(16), 188*s, 82*s);
+  ctx.strokeStyle = "rgba(20,12,6,.5)"; ctx.lineWidth = Math.max(1,.8*s);
+  for (let x=6; x<194; x+=13){
+    ctx.beginPath(); ctx.moveTo(TX(x), TY(16)); ctx.lineTo(TX(x), TY(98)); ctx.stroke();
+  }
+  // 側柱
+  ctx.fillStyle = "#C9C2B4"; ctx.fillRect(TX(2), TY(14), 6*s, 86*s);
+  ctx.fillRect(TX(192), TY(14), 6*s, 86*s);
 
-  // 床
-  ctx.strokeStyle = "#3A4553"; ctx.lineWidth = Math.max(1, 1.2*s);
-  ctx.beginPath(); ctx.moveTo(TX(0), TY(FLOOR)); ctx.lineTo(TX(GW), TY(FLOOR)); ctx.stroke();
-
-  // 棚
+  // ── 棚 ──
   for (const sh of SHELVES){
-    ctx.strokeStyle = "#7A6520"; ctx.lineWidth = Math.max(1.5, 2.2*s);
-    ctx.beginPath(); ctx.moveTo(TX(sh.x0), TY(sh.y)); ctx.lineTo(TX(sh.x1), TY(sh.y)); ctx.stroke();
-    ctx.strokeStyle = "#463B14"; ctx.lineWidth = Math.max(1, 1*s);
-    for (const ex of [sh.x0, sh.x1]){
-      ctx.beginPath(); ctx.moveTo(TX(ex), TY(sh.y)); ctx.lineTo(TX(ex), TY(sh.y+5)); ctx.stroke();
-    }
+    ctx.fillStyle = "#C68B37";
+    ctx.fillRect(TX(sh.x0-3), TY(sh.y), (sh.x1-sh.x0+6)*s, 2.4*s);
+    ctx.fillStyle = "#8A5A22";
+    ctx.fillRect(TX(sh.x0-3), TY(sh.y+2.4), (sh.x1-sh.x0+6)*s, 3.2*s);
+    ctx.fillStyle = "#5E3C14";
+    ctx.fillRect(TX(sh.x0-3), TY(sh.y+5.6), (sh.x1-sh.x0+6)*s, 1.2*s);
   }
 
-  // 照準
-  if (S.mode === "aim" && S.corks > 0){
+  // ── 倒れた景品は棚より奥（先に描く） ──
+  for (const p of S.prizes) if (p.state === "fly") drawPrize(p);
+  for (const sh of SHELVES){
+    ctx.fillStyle = "#8A5A22";
+    ctx.fillRect(TX(sh.x0-3), TY(sh.y+2.4), (sh.x1-sh.x0+6)*s, 3.2*s);
+  }
+  // 立っている景品は棚の手前
+  for (const p of S.prizes) if (p.state === "stand") drawPrize(p);
+
+  // ── 火花 ──
+  for (const sp of sparks){
+    ctx.fillStyle = `rgba(255,214,140,${sp.t})`;
+    ctx.beginPath(); ctx.arc(TX(sp.x), TY(sp.y), 1.1*s, 0, Math.PI*2); ctx.fill();
+  }
+
+  // ── 幕・提灯・看板 ──
+  ctx.fillStyle = "#B8302B"; ctx.fillRect(TX(0), TY(0), GW*s, 17*s);
+  ctx.fillStyle = "#8E211E"; ctx.fillRect(TX(0), TY(15.5), GW*s, 2*s);
+  ctx.fillStyle = "#E8C86A"; ctx.fillRect(TX(0), TY(17.5), GW*s, 1.2*s);
+  for (let x=0; x<GW; x+=11){                       // 帆立の飾り
+    ctx.fillStyle = "#B8302B";
+    ctx.beginPath(); ctx.arc(TX(x+5.5), TY(18.7), 5.5*s, 0, Math.PI); ctx.fill();
+  }
+  for (const lx of [22, 48, 152, 178]){             // 提灯
+    ctx.fillStyle = "rgba(255,206,130,.10)";
+    ctx.beginPath(); ctx.arc(TX(lx), TY(9), 7.5*s, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "#5E2018"; ctx.lineWidth = Math.max(1,.6*s);
+    ctx.beginPath(); ctx.moveTo(TX(lx), TY(0)); ctx.lineTo(TX(lx), TY(4)); ctx.stroke();
+    ctx.fillStyle = "#E86A32";
+    ctx.beginPath(); ctx.ellipse(TX(lx), TY(9), 4*s, 5.2*s, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "rgba(140,50,20,.55)"; ctx.lineWidth = Math.max(1,.7*s);
+    for (const dy of [-4,-1.3,1.3,4]){
+      ctx.beginPath(); ctx.ellipse(TX(lx), TY(9+dy*0.62), 4*s*Math.cos(dy/9), .4*s, 0, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.fillStyle = "#FFE9B0";
+    ctx.beginPath(); ctx.ellipse(TX(lx), TY(9), 1.5*s, 2.8*s, 0, 0, Math.PI*2); ctx.fill();
+  }
+  // 看板
+  roundRect(TX(74), TY(1), 52*s, 15*s, 1.4*s);
+  ctx.fillStyle = "#EFE0BC"; ctx.fill();
+  ctx.strokeStyle = "#3A2A18"; ctx.lineWidth = Math.max(1.5, 1.6*s); ctx.stroke();
+  ctx.fillStyle = "#241A10";
+  ctx.font = `700 ${Math.max(10, 8.4*s)}px "Kaisei Decol", serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("射 的", TX(100), TY(7.2));
+  ctx.font = `700 ${Math.max(5, 2.8*s)}px "JetBrains Mono", monospace`;
+  ctx.fillStyle = "#6B5030";
+  ctx.fillText("SHATEKI", TX(100), TY(13.2));
+
+  // ── 照準 ──
+  if (S.phase==="shoot" && S.mode === "aim" && S.corks > 0){
     const pts = aimPath();
-    ctx.setLineDash([3*s, 4*s]); ctx.strokeStyle = "rgba(201,162,39,.55)";
-    ctx.lineWidth = Math.max(1, 1.1*s);
+    ctx.setLineDash([3*s, 4.5*s]); ctx.strokeStyle = "rgba(255,225,150,.65)";
+    ctx.lineWidth = Math.max(1, 1.2*s);
     ctx.beginPath(); ctx.moveTo(TX(pts[0].x), TY(pts[0].y));
     for (const p of pts) ctx.lineTo(TX(p.x), TY(p.y));
     ctx.stroke(); ctx.setLineDash([]);
     const e = pts[pts.length-1];
-    ctx.strokeStyle = "#C9A227"; ctx.lineWidth = Math.max(1, 1.3*s);
-    ctx.beginPath(); ctx.arc(TX(e.x), TY(e.y), 3.2*s, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = "#FFD98A"; ctx.lineWidth = Math.max(1, 1.4*s);
+    ctx.beginPath(); ctx.arc(TX(e.x), TY(e.y), 3.4*s, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(TX(e.x)-5*s, TY(e.y)); ctx.lineTo(TX(e.x)+5*s, TY(e.y));
+    ctx.moveTo(TX(e.x), TY(e.y)-5*s); ctx.lineTo(TX(e.x), TY(e.y)+5*s);
+    ctx.stroke();
   }
 
-  // 景品
-  for (const p of S.prizes){
-    if (p.state === "landed") continue;
-    const x = TX(p.x - PW/2), y = TY(p.y - PH/2), w = PW*s, h = PH*s;
-    ctx.fillStyle = "#1C222C";
-    ctx.fillRect(x, y, w, h);
-    const col = p.card.type==="projectile" ? "#E2622F"
-              : p.card.type==="modifier"   ? "#C9A227" : "#9FA79B";
-    ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, 1.1*s);
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = col; ctx.fillRect(x, y, w, Math.max(1.5, 1.6*s));
-    ctx.fillStyle = "#E9E3D5";
-    ctx.font = `${Math.max(7, 5.0*s)}px "Spectral", Georgia, serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    const nm = p.card.name;
-    if (nm.length <= 2) ctx.fillText(nm, x+w/2, y+h/2+1*s);
-    else { ctx.fillText(nm.slice(0,2), x+w/2, y+h/2-2.4*s);
-           ctx.fillText(nm.slice(2),   x+w/2, y+h/2+3.4*s); }
-  }
-
-  // 銃
-  ctx.strokeStyle = "#98A0AA"; ctx.lineWidth = Math.max(1.5, 2*s);
-  ctx.beginPath();
-  ctx.moveTo(TX(GUN.x), TY(GUN.y));
-  ctx.lineTo(TX(GUN.x + Math.cos(aimA)*13), TY(GUN.y - Math.sin(aimA)*13));
-  ctx.stroke();
-  ctx.fillStyle = "#3A4553";
-  ctx.beginPath(); ctx.arc(TX(GUN.x), TY(GUN.y), 3.4*s, 0, Math.PI*2); ctx.fill();
-
-  // コルク
+  // ── コルク ──
   if (S.cork && S.cork.live){
-    ctx.fillStyle = "#D8C9A0";
-    ctx.beginPath(); ctx.arc(TX(S.cork.x), TY(S.cork.y), 2.4*s, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#E8C98A";
+    roundRect(TX(S.cork.x)-2*s, TY(S.cork.y)-2.6*s, 4*s, 5.2*s, 1.4*s); ctx.fill();
   }
+
+  // ── 手前のカウンター ──
+  g = ctx.createLinearGradient(0, TY(100), 0, TY(GH));
+  g.addColorStop(0,"#C08B45"); g.addColorStop(1,"#7A5323");
+  ctx.fillStyle = g; ctx.fillRect(TX(0), TY(100), GW*s, 12*s);
+  ctx.fillStyle = "#E0AE68"; ctx.fillRect(TX(0), TY(100), GW*s, 1.3*s);
+  for (let i=0;i<CORKS;i++){                      // 残弾を台の上に並べる
+    ctx.fillStyle = i < S.corks ? "#E8C98A" : "#8A6A3A";
+    roundRect(TX(148+i*6)-1.8*s, TY(105)-2.2*s, 3.6*s, 4.4*s, 1.4*s); ctx.fill();
+    ctx.strokeStyle = "#5A421E"; ctx.lineWidth = Math.max(1,.5*s); ctx.stroke();
+  }
+
+  // ── 鉄砲（右手前） ──
+  ctx.save();
+  ctx.translate(TX(GUN.x), TY(GUN.y));
+  ctx.rotate(aimA);
+  ctx.fillStyle = "#6B4420";                      // 銃床
+  ctx.beginPath();
+  ctx.moveTo(2*s, -2.2*s); ctx.lineTo(16*s, -1*s); ctx.lineTo(18*s, 4.6*s);
+  ctx.lineTo(9*s, 4.6*s); ctx.lineTo(2*s, 2.4*s); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#8B5A2B";                      // 先台
+  roundRect(-14*s, -1.6*s, 16*s, 3.6*s, 1.2*s); ctx.fill();
+  ctx.fillStyle = "#4E545C";                      // 銃身
+  roundRect(-30*s, -1.5*s, 32*s, 2.6*s, 1.1*s); ctx.fill();
+  ctx.fillStyle = "#2F343A";                      // 銃口
+  roundRect(-31.5*s, -2*s, 3.5*s, 3.6*s, .9*s); ctx.fill();
+  ctx.fillStyle = "#3C4148";                      // 引き金まわり
+  roundRect(2*s, 1.6*s, 5*s, 2.4*s, .8*s); ctx.fill();
+  ctx.restore();
 }
 
-/* ══════ 入力 ══════ */
+/* ═══════ 入力 ═══════ */
 function aimFromEvent(ev){
   const r = cv.getBoundingClientRect();
   const dpr = cv.width / r.width;
   const gx = ((ev.clientX - r.left)*dpr - VIEW.ox) / VIEW.s;
   const gy = ((ev.clientY - r.top )*dpr - VIEW.oy) / VIEW.s;
-  const a = Math.atan2(GUN.y - gy, gx - GUN.x);
-  aimA = Math.max(0.50, Math.min(1.45, a));
+  const a = Math.atan2(GUN.y - gy, GUN.x - gx);
+  aimA = Math.max(0.45, Math.min(1.10, a));
 }
-cv.addEventListener("pointermove", ev=>{ if (S && S.mode==="aim"){ aimFromEvent(ev); drawBoard(); } });
-cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim"){ aimFromEvent(ev); fire(); } });
+cv.addEventListener("pointermove", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); drawBoard(); } });
+cv.addEventListener("pointerdown", ev=>{ if (S && S.mode==="aim" && S.phase==="shoot"){ aimFromEvent(ev); fire(); } });
 window.addEventListener("keydown", ev=>{
-  if (!S || S.mode!=="aim") return;
-  if (ev.key==="ArrowLeft"){ aimA = Math.min(1.45, aimA+0.02); drawBoard(); ev.preventDefault(); }
-  if (ev.key==="ArrowRight"){ aimA = Math.max(0.50, aimA-0.02); drawBoard(); ev.preventDefault(); }
-  if (ev.key===" "){ fire(); ev.preventDefault(); }
+  if (!S || S.over) return;
+  if (S.phase === "shoot"){
+    if (S.mode!=="aim") return;
+    if (ev.key==="ArrowRight"){ aimA = Math.min(1.10, aimA+0.02); drawBoard(); ev.preventDefault(); }
+    if (ev.key==="ArrowLeft"){ aimA = Math.max(0.45, aimA-0.02); drawBoard(); ev.preventDefault(); }
+    if (ev.key===" "){ fire(); ev.preventDefault(); }
+    if (ev.key==="Enter"){ toFight(); ev.preventDefault(); }
+  } else if (ev.key===" "){ cast(); ev.preventDefault(); }
 });
 new ResizeObserver(()=>{ fitCanvas(); drawBoard(); }).observe(cv);
 
-/* ══════ ループ ══════ */
 function tick(){
   if (S && S.mode === "sim"){
     for (let k=0;k<6;k++) physics();
     drawBoard();
+    renderShootFoot();
     if (settled()){
       S.cork = null;
-      S.mode = S.corks > 0 ? "aim" : "arrange";
-      render();
+      if (S.corks > 0){ S.mode = "aim"; renderHud(); }
+      else toFight();
     }
-  }
-  anim = requestAnimationFrame(tick);
+  } else if (S && sparks.length){ for (let k=0;k<6;k++) physics(); drawBoard(); }
+  requestAnimationFrame(tick);
 }
 
-/* ══════ 描画 ══════ */
+/* ═══════ 描画（HTML側） ═══════ */
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $ = id => document.getElementById(id);
 
-function render(){
-  const pv = preview();
+function renderHud(){
+  for (const [a,b] of [["s-floor","f-floor"],["s-round","f-round"],["s-hp","f-hp"],["s-block","f-block"]]){
+    const v = a==="s-floor" ? S.battle+1 : a==="s-round" ? S.round
+            : a==="s-hp" ? Math.max(0,S.hp) : S.block;
+    $(a).textContent = v; $(b).textContent = v;
+  }
+  $("corks").innerHTML = Array.from({length:CORKS},(_,i)=>
+    `<span class="ck ${i<S.corks?"on":""}"></span>`).join("");
+  $("f-swap").textContent = S.swaps>0 ? "入れ替え 1" : "入れ替え済み";
+  renderShootFoot();
+}
+function renderShootFoot(){
+  $("tip").textContent = S.mode==="sim" ? "…"
+    : S.corks>0 ? "動かして狙う → クリックで発射（← → と Space も可）"
+    : "コルクを使い切った";
+  $("got").innerHTML = S.wand.map((c,i)=>{
+    const col = c.type==="projectile" ? "#E2622F" : c.type==="modifier" ? "#E0B23C" : "#6FA8D6";
+    return `<span class="gotcard" style="border-color:${col};color:${col}">${i+1}. ${esc(c.name)}</span>`;
+  }).join("");
+  $("btn-next").disabled = S.mode==="sim";
+}
 
-  $("v-hp").textContent = Math.max(0,S.hp);
-  $("hpfill").style.width = Math.max(0, S.hp/MAXHP*100) + "%";
-  $("v-block").textContent = S.block;
-  $("s-round").textContent = `ラウンド ${S.round}`;
-  $("corks").innerHTML = Array.from({length:CORKS}, (_,i)=>
-    `<span class="cork ${i < S.corks ? "on":"spent"}"></span>`).join("");
+function render(){
+  renderHud();
+  $("shoot").classList.toggle("off", S.phase!=="shoot");
+  $("fight").classList.toggle("off", S.phase!=="fight");
+  if (S.phase === "shoot"){ fitCanvas(); drawBoard(); return; }
+
+  const pv = preview();
 
   // 敵
   const foes = $("foes"); foes.innerHTML = "";
   S.foes.forEach((f,i)=>{
     const b = document.createElement("button");
-    b.className = "foe" + (f.hp<=0?" dead":"") + (S.flash.includes(i)?" flash":"");
+    b.className = "foe" + (f.hp<=0?" dead":"") + (S.flash.includes(i)?" hurt":"");
     b.setAttribute("aria-pressed", String(S.target===i));
     b.disabled = f.hp<=0;
     const after = pv.hp[i], delta = f.hp - after;
     const wNow = Math.max(0,f.hp/f.maxHp*100), wAfter = Math.max(0,after/f.maxHp*100);
     b.innerHTML =
+      (f.hp>0?`<span class="intent">⚔ 攻撃 ${f.atk}</span>`:`<span class="intent" style="visibility:hidden">—</span>`)+
+      `<span class="fname">${esc(f.name)}</span>`+
       `<svg class="glyph" viewBox="0 0 64 64" aria-hidden="true">${ART[f.art]}</svg>`+
-      `<span class="finfo">
-         <span class="frow"><span class="fname">${i+1}. ${esc(f.name)}</span>
-           <span class="fhp">${f.hp}/${f.maxHp}</span></span>
-         <span class="fbar"><i style="width:${wAfter}%"></i>`+
-           (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
-         `</span>
-         <span class="fatk">${f.hp>0?`攻撃 <b>${f.atk}</b>`:"—"}</span>
-       </span>`+
+      `<span class="tgt">${S.target===i?"▼ TARGET ▼":"　"}</span>`+
+      `<span class="fbar"><i style="width:${wAfter}%"></i>`+
+        (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
+        `<span>${f.hp} / ${f.maxHp}</span></span>`+
       (delta>0?`<span class="fdelta">−${delta}</span>`:``);
     b.onclick = ()=>selectTarget(i);
     foes.appendChild(b);
   });
   S.flash = [];
 
-  // 杖
-  const slots = $("slots"); slots.innerHTML = "";
+  // 修飾がどの発射体に乗るかを、札そのものに書く
+  const grp = analyzeGroups(S.wand);
+  const bindLabel = [];
+  {
+    let cur = "";
+    for (let i=S.wand.length-1;i>=0;i--){
+      if (S.wand[i].type === "projectile"){ cur = "▸ " + S.wand[i].name; bindLabel[i] = ""; }
+      else if (S.wand[i].type === "modifier") bindLabel[i] = cur || "不発";
+      else bindLabel[i] = "";
+    }
+  }
+
+  // 杖＝手札の扇
+  const hand = $("hand"); hand.innerHTML = "";
+  const n = Math.max(S.wand.length, 1);
+  const mid = (n-1)/2;
   for (let i=0;i<CAP;i++){
     const c = S.wand[i];
+    if (!c) continue;
     const d = document.createElement("div");
-    d.className = "slot" + (c?" filled":"");
-    if (c){
-      d.title = c.text;
-      d.innerHTML = `<span class="sidx">${i+1}</span>`+
-        `<span class="sk k-${c.type}">${KIND_JA[c.type]}</span>`+
-        `<span class="sn">${esc(c.name)}</span>`+
-        (i+1 < S.wand.length ? `<button class="swap" title="右と入れ替え">⇄</button>` : ``);
-      const sw = d.querySelector(".swap");
-      if (sw){ sw.disabled = S.swaps<=0 || S.mode==="sim"; sw.onclick = ()=>swapAt(i); }
-    } else d.innerHTML = `<span class="sidx">${i+1}</span><span class="sempty">空</span>`;
-    slots.appendChild(d);
+    d.className = "card t-" + c.type;
+    d.style.marginLeft = i ? ".55em" : "0";
+    d.style.transform = `rotate(${(i-mid)*3.4}deg) translateY(${Math.abs(i-mid)*0.5}em)`;
+    d.innerHTML =
+      `<span class="cidx">${i+1}</span>`+
+      `<span class="cname">${esc(c.name)}</span>`+
+      `<svg class="cicon" viewBox="0 0 32 32" aria-hidden="true">${ICON[c.id]}</svg>`+
+      `<span class="ckind">${KIND_JA[c.type]}</span>`+
+      `<span class="ctext">${esc(c.text)}</span>`+
+      (bindLabel[i] ? `<span class="cbind">${esc(bindLabel[i])}</span>` : ``)+
+      (i+1 < S.wand.length ? `<button class="cswap" title="右と入れ替え">⇄</button>` : ``);
+    const sw = d.querySelector(".cswap");
+    if (sw){ sw.disabled = S.swaps<=0; sw.onclick = e=>{ e.stopPropagation(); swapAt(i); }; }
+    hand.appendChild(d);
   }
-  const binds = $("binds"); binds.innerHTML = "";
-  const g = analyzeGroups(S.wand);
-  for (let i=0;i<CAP;i++){
-    const d = document.createElement("div");
-    d.className = "bind " + (g[i] ? g[i].pos : "none");
-    d.innerHTML = `<span>${g[i] ? esc(g[i].label) : ""}</span>`;
-    binds.appendChild(d);
-  }
-  $("swapinfo").textContent = S.swaps>0 ? "入れ替え 1 回まで" : "入れ替え済み";
 
   // ログ
-  const lines = S.log.slice(-4).concat(
+  const lines = S.log.slice(-5).concat(
     S.wand.length ? [{k:"total",
       t:`合計 ${S.foes.reduce((a,f,i)=>a+Math.max(0,f.hp-pv.hp[i]),0)}`}] : []);
-  $("log").innerHTML = lines.map(l=>`<div class="r-${l.k}">${esc(l.t)}</div>`).join("");
-
-  $("gtip").textContent = S.mode==="aim"
-    ? "動かして狙う・クリックで発射（← → と Space も可）"
-    : S.mode==="sim" ? "…" : "コルクを使い切った。詠唱へ。";
+  $("log").innerHTML = lines.map(l=>`<div class="l-${l.k}">${esc(l.t)}</div>`).join("");
 
   const cb = $("btn-cast");
-  cb.disabled = !S.wand.length || S.mode==="sim" || !!S.over;
+  cb.disabled = !!S.over;
+  cb.innerHTML = S.wand.length ? `詠唱<small>space</small>` : `敵の番へ<small>space</small>`;
   cb.onclick = cast;
-  const sb = $("btn-stop");
-  sb.disabled = S.mode!=="aim" || !!S.over;
-  sb.onclick = stopShooting;
-
-  drawBoard();
 }
 
+$("btn-next").onclick = toFight;
 newRun();
 fitCanvas();
 render();

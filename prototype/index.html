@@ -1,268 +1,167 @@
 <title>詠唱順</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap">
 
 <style>
 :root{
-  --ink:#0F1218;
-  --ink2:#161B23;
-  --ink3:#1E2530;
-  --edge:#2B3340;
-  --edge2:#3D4757;
-  --bone:#E9E3D5;
-  --bone-dim:#9AA0A8;
-  --bone-faint:#6B727C;
-  --brass:#C9A227;
-  --brass-dim:#7A6520;
-  --fire:#E2622F;
-  --ice:#6FB6D6;
-  --bolt:#E8C33C;
-  --stone:#A9A192;
-  --dark:#8C6FC0;
-  --blood:#B0402F;
-  --heal:#7FA86B;
-
+  --ink:#0F1218; --ink2:#161B23; --ink3:#1E2530;
+  --edge:#2B3340; --edge2:#3D4757;
+  --bone:#E9E3D5; --bone-dim:#9AA0A8; --bone-faint:#6B727C;
+  --brass:#C9A227; --brass-dim:#7A6520;
+  --fire:#E2622F; --stone:#A9A192; --bolt:#E8C33C;
+  --blood:#B0402F; --heal:#7FA86B;
   --f-disp:"Cinzel",Georgia,"Times New Roman",serif;
   --f-body:"Spectral",Georgia,"Times New Roman",serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
-
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:var(--ink);
-  color:var(--bone);
-  font-family:var(--f-body);
-  font-size:15px;
-  line-height:1.55;
-  -webkit-font-smoothing:antialiased;
-}
+body{margin:0;background:var(--ink);color:var(--bone);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
 
-/* ---------- shell ---------- */
-.app{
-  max-width:1180px;
-  margin:0 auto;
-  padding:20px 20px 40px;
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 250px;
-  grid-template-areas:
-    "head  head"
-    "field rail"
-    "bench rail"
-    "hand  rail";
-  gap:18px 20px;
-  align-items:start;
-}
-@media (max-width:900px){
-  .app{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "rail" "field" "bench" "hand"}
-}
+.app{max-width:1060px;margin:0 auto;padding:20px 20px 40px;display:grid;
+  grid-template-columns:minmax(0,1fr) 190px;
+  grid-template-areas:"head head" "field rail" "bench rail" "hand rail";
+  gap:18px 20px;align-items:start}
+@media (max-width:860px){.app{grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"head" "rail" "field" "bench" "hand"}}
 
-/* ---------- header ---------- */
-.head{grid-area:head;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;
-  border-bottom:1px solid var(--edge);padding-bottom:12px}
+.head{grid-area:head;display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;border-bottom:1px solid var(--edge);padding-bottom:12px}
 .brand{display:flex;align-items:baseline;gap:14px}
-h1{
-  font-family:var(--f-disp);font-weight:700;font-size:27px;letter-spacing:.16em;
-  margin:0;color:var(--bone);text-wrap:balance;
-}
-.tag{font-family:var(--f-mono);font-size:11px;letter-spacing:.18em;color:var(--brass-dim);text-transform:uppercase}
-.stage{font-family:var(--f-mono);font-size:12px;color:var(--bone-dim);display:flex;gap:18px;align-items:baseline}
+h1{font-family:var(--f-disp);font-weight:700;font-size:26px;letter-spacing:.16em;margin:0;text-wrap:balance}
+.tag{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;color:var(--brass-dim);text-transform:uppercase}
+.stage{font-family:var(--f-mono);font-size:12px;color:var(--bone-dim);display:flex;gap:16px;align-items:baseline}
 .stage b{color:var(--brass);font-weight:700}
 
-/* ---------- enemy field ---------- */
-.field{grid-area:field}
-.sectlabel{
-  font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--bone-faint);margin-bottom:8px;display:flex;align-items:center;gap:10px;
-}
+.sectlabel{font-family:var(--f-mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--bone-faint);margin-bottom:8px;display:flex;align-items:center;gap:10px}
 .sectlabel::after{content:"";flex:1;height:1px;background:var(--edge)}
+
+/* enemies */
+.field{grid-area:field}
 .foes{display:flex;gap:12px;flex-wrap:wrap}
-.foe{
-  flex:1 1 190px;min-width:170px;max-width:300px;
-  background:var(--ink2);
-  border:1px solid var(--edge);
-  border-top:2px solid var(--edge2);
-  padding:12px 13px 11px;
-  text-align:left;
-  position:relative;
-  transition:border-color .12s,background .12s;
-}
-.foe:hover{background:var(--ink3)}
+.foe{flex:1 1 170px;min-width:160px;max-width:250px;background:var(--ink2);
+  border:1px solid var(--edge);border-top:2px solid var(--edge2);padding:11px 12px;
+  text-align:left;position:relative;transition:border-color .12s,background .12s}
+.foe:hover:not(:disabled){background:var(--ink3)}
 .foe[aria-pressed="true"]{border-color:var(--brass);border-top-color:var(--brass);background:var(--ink3)}
-.foe.dead{opacity:.32;filter:saturate(.2)}
+.foe.dead{opacity:.3;filter:saturate(.15)}
 .foe-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.foe-name{font-family:var(--f-disp);font-size:15px;letter-spacing:.06em}
+.foe-name{font-family:var(--f-disp);font-size:14.5px;letter-spacing:.06em}
 .foe-hp{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--bone-dim)}
-.bar{height:5px;background:#0A0D12;border:1px solid var(--edge);margin:8px 0 9px;position:relative;overflow:hidden}
+.bar{height:5px;background:#0A0D12;border:1px solid var(--edge);margin:8px 0;position:relative;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--blood);transition:width .2s}
-.bar .prev{position:absolute;top:0;height:100%;background:repeating-linear-gradient(135deg,var(--brass) 0 3px,transparent 3px 6px);opacity:.85}
-.intent{font-family:var(--f-mono);font-size:11.5px;color:var(--bone-dim);display:flex;gap:6px;align-items:center}
+.bar .prev{position:absolute;top:0;height:100%;opacity:.9;
+  background:repeating-linear-gradient(135deg,var(--brass) 0 3px,transparent 3px 6px)}
+.intent{font-family:var(--f-mono);font-size:11.5px;color:var(--bone-dim)}
 .intent b{color:var(--blood);font-weight:700}
-.sigils{display:flex;gap:5px;margin-top:8px;min-height:19px;flex-wrap:wrap}
-.sigil{
-  font-family:var(--f-mono);font-size:10px;letter-spacing:.1em;padding:1px 6px;
-  border:1px solid currentColor;border-radius:1px;
-}
-.sig-oil{color:#C08A3E}.sig-wet{color:var(--ice)}.sig-frozen{color:#A9D6E8}
-.pdelta{
-  position:absolute;top:9px;right:11px;font-family:var(--f-mono);font-size:15px;font-weight:700;
-  color:var(--brass);font-variant-numeric:tabular-nums;
-}
+.intentrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pdelta{font-family:var(--f-mono);font-size:15px;font-weight:700;
+  color:var(--brass);font-variant-numeric:tabular-nums}
 
-/* ---------- wand bench ---------- */
-.bench{grid-area:bench;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}
+/* wand */
+.bench{grid-area:bench;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px}
 @media (max-width:760px){.bench{grid-template-columns:minmax(0,1fr)}}
-
-.tape{background:var(--ink2);border:1px solid var(--edge);padding:12px 12px 10px}
-.slots{display:flex;gap:8px}
-.slot{
-  flex:1;min-width:0;min-height:96px;
-  border:1px dashed var(--edge2);background:#0C1016;
-  padding:8px;display:flex;flex-direction:column;gap:5px;position:relative;
-}
+.tape{background:var(--ink2);border:1px solid var(--edge);padding:12px}
+.slots{display:flex;gap:7px}
+.slot{flex:1;min-width:0;min-height:86px;border:1px dashed var(--edge2);background:#0C1016;
+  padding:8px;display:flex;flex-direction:column;gap:4px;position:relative}
 .slot.filled{border-style:solid;background:var(--ink3)}
-.slot .idx{
-  font-family:var(--f-mono);font-size:9.5px;color:var(--bone-faint);letter-spacing:.14em;
-  position:absolute;top:5px;right:7px;
-}
+.slot .idx{font-family:var(--f-mono);font-size:9.5px;color:var(--bone-faint);position:absolute;top:5px;right:7px}
 .slot .empty{font-family:var(--f-mono);font-size:10.5px;color:var(--bone-faint);margin:auto;letter-spacing:.14em}
 .slot .cname{font-family:var(--f-disp);font-size:13.5px;letter-spacing:.04em;padding-right:14px}
 .slot .ckind{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase}
 .slot .ctext{font-size:11.5px;line-height:1.35;color:var(--bone-dim);flex:1}
 .slotctl{display:flex;gap:3px;margin-top:auto}
-.slotctl button{
-  font-family:var(--f-mono);font-size:11px;line-height:1;padding:3px 6px;
-  border:1px solid var(--edge2);color:var(--bone-dim);background:#0A0D12;
-}
+.slotctl button{font-family:var(--f-mono);font-size:11px;line-height:1;padding:3px 6px;
+  border:1px solid var(--edge2);color:var(--bone-dim);background:#0A0D12}
 .slotctl button:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
 .slotctl button:disabled{opacity:.28;cursor:default}
 
-/* binding brackets under the tape */
-.binds{display:flex;gap:8px;margin-top:7px;height:22px}
+.binds{display:flex;gap:7px;margin-top:7px;height:22px}
 .bind{flex:1;position:relative}
-.bind span{
-  position:absolute;inset:0;
-  font-family:var(--f-mono);font-size:9px;letter-spacing:.08em;
+.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:9px;letter-spacing:.08em;
   color:var(--brass-dim);display:flex;align-items:center;justify-content:center;
-  border-top:1px solid var(--brass-dim);
-  padding:3px 4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.bind.mid span{border-left:0;border-right:0}
+  border-top:1px solid var(--brass-dim);padding:3px 4px 0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bind.start span{border-left:1px solid var(--brass-dim)}
 .bind.end span{border-right:1px solid var(--brass-dim)}
 .bind.none span{border:0;color:var(--bone-faint)}
 
 .fire-row{display:flex;gap:9px;align-items:center;margin-top:14px;flex-wrap:wrap}
-.btn{
-  font-family:var(--f-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+.btn{font-family:var(--f-mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;
   padding:9px 16px;border:1px solid var(--edge2);background:var(--ink3);color:var(--bone);
-  transition:border-color .12s,color .12s,background .12s;
-}
+  transition:border-color .12s,color .12s,background .12s}
 .btn:hover:not(:disabled){border-color:var(--brass);color:var(--brass)}
 .btn:disabled{opacity:.3;cursor:default}
 .btn.cast{border-color:var(--brass);color:var(--brass);background:#1A1710}
 .btn.cast:hover:not(:disabled){background:#241F14}
-.btn.danger{border-color:var(--blood);color:#E58A75}
-.cost{font-family:var(--f-mono);font-size:11.5px;color:var(--bone-dim);font-variant-numeric:tabular-nums}
-.cost em{font-style:normal;color:var(--bone)}
-.cost .over{color:var(--blood)}
+.cost{font-family:var(--f-mono);font-size:11.5px;color:var(--bone-faint);font-variant-numeric:tabular-nums}
 
-/* ---------- readout ---------- */
+/* readout */
 .readout{background:#0A0D12;border:1px solid var(--edge);padding:11px 13px;display:flex;flex-direction:column}
 .readout .sectlabel{margin-bottom:7px}
-.log{
-  font-family:var(--f-mono);font-size:11.5px;line-height:1.62;
-  flex:1;min-height:150px;max-height:260px;overflow-y:auto;overflow-x:auto;
-}
+.log{font-family:var(--f-mono);font-size:11.5px;line-height:1.65;flex:1;
+  min-height:150px;max-height:320px;overflow:auto}
 .log div{white-space:pre;color:var(--bone-dim)}
 .log .l-mod{color:var(--brass-dim)}
 .log .l-fire{color:var(--bone)}
 .log .l-hit{color:var(--bone-dim)}
-.log .l-react{color:var(--fire);font-weight:700}
-.log .l-self{color:var(--blood);font-weight:700}
-.log .l-note{color:var(--bone-faint)}
 .log .l-kill{color:var(--brass);font-weight:700}
+.log .l-note{color:var(--bone-faint)}
 .log .l-foe{color:#D98878}
-.el-fire{color:var(--fire)}.el-ice{color:var(--ice)}.el-lightning{color:var(--bolt)}
-.el-physical{color:var(--stone)}.el-dark{color:var(--dark)}.el-none{color:var(--bone-faint)}
+.log .l-total{color:var(--brass);font-weight:700}
 
-/* ---------- hand ---------- */
+/* hand */
 .hand{grid-area:hand}
 .cards{display:flex;gap:9px;flex-wrap:wrap}
-.card{
-  width:132px;min-height:150px;
-  background:var(--ink2);border:1px solid var(--edge);
-  padding:9px 9px 8px;display:flex;flex-direction:column;gap:5px;text-align:left;
-  transition:transform .1s,border-color .12s,background .12s;
-}
+.card{width:126px;min-height:138px;background:var(--ink2);border:1px solid var(--edge);
+  padding:9px;display:flex;flex-direction:column;gap:4px;text-align:left;
+  transition:transform .1s,border-color .12s,background .12s}
 .card:hover:not(:disabled){transform:translateY(-3px);border-color:var(--brass-dim);background:var(--ink3)}
-.card:disabled{opacity:.34;cursor:default}
+.card:disabled{opacity:.32;cursor:default}
 .card .cname{font-family:var(--f-disp);font-size:14px;letter-spacing:.04em}
 .card .ckind{font-family:var(--f-mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
 .card .ctext{font-size:11.5px;line-height:1.38;color:var(--bone-dim);flex:1}
-.card .cfoot{
-  font-family:var(--f-mono);font-size:10px;display:flex;gap:9px;
-  border-top:1px solid var(--edge);padding-top:5px;color:var(--bone-faint);
-  font-variant-numeric:tabular-nums;
-}
+.card .cfoot{font-family:var(--f-mono);font-size:10px;border-top:1px solid var(--edge);
+  padding-top:5px;color:var(--bone-faint);font-variant-numeric:tabular-nums}
 .k-projectile{color:var(--fire)}
 .k-modifier{color:var(--brass)}
-.k-multicast{color:var(--dark)}
-.k-trigger{color:var(--ice)}
 .k-utility{color:var(--bone-faint)}
-.k-dud{color:var(--blood)}
 
-/* ---------- right rail ---------- */
+/* rail */
 .rail{grid-area:rail;display:flex;flex-direction:column;gap:14px}
-.panel{background:var(--ink2);border:1px solid var(--edge);padding:12px 13px}
-.vital{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-mono);font-size:12px;
-  font-variant-numeric:tabular-nums;padding:3px 0}
+.panel{background:var(--ink2);border:1px solid var(--edge);padding:11px 12px}
+.vital{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-mono);
+  font-size:12px;font-variant-numeric:tabular-nums;padding:3px 0}
 .vital span:first-child{color:var(--bone-faint);letter-spacing:.1em;font-size:10.5px;text-transform:uppercase}
 .vital b{font-weight:700;font-size:14px}
-.v-hp b{color:var(--blood)}.v-mana b{color:var(--ice)}.v-energy b{color:var(--brass)}.v-block b{color:var(--stone)}
-.gauge{margin-top:9px}
-.gauge .glabel{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--bone-faint);display:flex;justify-content:space-between}
-.gauge .gtrack{height:8px;background:#0A0D12;border:1px solid var(--edge);margin-top:5px;position:relative}
-.gauge .gfill{height:100%;background:var(--brass-dim);transition:width .15s}
-.gauge .gfill.hot{background:var(--blood)}
-.gauge .gtick{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--bone-dim)}
-.gauge .ghint{font-family:var(--f-mono);font-size:10px;color:var(--blood);margin-top:4px;min-height:14px}
-.relic{font-family:var(--f-mono);font-size:11px;color:var(--brass);padding:3px 0;line-height:1.4}
-.relic i{font-style:normal;color:var(--bone-dim)}
-.pilecount{font-family:var(--f-mono);font-size:11px;color:var(--bone-faint);display:flex;justify-content:space-between}
+.v-hp b{color:var(--blood)} .v-block b{color:var(--stone)} .v-energy b{color:var(--brass)}
+.pilecount{font-family:var(--f-mono);font-size:11px;color:var(--bone-faint);display:flex;justify-content:space-between;padding:1px 0}
 
-/* ---------- overlay ---------- */
-.veil{
-  position:fixed;inset:0;background:rgba(9,11,15,.93);
-  display:flex;align-items:center;justify-content:center;padding:24px;z-index:20;
-}
-.veil .box{
-  max-width:560px;background:var(--ink2);border:1px solid var(--brass-dim);
-  border-top:3px solid var(--brass);padding:26px 28px;
-}
-.veil h2{font-family:var(--f-disp);font-size:23px;letter-spacing:.1em;margin:0 0 4px;text-wrap:balance}
-.veil .sub{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass-dim);margin-bottom:14px}
+/* overlay */
+.veil{position:fixed;inset:0;background:rgba(9,11,15,.93);display:flex;align-items:center;
+  justify-content:center;padding:24px;z-index:20}
+.veil .box{max-width:540px;background:var(--ink2);border:1px solid var(--brass-dim);
+  border-top:3px solid var(--brass);padding:26px 28px}
+.veil h2{font-family:var(--f-disp);font-size:22px;letter-spacing:.1em;margin:0 0 4px;text-wrap:balance}
+.veil .sub{font-family:var(--f-mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--brass-dim);margin-bottom:14px}
 .veil p{margin:0 0 12px;color:var(--bone-dim);max-width:62ch}
 .veil ul{margin:0 0 16px;padding-left:18px;color:var(--bone-dim)}
 .veil li{margin-bottom:5px}
-.veil .grant{border:1px solid var(--brass-dim);padding:11px 13px;margin-bottom:16px;background:#1A1710}
-.veil .grant b{font-family:var(--f-disp);color:var(--brass);letter-spacing:.06em}
-.veil .grant span{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--bone-dim);margin-top:3px}
 .hidden{display:none!important}
 
-/* ---------- guide ---------- */
-.guide{margin-top:6px}
-.guide details{border-top:1px solid var(--edge);padding-top:10px;margin-top:14px}
+/* guide */
+.guide{margin-top:14px;border-top:1px solid var(--edge);padding-top:10px}
 .guide summary{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
   color:var(--bone-faint);cursor:pointer;list-style:none}
 .guide summary::-webkit-details-marker{display:none}
 .guide summary::before{content:"▸ ";color:var(--brass-dim)}
 .guide details[open] summary::before{content:"▾ "}
-.guide .gbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px 24px;margin-top:12px}
+.guide .gbody{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px 24px;margin-top:12px}
 .guide h3{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--brass);margin:0 0 5px}
 .guide p,.guide li{font-size:12.5px;line-height:1.55;color:var(--bone-dim);margin:0 0 6px}
@@ -273,21 +172,19 @@ h1{
 </style>
 
 <div class="app">
-
   <header class="head">
     <div class="brand">
       <h1>詠唱順</h1>
-      <span class="tag">wand vm · prototype</span>
+      <span class="tag">order test · v2</span>
     </div>
     <div class="stage">
       <span>戦闘 <b id="s-battle">1</b>/2</span>
       <span>ターン <b id="s-turn">1</b></span>
-      <span id="s-name">藁の的</span>
     </div>
   </header>
 
   <section class="field">
-    <div class="sectlabel">敵列 — 番号は貫通・波及の並び順</div>
+    <div class="sectlabel">敵列 — 貫通は右へ、波及は隣へ、分裂は順に飛ぶ</div>
     <div class="foes" id="foes"></div>
   </section>
 
@@ -302,7 +199,6 @@ h1{
         <span class="cost" id="castcost"></span>
       </div>
     </div>
-
     <div class="readout">
       <div class="sectlabel">解決プレビュー</div>
       <div class="log" id="log"></div>
@@ -310,43 +206,37 @@ h1{
   </section>
 
   <section class="hand">
-    <div class="sectlabel">手札 — クリックで装填（汎用カードは即時使用）</div>
+    <div class="sectlabel">手札 — クリックで装填。防御は即時</div>
     <div class="cards" id="hand"></div>
-
-    <div class="guide">
-      <details>
-        <summary>読み方</summary>
-        <div class="gbody">
-          <div>
-            <h3>杖の実行モデル</h3>
-            <ul>
-              <li><b>修飾</b>は単体では何もしない。バッファに積まれ、<b>後ろに来る発射体</b>に乗る。</li>
-              <li><b>発射体</b>は積まれた修飾を全て食って撃つ。撃つとバッファは空になる。</li>
-              <li><b>多重詠唱</b>は続く N 枚を同時に取り出す。</li>
-              <li><b>起動</b>は直後の発射体にペイロードを持たせる。着弾した敵の位置から、残りのカードが再詠唱される。</li>
-            </ul>
-            <p>テープの下の括弧が、いま何がどれに結合しているかを示す。</p>
-          </div>
-          <div>
-            <h3>属性反応</h3>
-            <ul>
-              <li><code>油 + 火</code> → 爆発。+8 と、隣接する敵へ延焼 6</li>
-              <li><code>濡れ + 雷</code> → 連鎖。同じダメージが敵列全体へ</li>
-              <li><code>凍結 + 物理</code> → 粉砕。ダメージ 2 倍</li>
-            </ul>
-            <p><b>三分裂</b>は複製を隣の敵へ順に飛ばす。<code>三分裂 → 塗油</code>で 3 体に油を塗れる。</p>
-          </div>
-          <div>
-            <h3>代償</h3>
-            <ul>
-              <li><b>不安定度</b>が 5 を超えて詠唱すると暴走し、超過 1 につき 3 の自傷。</li>
-              <li><b>マナ超過</b>——マナが足りなくても撃てる。不足分は HP で払う。</li>
-              <li>杖の中身はターンをまたいで残る。数ターンかけて充填できるが、その間は殴られる。</li>
-            </ul>
-          </div>
+    <details class="guide">
+      <summary>読み方</summary>
+      <div class="gbody">
+        <div>
+          <h3>杖のきまり</h3>
+          <ul>
+            <li><b>修飾</b>は単体では何もしない。バッファに積まれ、<b>後ろに来る発射体</b>に乗る。</li>
+            <li><b>発射体</b>は積まれた修飾を全て食って撃つ。撃つとバッファは空になる。</li>
+            <li>だから修飾は必ず発射体より<b>前</b>。後ろに置いた修飾は不発。</li>
+          </ul>
+          <p>テープの下の括弧が、いま何がどれに乗っているかを示す。</p>
         </div>
-      </details>
-    </div>
+        <div>
+          <h3>積むか、撃つか</h3>
+          <p>杖は 4 枠、エナジーは毎ターン 3。<b>大きな杖は 1 ターンでは組めない</b>。</p>
+          <p>詠唱は無料だが、撃つと杖は空になる。積んでいる間は殴られ続ける。</p>
+          <p>杖の中身はターンをまたいで残る。</p>
+        </div>
+        <div>
+          <h3>幾何</h3>
+          <ul>
+            <li><code>貫通</code> 狙った敵の<b>右</b>に並ぶ敵も貫く。</li>
+            <li><code>拡大</code> 着弾点の<b>両隣</b>へ半減して届く。</li>
+            <li><code>三分裂</code> 複製が<b>隣の敵へ順に</b>飛ぶ。各威力は半減。</li>
+          </ul>
+          <p>どれも狙う敵によって結果が変わる。</p>
+        </div>
+      </div>
+    </details>
   </section>
 
   <aside class="rail">
@@ -354,21 +244,11 @@ h1{
       <div class="vital v-hp"><span>体力</span><b id="v-hp">60</b></div>
       <div class="vital v-block"><span>防御</span><b id="v-block">0</b></div>
       <div class="vital v-energy"><span>エナジー</span><b id="v-energy">3</b></div>
-      <div class="vital v-mana"><span>マナ</span><b id="v-mana">4</b></div>
-      <div class="gauge">
-        <div class="glabel"><span>不安定度</span><span id="g-num">0 / 5</span></div>
-        <div class="gtrack"><div class="gfill" id="g-fill" style="width:0%"></div><div class="gtick" id="g-tick"></div></div>
-        <div class="ghint" id="g-hint"></div>
-      </div>
     </div>
     <div class="panel">
-      <div class="sectlabel" style="margin-bottom:6px">杖の部品</div>
-      <div id="relics"><div class="relic" style="color:var(--bone-faint)">なし</div></div>
-    </div>
-    <div class="panel">
+      <div class="pilecount"><span>杖</span><span id="p-cap">0 / 4</span></div>
       <div class="pilecount"><span>山札</span><span id="p-deck">0</span></div>
       <div class="pilecount"><span>捨札</span><span id="p-disc">0</span></div>
-      <div class="pilecount"><span>杖の容量</span><span id="p-cap">3</span></div>
     </div>
   </aside>
 </div>
@@ -378,464 +258,177 @@ h1{
 <script>
 "use strict";
 
-/* ============================================================
-   カード定義
-   ============================================================ */
-const KIND_JA = {projectile:"発射体", modifier:"修飾", multicast:"多重詠唱", trigger:"起動", utility:"汎用", dud:"不発"};
-const EL_JA   = {fire:"火", ice:"氷", lightning:"雷", physical:"物理", dark:"闇", none:"—"};
+/* ── カード：発射体 3 / 修飾 3 / 汎用 1 ───────────────────── */
+const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
 
 const CARDS = {
-  // ---- 発射体 ----
-  fireball:{name:"火球", type:"projectile", el:"fire", dmg:8, mana:2, inst:0,
-    text:"火 8 ダメージ。"},
-  icebolt:{name:"氷弾", type:"projectile", el:"ice", dmg:6, mana:2, inst:0, applies:"frozen",
-    text:"氷 6 ダメージ。対象に「凍結」。"},
-  bolt:{name:"雷矢", type:"projectile", el:"lightning", dmg:5, mana:2, inst:0, pierce:1,
-    text:"雷 5 ダメージ。貫通 1。"},
-  stone:{name:"石礫", type:"projectile", el:"physical", dmg:11, mana:3, inst:0,
-    text:"物理 11 ダメージ。"},
-  darkorb:{name:"闇球", type:"projectile", el:"dark", dmg:4, mana:3, inst:1, splash:1,
-    text:"闇 4 ダメージ。隣接へ波及。"},
-  oil:{name:"塗油", type:"projectile", el:"none", dmg:0, mana:1, inst:0, applies:"oil",
-    text:"ダメージなし。対象に「油」。"},
-  water:{name:"注水", type:"projectile", el:"none", dmg:0, mana:1, inst:0, applies:"wet",
-    text:"ダメージなし。対象に「濡れ」。"},
+  fireball:{name:"火球",   type:"projectile", dmg:8, cost:2, text:"8 ダメージ。"},
+  shard:   {name:"石礫",   type:"projectile", dmg:4, cost:1, text:"4 ダメージ。安い。"},
+  bolt:    {name:"雷矢",   type:"projectile", dmg:5, cost:2, pierce:1, text:"5 ダメージ。貫通 1。"},
 
-  // ---- 修飾 ----
-  split3:{name:"三分裂", type:"modifier", mana:2, inst:2, mod:{split:3},
-    text:"複製を 3 つ。隣の敵へ順に飛ぶ。各威力は半減。"},
-  pierce:{name:"貫通", type:"modifier", mana:1, inst:1, mod:{pierce:2},
-    text:"貫通 +2。後ろに並ぶ敵も貫く。"},
-  enlarge:{name:"拡大", type:"modifier", mana:2, inst:2, mod:{splash:1},
-    text:"波及 +1。着弾点の隣接へ半減して届く。"},
-  bounce:{name:"跳弾", type:"modifier", mana:2, inst:2, mod:{bounce:2},
-    text:"着弾後、隣の生存者へ 2 回跳ねる。跳ねるたび半減。"},
-  homing:{name:"追尾", type:"modifier", mana:1, inst:1, mod:{homing:true},
-    text:"狙いを無視し、最も体力の低い敵へ向かう。"},
-  amplify:{name:"増幅", type:"modifier", mana:2, inst:3, mod:{amp:2},
-    text:"威力 2 倍。不安定度が大きく上がる。"},
+  split3:  {name:"三分裂", type:"modifier", cost:1, mod:{split:3},
+            text:"複製を 3 つ。隣の敵へ順に飛ぶ。各威力は半減。"},
+  pierce:  {name:"貫通",   type:"modifier", cost:1, mod:{pierce:2},
+            text:"貫通 +2。右に並ぶ敵も貫く。"},
+  enlarge: {name:"拡大",   type:"modifier", cost:1, mod:{splash:1},
+            text:"波及 +1。着弾点の両隣へ半減して届く。"},
 
-  // ---- 多重詠唱 ----
-  double:{name:"二重詠唱", type:"multicast", n:2, mana:2, inst:3,
-    text:"続く 2 枚を同時に取り出す。"},
-  triple:{name:"三重詠唱", type:"multicast", n:3, mana:3, inst:5,
-    text:"続く 3 枚を同時に取り出す。"},
-
-  // ---- 起動 ----
-  trigger:{name:"着弾時起動", type:"trigger", mana:3, inst:2,
-    text:"直後の発射体にペイロードを持たせる。着弾点から残りが再詠唱される。"},
-
-  // ---- 汎用（杖に入らない・即時） ----
-  guard:{name:"防御", type:"utility", energy:1, act:"block", val:6,
-    text:"防御 6 を得る。"},
-  tap:{name:"魔力抽出", type:"utility", energy:1, act:"mana", val:5,
-    text:"マナ 5 を得る。"},
-  focus:{name:"集中", type:"utility", energy:1, act:"draw", val:2,
-    text:"カードを 2 枚引く。"},
-  rectify:{name:"整流", type:"utility", energy:1, act:"rectify",
-    text:"杖の不安定度をこのターンのあいだ 0 にする。"},
-
-  // ---- 敵が押し込むカード ----
-  dud:{name:"不発", type:"dud", mana:0, inst:0,
-    text:"何もしない。杖の枠を潰す。"}
+  guard:   {name:"防御",   type:"utility", cost:1, block:7, text:"防御 7 を得る。"}
 };
 
 const START_DECK = [
-  "fireball","fireball","fireball","icebolt","icebolt","bolt","bolt","stone","darkorb",
-  "oil","oil","water",
-  "split3","pierce","pierce","enlarge","bounce","homing","amplify",
-  "double","triple","trigger",
-  "guard","guard","guard","tap","tap","focus","rectify"
+  "fireball","fireball","fireball",
+  "shard","shard","shard",
+  "bolt","bolt",
+  "split3","split3","pierce","pierce","enlarge",
+  "guard","guard","guard"
 ];
 
-/* ============================================================
-   戦闘定義
-   ============================================================ */
 const BATTLES = [
-  {
-    name:"藁の的",
-    blurb:"動かない的。順序で結果がどう変わるかを試す場。",
-    foes:[
-      {name:"藁の的", hp:38, intents:[{k:"attack",v:7},{k:"attack",v:7},{k:"attack",v:11}]}
-    ]
-  },
-  {
-    name:"書架の番人",
-    blurb:"3 体。左から順に並ぶ。杖そのものを壊しに来る。",
-    foes:[
-      {name:"消去者", hp:26, intents:[{k:"attack",v:6},{k:"erase"},{k:"attack",v:6}]},
-      {name:"火蜥蜴", hp:24, intents:[{k:"attack",v:9},{k:"attack",v:9}]},
-      {name:"分解者", hp:20, intents:[{k:"dismantle"},{k:"attack",v:5},{k:"attack",v:5}]}
-    ]
-  }
+  {name:"藁の的", foes:[{name:"藁の的", hp:30, atk:5}]},
+  {name:"三体",   foes:[{name:"火蜥蜴", hp:24, atk:6},
+                        {name:"石人",   hp:22, atk:4},
+                        {name:"蟲",     hp:14, atk:3}]}
 ];
 
-const INTENT_TEXT = {
-  attack:(v)=>['攻撃 ', String(v)],
-  erase:()=>['杖から 1 枚を捨てさせる',''],
-  dismantle:()=>['杖の修飾を不発にする','']
-};
+const CAP = 4, ENERGY = 3, HAND = 5, MAXHP = 60;
 
-/* ============================================================
-   状態
-   ============================================================ */
-let S = null;
-let uid = 0;
-
-function mkCard(id){ const d = CARDS[id]; return Object.assign({id, uid:++uid}, d); }
+/* ── 状態 ─────────────────────────────────────────────── */
+let S = null, uid = 0;
+const mk = id => Object.assign({id, uid:++uid}, CARDS[id]);
 
 function newRun(){
-  S = {
-    battle:0, turn:1,
-    hp:60, maxHp:60, block:0,
-    energy:3, maxEnergy:3,
-    mana:4, maxMana:10,
-    wandCap:3,
-    wand:[], hand:[], deck:[], discard:[],
-    foes:[], target:0,
-    relics:[],
-    rectified:false,
-    over:null
-  };
-  S.deck = shuffle(START_DECK.map(mkCard));
+  S = {battle:0, turn:1, hp:MAXHP, block:0, energy:ENERGY,
+       wand:[], hand:[], deck:[], discard:[], foes:[], target:0, over:null};
+  S.deck = shuffle(START_DECK.map(mk));
   startBattle(0);
 }
+function shuffle(a){const r=a.slice();for(let i=r.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[r[i],r[j]]=[r[j],r[i]];}return r;}
 
 function startBattle(i){
-  const b = BATTLES[i];
-  S.battle = i;
-  S.turn = 1;
-  S.block = 0;
-  S.wand = [];
-  S.foes = b.foes.map((f,idx)=>({
-    name:f.name, hp:f.hp, maxHp:f.hp, idx,
-    st:{oil:false, wet:false, frozen:false},
-    intents:f.intents, ii:0
-  }));
+  S.battle = i; S.turn = 1; S.block = 0;
+  S.discard = S.discard.concat(S.wand, S.hand);
+  S.wand = []; S.hand = [];
+  S.foes = BATTLES[i].foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.hp, atk:f.atk}));
   S.target = 0;
-  S.discard = S.discard.concat(S.hand);
-  S.hand = [];
-  startTurn(true);
+  S.energy = ENERGY;
+  draw(HAND);
 }
-
-function shuffle(a){
-  const r = a.slice();
-  for (let i=r.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
-  return r;
-}
-
 function draw(n){
   for (let k=0;k<n;k++){
-    if (!S.deck.length){
-      if (!S.discard.length) return;
-      S.deck = shuffle(S.discard); S.discard = [];
-    }
+    if (!S.deck.length){ if (!S.discard.length) return; S.deck = shuffle(S.discard); S.discard = []; }
     S.hand.push(S.deck.pop());
   }
 }
 
-function startTurn(first){
-  S.energy = S.maxEnergy;
-  S.block = 0;
-  S.rectified = false;
-  S.mana = Math.min(S.maxMana, S.mana + (first ? 0 : 3));
-  S.discard = S.discard.concat(S.hand);
-  S.hand = [];
-  draw(5);
-  if (!S.foes.some(f=>f.hp>0)) return;
-  render();
-}
-
-/* ============================================================
-   杖 VM
-   ============================================================ */
-function newBuf(){ return {split:1, pierce:0, splash:0, bounce:0, homing:false, amp:1}; }
-function cloneBuf(b){ return Object.assign({}, b); }
-
-function aliveIdx(st){ return st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0); }
-
+/* ── 杖 VM ───────────────────────────────────────────── */
+const newBuf = () => ({split:1, pierce:0, splash:0});
+const alive = st => st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
 function nextAlive(st, from){
-  const a = aliveIdx(st);
-  if (!a.length) return -1;
+  const a = alive(st); if (!a.length) return -1;
   for (const i of a) if (i > from) return i;
   return a[0];
 }
 
-/** ダメージ適用 + 属性反応 */
-function hit(st, ei, amount, el, log, indent){
-  const f = st.foes[ei];
+function hit(st, i, amount, log){
+  const f = st.foes[i];
   if (!f || f.hp<=0) return;
-  const pad = "  ".repeat(indent);
-  let dmg = Math.max(0, Math.round(amount));
-
-  if (el === "fire" && f.st.oil){
-    f.st.oil = false;
-    dmg += 8;
-    log.push({k:"react", t:`${pad}※ 油＋火 → 爆発  +8`});
-    for (const j of [ei-1, ei+1]){
-      const n = st.foes[j];
-      if (n && n.hp>0){ n.hp -= 6; log.push({k:"react", t:`${pad}  ↳ 延焼  ${n.name} −6`}); killCheck(st,j,log,indent+1); }
-    }
-  }
-  if (el === "physical" && f.st.frozen){
-    f.st.frozen = false;
-    dmg *= 2;
-    log.push({k:"react", t:`${pad}※ 凍結＋物理 → 粉砕  ×2`});
-  }
-  if (el === "lightning" && f.st.wet){
-    f.st.wet = false;
-    log.push({k:"react", t:`${pad}※ 濡れ＋雷 → 連鎖  敵列全体へ`});
-    for (const j of aliveIdx(st)){
-      if (j === ei) continue;
-      st.foes[j].hp -= dmg;
-      log.push({k:"react", t:`${pad}  ↳ 連鎖  ${st.foes[j].name} −${dmg}`});
-      killCheck(st,j,log,indent+1);
-    }
-  }
-
-  if (f.hp<=0) return;
-  f.hp -= dmg;
-  if (dmg>0) log.push({k:"hit", t:`${pad}${f.name} −${dmg}`});
-  killCheck(st, ei, log, indent);
+  const d = Math.max(0, Math.round(amount));
+  f.hp -= d;
+  log.push({k:"hit", t:`    ${f.name} −${d}`});
+  if (f.hp<=0){ f.hp = 0; log.push({k:"kill", t:`    ${f.name} 撃破`}); }
 }
 
-function killCheck(st, ei, log, indent){
-  const f = st.foes[ei];
-  if (f && f.hp<=0){ f.hp = 0; log.push({k:"kill", t:`${"  ".repeat(indent)}${f.name} 撃破`}); }
-}
-
-function applyStatus(st, ei, s, log, indent){
-  const f = st.foes[ei];
-  if (!f || f.hp<=0 || !s) return;
-  f.st[s] = true;
-  const ja = {oil:"油", wet:"濡れ", frozen:"凍結"}[s];
-  log.push({k:"hit", t:`${"  ".repeat(indent)}${f.name} に「${ja}」`});
-}
-
-/** 発射体を撃つ */
-function fire(st, card, buf, tgt, log, payload, depth){
-  const pad = "  ".repeat(depth);
+function fire(st, card, buf, tgt, log){
   const copies = buf.split;
-  const base = card.dmg * (copies>1 ? 0.5 : 1) * buf.amp;
+  const base   = card.dmg * (copies>1 ? 0.5 : 1);
   const pierce = (card.pierce||0) + buf.pierce;
-  const splash = (card.splash||0) + buf.splash;
+  const splash = buf.splash;
 
-  const mods = [];
-  if (copies>1) mods.push(`分裂${copies}`);
-  if (pierce) mods.push(`貫通${pierce}`);
-  if (splash) mods.push(`波及${splash}`);
-  if (buf.bounce) mods.push(`跳弾${buf.bounce}`);
-  if (buf.homing) mods.push("追尾");
-  if (buf.amp>1) mods.push(`増幅×${buf.amp}`);
-  log.push({k:"fire", t:`${pad}▸ ${card.name}  ${EL_JA[card.el]} ${Math.round(base)}${mods.length?"  ["+mods.join(" ")+"]":""}`});
+  const tags = [];
+  if (copies>1) tags.push(`分裂${copies}`);
+  if (pierce)   tags.push(`貫通${pierce}`);
+  if (splash)   tags.push(`波及${splash}`);
+  log.push({k:"fire", t:`▸ ${card.name}  ${Math.round(base)}${tags.length?"  ["+tags.join(" ")+"]":""}`});
 
   let cur = tgt;
   for (let c=0;c<copies;c++){
     let aim = cur;
-    if (buf.homing){
-      const al = aliveIdx(st);
-      if (!al.length) break;
-      aim = al.reduce((b,i)=> st.foes[i].hp < st.foes[b].hp ? i : b, al[0]);
-    }
     if (!st.foes[aim] || st.foes[aim].hp<=0){
-      const nx = nextAlive(st, aim);
-      if (nx<0) break;
-      aim = nx;
+      aim = nextAlive(st, aim);
+      if (aim<0) break;
     }
-
-    // 主弾 + 貫通（右へ並ぶ敵を貫く）
-    let ptr = aim;
-    for (let p=0;p<=pierce;p++){
-      if (ptr<0 || ptr>=st.foes.length) break;
-      if (st.foes[ptr].hp>0){
-        hit(st, ptr, base, card.el, log, depth+1);
-        applyStatus(st, ptr, card.applies, log, depth+1);
-      }
-      ptr++;
+    for (let p=0, ptr=aim; p<=pierce && ptr<st.foes.length; p++, ptr++){
+      if (st.foes[ptr].hp>0) hit(st, ptr, base, log);
     }
-    // 波及
     if (splash){
       for (const j of [aim-1, aim+1]){
-        if (st.foes[j] && st.foes[j].hp>0) hit(st, j, base*0.5*splash, card.el, log, depth+1);
+        if (st.foes[j] && st.foes[j].hp>0) hit(st, j, base*0.5*splash, log);
       }
     }
-    // 跳弾
-    let bd = base, bfrom = aim;
-    for (let b=0;b<buf.bounce;b++){
-      const nx = nextAlive(st, bfrom);
-      if (nx<0 || nx===bfrom) break;
-      bd = bd*0.5;
-      log.push({k:"note", t:`${pad}  ↷ 跳弾 → ${st.foes[nx].name}`});
-      hit(st, nx, bd, card.el, log, depth+1);
-      bfrom = nx;
-    }
-    // ペイロード（起動）
-    if (payload && payload.length && depth < 3){
-      log.push({k:"note", t:`${pad}  ⟡ 着弾点から再詠唱`});
-      runCast(st, payload, aim, log, depth+1);
-    }
-
     cur = nextAlive(st, cur);
     if (cur<0) break;
   }
 }
 
-/** 杖の実行 */
-function runCast(st, wand, tgt, log, depth){
+function runCast(st, wand, tgt, log){
   let buf = newBuf();
-  let i = 0;
-  const pad = "  ".repeat(depth);
-  let guard = 0;
-
-  while (i < wand.length && guard++ < 64){
-    const c = wand[i];
-
-    if (c.type === "dud"){
-      log.push({k:"note", t:`${pad}· 不発`}); i++; continue;
-    }
-
+  for (const c of wand){
     if (c.type === "modifier"){
       Object.assign(buf, c.mod);
-      log.push({k:"mod", t:`${pad}+ ${c.name}  → バッファ`});
-      i++; continue;
-    }
-
-    if (c.type === "multicast"){
-      const group = wand.slice(i+1, i+1+c.n);
-      if (!group.length){ log.push({k:"note", t:`${pad}· ${c.name}：対象なし`}); i++; continue; }
-      log.push({k:"mod", t:`${pad}⋯ ${c.name}  次の ${group.length} 枚を同時に`});
-      const shared = cloneBuf(buf);
-      for (const g of group){
-        if (g.type === "projectile") fire(st, g, cloneBuf(shared), tgt, log, null, depth+1);
-        else if (g.type === "modifier"){ Object.assign(shared, g.mod); log.push({k:"mod", t:`${pad}  + ${g.name}`}); }
-        else log.push({k:"note", t:`${pad}  · ${g.name} は同時詠唱できない`});
-      }
-      i += 1 + group.length;
+      log.push({k:"mod", t:`+ ${c.name}  → バッファ`});
+    } else if (c.type === "projectile"){
+      fire(st, c, buf, tgt, log);
       buf = newBuf();
-      continue;
     }
-
-    if (c.type === "trigger"){
-      const nxt = wand[i+1];
-      if (nxt && nxt.type === "projectile"){
-        const payload = wand.slice(i+2);
-        log.push({k:"mod", t:`${pad}⟡ ${c.name}  ペイロード ${payload.length} 枚`});
-        fire(st, nxt, buf, tgt, log, payload, depth);
-        i = wand.length;
-      } else {
-        log.push({k:"note", t:`${pad}· ${c.name}：直後に発射体がなく不発`});
-        i++;
-      }
-      buf = newBuf();
-      continue;
-    }
-
-    if (c.type === "projectile"){
-      fire(st, c, buf, tgt, log, null, depth);
-      buf = newBuf();
-      i++; continue;
-    }
-    i++;
   }
-  if (depth === 0){
-    const leftover = [];
-    // 未消費の修飾を報告
-    let j = wand.length-1;
-    while (j>=0 && wand[j].type === "modifier"){ leftover.unshift(wand[j].name); j--; }
-    if (leftover.length) log.push({k:"note", t:`· 末尾の修飾は不発：${leftover.join("・")}（後ろに発射体がない）`});
-  }
+  const tail = [];
+  for (let j=wand.length-1; j>=0 && wand[j].type==="modifier"; j--) tail.unshift(wand[j].name);
+  if (tail.length) log.push({k:"note", t:`· 不発：${tail.join("・")}（後ろに発射体がない）`});
 }
 
-/* ============================================================
-   コスト計算
-   ============================================================ */
-function wandMana(){ return S.wand.reduce((a,c)=>a+(c.mana||0),0); }
-function wandInst(){ return S.rectified ? 0 : S.wand.reduce((a,c)=>a+(c.inst||0),0); }
-const INST_LIMIT = 5;
-function overloadDmg(){ const i = wandInst(); return i>INST_LIMIT ? (i-INST_LIMIT)*3 : 0; }
-function manaShort(){ return Math.max(0, wandMana() - S.mana); }
-
-/* ============================================================
-   プレビュー
-   ============================================================ */
-function snapshot(){
-  return {foes: S.foes.map(f=>({name:f.name, hp:f.hp, maxHp:f.maxHp, idx:f.idx, st:Object.assign({},f.st)}))};
-}
-
+/* ── プレビュー：盤面を複製して同じ VM を走らせる ─────────── */
 function preview(){
   if (!S.wand.length) return {log:[], hp:S.foes.map(f=>f.hp)};
-  const st = snapshot();
+  const st = {foes:S.foes.map(f=>({name:f.name, hp:f.hp}))};
   const log = [];
-  runCast(st, S.wand, S.target, log, 0);
-  return {log, hp: st.foes.map(f=>f.hp)};
+  runCast(st, S.wand, S.target, log);
+  return {log, hp:st.foes.map(f=>f.hp)};
 }
 
-/* ============================================================
-   行動
-   ============================================================ */
+/* ── 行動 ─────────────────────────────────────────────── */
 function loadCard(i){
   const c = S.hand[i];
-  if (!c || S.over) return;
-  if (c.type === "utility"){ playUtility(i); return; }
-  if (S.wand.length >= S.wandCap) return;
-  if (S.energy < 1) return;
-  S.energy -= 1;
-  S.hand.splice(i,1);
-  S.wand.push(c);
+  if (!c || S.over || S.energy < c.cost) return;
+  if (c.type === "utility"){
+    S.energy -= c.cost; S.hand.splice(i,1); S.discard.push(c);
+    S.block += c.block; render(); return;
+  }
+  if (S.wand.length >= CAP) return;
+  S.energy -= c.cost; S.hand.splice(i,1); S.wand.push(c);
   render();
 }
-
-function unload(si){
-  const c = S.wand[si];
-  if (!c || S.over) return;
-  S.wand.splice(si,1);
-  if (c.type !== "dud"){ S.hand.push(c); S.energy = Math.min(S.maxEnergy, S.energy + 1); }
+function unload(i){
+  if (S.over) return;
+  const c = S.wand.splice(i,1)[0];
+  S.hand.push(c);
+  S.energy = Math.min(ENERGY, S.energy + c.cost);
   render();
 }
-
-function move(si, d){
-  const j = si + d;
+function move(i, d){
+  const j = i+d;
   if (j<0 || j>=S.wand.length) return;
-  const t = S.wand[si]; S.wand[si] = S.wand[j]; S.wand[j] = t;
+  [S.wand[i], S.wand[j]] = [S.wand[j], S.wand[i]];
   render();
 }
-
-function playUtility(i){
-  const c = S.hand[i];
-  if (S.energy < c.energy) return;
-  S.energy -= c.energy;
-  S.hand.splice(i,1);
-  S.discard.push(c);
-  if (c.act === "block") S.block += c.val;
-  if (c.act === "mana")  S.mana = Math.min(S.maxMana, S.mana + c.val);
-  if (c.act === "draw")  draw(c.val);
-  if (c.act === "rectify") S.rectified = true;
-  render();
-}
+function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); } }
 
 function cast(){
   if (!S.wand.length || S.over) return;
   const log = [];
-  const short = manaShort();
-  const over = overloadDmg();
-
-  S.mana = Math.max(0, S.mana - wandMana());
-  if (short>0){
-    S.hp -= short;
-    log.push({k:"self", t:`✕ マナ超過  不足 ${short} を体力で支払う  −${short}`});
-  }
-  if (over>0){
-    S.hp -= over;
-    log.push({k:"self", t:`✕ 暴走  不安定度 ${wandInst()} / ${INST_LIMIT}  −${over}`});
-  }
-
-  runCast(S, S.wand, S.target, log, 0);
-
+  runCast(S, S.wand, S.target, log);
   S.discard = S.discard.concat(S.wand);
   S.wand = [];
-  S.lastLog = log;
-
-  if (S.hp <= 0) return lose();
   if (!S.foes.some(f=>f.hp>0)) return winBattle();
   render(log);
 }
@@ -845,86 +438,53 @@ function endTurn(){
   const log = [];
   for (const f of S.foes){
     if (f.hp<=0) continue;
-    const it = f.intents[f.ii % f.intents.length];
-    f.ii++;
-    if (it.k === "attack"){
-      let dmg = it.v;
-      const absorbed = Math.min(S.block, dmg);
-      S.block -= absorbed; dmg -= absorbed;
-      S.hp -= dmg;
-      log.push({k:"foe", t:`${f.name} の攻撃  −${dmg}${absorbed?`（防御で ${absorbed} 吸収）`:""}`});
-    } else if (it.k === "erase"){
-      if (S.wand.length){
-        const i = Math.floor(Math.random()*S.wand.length);
-        const c = S.wand.splice(i,1)[0];
-        S.discard.push(c);
-        log.push({k:"foe", t:`${f.name}  杖の ${i+1} 番「${c.name}」を消し去った`});
-      } else log.push({k:"foe", t:`${f.name}  杖は空だった`});
-    } else if (it.k === "dismantle"){
-      const i = S.wand.findIndex(c=>c.type === "modifier");
-      if (i>=0){
-        const c = S.wand[i];
-        S.wand[i] = mkCard("dud");
-        log.push({k:"foe", t:`${f.name}  杖の ${i+1} 番「${c.name}」を不発に変えた`});
-      } else log.push({k:"foe", t:`${f.name}  分解できる修飾がなかった`});
-    }
+    let d = f.atk;
+    const absorbed = Math.min(S.block, d);
+    S.block -= absorbed; d -= absorbed;
+    S.hp -= d;
+    log.push({k:"foe", t:`${f.name} の攻撃  −${d}${absorbed?`（防御 ${absorbed} 吸収）`:""}`});
   }
   if (S.hp <= 0) return lose();
   S.turn++;
-  startTurn(false);
+  S.energy = ENERGY;
+  S.block = 0;
+  S.discard = S.discard.concat(S.hand);
+  S.hand = [];
+  draw(HAND);
   render(log);
 }
 
-function selectTarget(i){
-  if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); }
-}
-
-/* ============================================================
-   結末
-   ============================================================ */
+/* ── 結末 ─────────────────────────────────────────────── */
 function winBattle(){
   if (S.battle === 0){
-    S.wandCap = 4;
-    S.relics.push({name:"拡張の環", text:"杖の容量 +1"});
-    S.hp = Math.min(S.maxHp, S.hp + 10);
-    veil(`
-      <h2>藁の的を崩した</h2>
-      <div class="sub">battle 1 cleared</div>
-      <p>次は 3 体並ぶ。貫通・波及・跳弾・分裂が意味を持ちはじめ、敵は杖そのものを壊しに来る。</p>
-      <div class="grant">
-        <b>拡張の環</b>
-        <span>杖の容量 3 → 4。三重詠唱と、起動＋ペイロードが組めるようになる。</span>
-      </div>
-      <p style="color:var(--heal)">体力を 10 回復した。</p>
-      <button class="btn cast" id="veilgo">進む</button>
-    `, ()=>{ hideVeil(); startBattle(1); render(); });
+    S.hp = Math.min(MAXHP, S.hp + 12);
+    veil(`<h2>的を崩した</h2><div class="sub">battle 1 cleared</div>
+      <p>次は 3 体が横に並ぶ。ここから <b>貫通・拡大・三分裂</b> が意味を持ちはじめる。
+      どの敵を狙うかで、同じ杖でも結果が変わる。</p>
+      <p style="color:var(--heal)">体力を 12 回復した。</p>
+      <button class="btn cast" id="veilgo">進む</button>`,
+      ()=>{ hideVeil(); startBattle(1); render(); });
   } else {
     S.over = "win";
-    veil(`
-      <h2>書架の番人を退けた</h2>
-      <div class="sub">prototype cleared</div>
-      <p>ここまでが検証対象です。確かめたかったのは 1 点だけ——<b>手札を並べる順序を考えるのが面白いか</b>。</p>
+    veil(`<h2>三体を退けた</h2><div class="sub">prototype cleared</div>
+      <p>確かめたいのは 1 点だけ——<b>並べ替えるために手が止まったか</b>。</p>
       <ul>
-        <li>順序を変えるために手が止まった瞬間はあったか</li>
-        <li>「そう繋がるのか」と思った組み合わせはあったか</li>
-        <li>それとも、毎ターン同じ並びに落ち着いたか</li>
+        <li>順序を悩んだ瞬間があったか</li>
+        <li>「積んでから撃つ」を選んだターンがあったか</li>
+        <li>それとも毎ターン同じ並びに落ち着いたか</li>
       </ul>
-      <p>3 つ目なら設計が間違っています。修飾が数値ではなく挙動を変えているか、を疑うところから。</p>
-      <button class="btn cast" id="veilgo">最初から</button>
-    `, ()=>{ hideVeil(); newRun(); render(); });
+      <p>3 つ目なら、足すべきは機能ではなく、順序に意味を与える別の何かです。</p>
+      <button class="btn cast" id="veilgo">最初から</button>`,
+      ()=>{ hideVeil(); newRun(); render(); });
   }
 }
-
 function lose(){
   S.over = "lose";
-  veil(`
-    <h2>詠唱は途絶えた</h2>
-    <div class="sub">defeated</div>
-    <p>暴走とマナ超過は、積みすぎた杖への代償です。積むか、撃つか、防ぐか——その配分そのものがこのゲームの中身。</p>
-    <button class="btn cast" id="veilgo">最初から</button>
-  `, ()=>{ hideVeil(); newRun(); render(); });
+  veil(`<h2>詠唱は途絶えた</h2><div class="sub">defeated</div>
+    <p>積んでいる間は無防備です。大きな杖を組むターンと、防御に回すターンの配分がこのゲームの中身。</p>
+    <button class="btn cast" id="veilgo">最初から</button>`,
+    ()=>{ hideVeil(); newRun(); render(); });
 }
-
 function veil(html, cb){
   const v = document.getElementById("veil");
   document.getElementById("veilbox").innerHTML = html;
@@ -934,69 +494,73 @@ function veil(html, cb){
 }
 function hideVeil(){ document.getElementById("veil").classList.add("hidden"); }
 
-/* ============================================================
-   描画
-   ============================================================ */
-function esc(s){ return String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+/* ── 結合括弧 ─────────────────────────────────────────── */
+function analyzeGroups(wand){
+  const out = []; let i = 0;
+  while (i < wand.length){
+    if (wand[i].type === "modifier"){
+      let j = i;
+      while (j < wand.length && wand[j].type === "modifier") j++;
+      if (j < wand.length){ mark(out, i, j, "修飾 ▸ " + wand[j].name); i = j+1; }
+      else { mark(out, i, j-1, "不発 — 発射体なし"); i = j; }
+      continue;
+    }
+    out[i] = {pos:"start end", label:"発射"};
+    i++;
+  }
+  return out;
+}
+function mark(out, a, b, label){
+  for (let k=a;k<=b;k++){
+    out[k] = {pos: (k===a&&k===b)?"start end" : k===a?"start" : k===b?"end" : "mid",
+              label: k===a ? label : ""};
+  }
+}
+
+/* ── 描画 ─────────────────────────────────────────────── */
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
 function render(extraLog){
   const pv = preview();
 
-  // --- header
   document.getElementById("s-battle").textContent = S.battle+1;
   document.getElementById("s-turn").textContent = S.turn;
-  document.getElementById("s-name").textContent = BATTLES[S.battle].name;
 
-  // --- foes
   const foes = document.getElementById("foes");
   foes.innerHTML = "";
   S.foes.forEach((f,i)=>{
     const el = document.createElement("button");
     el.className = "foe" + (f.hp<=0 ? " dead" : "");
-    el.setAttribute("aria-pressed", String(S.target === i));
+    el.setAttribute("aria-pressed", String(S.target===i));
     el.disabled = f.hp<=0;
-    const after = pv.hp[i];
-    const delta = f.hp - after;
-    const wNow = Math.max(0, f.hp/f.maxHp*100);
-    const wAfter = Math.max(0, after/f.maxHp*100);
-    const it = f.intents[f.ii % f.intents.length];
-    const itxt = INTENT_TEXT[it.k](it.v);
-    const sig = [];
-    if (f.st.oil) sig.push('<span class="sigil sig-oil">油</span>');
-    if (f.st.wet) sig.push('<span class="sigil sig-wet">濡</span>');
-    if (f.st.frozen) sig.push('<span class="sigil sig-frozen">凍</span>');
-
+    const after = pv.hp[i], delta = f.hp - after;
+    const wNow = Math.max(0, f.hp/f.maxHp*100), wAfter = Math.max(0, after/f.maxHp*100);
     el.innerHTML =
       `<div class="foe-top"><span class="foe-name">${i+1}. ${esc(f.name)}</span>`+
       `<span class="foe-hp">${f.hp} / ${f.maxHp}</span></div>`+
       `<div class="bar"><i style="width:${wAfter}%"></i>`+
-      (delta>0 ? `<span class="prev" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>` : ``)+
-      `</div>`+
-      `<div class="intent">${f.hp>0 ? `<span>${esc(itxt[0])}</span>${itxt[1]?`<b>${itxt[1]}</b>`:""}` : `<span>—</span>`}</div>`+
-      `<div class="sigils">${sig.join("")}</div>`+
-      (delta>0 ? `<span class="pdelta">−${delta}</span>` : ``);
+      (delta>0?`<span class="prev" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+`</div>`+
+      `<div class="intentrow"><span class="intent">${f.hp>0?`攻撃 <b>${f.atk}</b>`:`—`}</span>`+
+      (delta>0?`<span class="pdelta">−${delta}</span>`:``)+`</div>`;
     el.onclick = ()=>selectTarget(i);
     foes.appendChild(el);
   });
 
-  // --- wand slots
   const slots = document.getElementById("slots");
   slots.innerHTML = "";
-  for (let i=0;i<S.wandCap;i++){
+  for (let i=0;i<CAP;i++){
     const c = S.wand[i];
     const d = document.createElement("div");
     d.className = "slot" + (c ? " filled" : "");
     if (c){
-      d.innerHTML =
-        `<span class="idx">${i+1}</span>`+
-        `<div class="ckind k-${c.type}">${KIND_JA[c.type]}${c.el&&c.el!=="none"?` · ${EL_JA[c.el]}`:""}</div>`+
+      d.innerHTML = `<span class="idx">${i+1}</span>`+
+        `<div class="ckind k-${c.type}">${KIND_JA[c.type]}</div>`+
         `<div class="cname">${esc(c.name)}</div>`+
         `<div class="ctext">${esc(c.text)}</div>`+
         `<div class="slotctl">
            <button data-a="l" ${i===0?"disabled":""} title="左へ">◀</button>
            <button data-a="r" ${i===S.wand.length-1?"disabled":""} title="右へ">▶</button>
-           <button data-a="x" title="手札に戻す">✕</button>
-         </div>`;
+           <button data-a="x" title="手札に戻す">✕</button></div>`;
       d.querySelector('[data-a="l"]').onclick = ()=>move(i,-1);
       d.querySelector('[data-a="r"]').onclick = ()=>move(i,1);
       d.querySelector('[data-a="x"]').onclick = ()=>unload(i);
@@ -1006,159 +570,69 @@ function render(extraLog){
     slots.appendChild(d);
   }
 
-  // --- binding brackets
   const binds = document.getElementById("binds");
   binds.innerHTML = "";
-  const groups = analyzeGroups(S.wand);
-  for (let i=0;i<S.wandCap;i++){
-    const g = groups[i];
+  const g = analyzeGroups(S.wand);
+  for (let i=0;i<CAP;i++){
     const d = document.createElement("div");
-    d.className = "bind " + (g ? g.pos : "none");
-    d.innerHTML = `<span>${g ? esc(g.label) : ""}</span>`;
+    d.className = "bind " + (g[i] ? g[i].pos : "none");
+    d.innerHTML = `<span>${g[i] ? esc(g[i].label) : ""}</span>`;
     binds.appendChild(d);
   }
 
-  // --- cast row
-  const mana = wandMana(), inst = wandInst(), short = manaShort(), over = overloadDmg();
-  const cc = document.getElementById("castcost");
-  cc.innerHTML = S.wand.length
-    ? `マナ <em>${mana}</em>`+
-      (short ? ` <span class="over">（不足 ${short} → 体力）</span>` : ``)+
-      `　不安定度 <em>${inst}</em>`+
-      (over ? ` <span class="over">（暴走 −${over}）</span>` : ``)
-    : `<span style="color:var(--bone-faint)">杖が空。手札から装填する。</span>`;
+  document.getElementById("castcost").textContent =
+    S.wand.length ? `詠唱は無料。撃つと杖は空になる。` : `杖が空。手札から装填する。`;
   const cb = document.getElementById("btn-cast");
-  cb.disabled = !S.wand.length || !!S.over;
-  cb.className = "btn cast" + ((short||over) ? " danger" : "");
-  cb.onclick = cast;
+  cb.disabled = !S.wand.length || !!S.over; cb.onclick = cast;
   const eb = document.getElementById("btn-end");
-  eb.disabled = !!S.over;
-  eb.onclick = endTurn;
+  eb.disabled = !!S.over; eb.onclick = endTurn;
 
-  // --- log
   const logEl = document.getElementById("log");
   logEl.innerHTML = "";
   const lines = [];
   if (extraLog && extraLog.length){
-    lines.push({k:"note", t:"── 直前の解決 ──"});
-    lines.push(...extraLog);
-    lines.push({k:"note", t:""});
+    lines.push({k:"note", t:"── 直前 ──"}, ...extraLog, {k:"note", t:""});
   }
   if (S.wand.length){
-    lines.push({k:"note", t:`── いま詠唱すると（狙い：${S.foes[S.target] ? S.foes[S.target].name : "—"}）──`});
+    lines.push({k:"note", t:`── いま詠唱すると（狙い：${S.foes[S.target]?S.foes[S.target].name:"—"}）──`});
     lines.push(...pv.log);
     const total = S.foes.reduce((a,f,i)=>a + Math.max(0, f.hp - pv.hp[i]), 0);
-    lines.push({k:"note", t:""});
-    lines.push({k:"fire", t:`合計 ${total} ダメージ`});
+    lines.push({k:"note", t:""}, {k:"total", t:`合計 ${total} ダメージ`});
   } else if (!extraLog || !extraLog.length){
-    lines.push({k:"note", t:"カードを装填すると、ここに解決結果が出る。"});
-    lines.push({k:"note", t:"表示はプレビューではなく実際の計算そのもの——"});
-    lines.push({k:"note", t:"同じ処理を複製した盤面で走らせている。"});
+    lines.push({k:"note", t:"カードを装填すると、ここに結果が出る。"},
+               {k:"note", t:"盤面を複製して同じ処理を走らせているので、"},
+               {k:"note", t:"表示と実際の結果は必ず一致する。"});
   }
   for (const l of lines){
     const d = document.createElement("div");
-    d.className = "l-" + l.k;
-    d.textContent = l.t;
+    d.className = "l-" + l.k; d.textContent = l.t;
     logEl.appendChild(d);
   }
 
-  // --- hand
   const hand = document.getElementById("hand");
   hand.innerHTML = "";
   S.hand.forEach((c,i)=>{
     const b = document.createElement("button");
     b.className = "card";
-    const isUtil = c.type === "utility";
-    const cost = isUtil ? c.energy : 1;
-    const blocked = isUtil ? (S.energy < c.energy)
-                           : (S.energy < 1 || S.wand.length >= S.wandCap);
-    b.disabled = blocked || !!S.over;
+    b.disabled = !!S.over || S.energy < c.cost ||
+                 (c.type !== "utility" && S.wand.length >= CAP);
     b.innerHTML =
-      `<div class="ckind k-${c.type}">${KIND_JA[c.type]}${c.el&&c.el!=="none"?` · ${EL_JA[c.el]}`:""}</div>`+
+      `<div class="ckind k-${c.type}">${KIND_JA[c.type]}</div>`+
       `<div class="cname">${esc(c.name)}</div>`+
       `<div class="ctext">${esc(c.text)}</div>`+
-      `<div class="cfoot">`+
-        `<span title="エナジー">⚡${cost}</span>`+
-        (isUtil ? `<span style="color:var(--bone-faint)">即時</span>`
-                : `<span title="マナ">◈${c.mana||0}</span><span title="不安定度" ${c.inst?'style="color:var(--blood)"':''}>≈${c.inst||0}</span>`)+
-      `</div>`;
+      `<div class="cfoot">⚡${c.cost}${c.type==="utility"?"　即時":""}</div>`;
     b.onclick = ()=>loadCard(i);
     hand.appendChild(b);
   });
 
-  // --- rail
-  document.getElementById("v-hp").textContent = Math.max(0,S.hp) + " / " + S.maxHp;
+  document.getElementById("v-hp").textContent = Math.max(0,S.hp) + " / " + MAXHP;
   document.getElementById("v-block").textContent = S.block;
-  document.getElementById("v-energy").textContent = S.energy + " / " + S.maxEnergy;
-  document.getElementById("v-mana").textContent = S.mana + " / " + S.maxMana;
-  const pct = Math.min(100, inst / (INST_LIMIT*2) * 100);
-  const gf = document.getElementById("g-fill");
-  gf.style.width = pct + "%";
-  gf.className = "gfill" + (inst>INST_LIMIT ? " hot" : "");
-  document.getElementById("g-tick").style.left = "50%";
-  document.getElementById("g-num").textContent = inst + " / " + INST_LIMIT;
-  document.getElementById("g-hint").textContent =
-    S.rectified ? "整流中——このターンは暴走しない"
-    : over ? `暴走する：詠唱時に −${over}` : "";
-
-  const rl = document.getElementById("relics");
-  rl.innerHTML = S.relics.length
-    ? S.relics.map(r=>`<div class="relic">${esc(r.name)}<i> — ${esc(r.text)}</i></div>`).join("")
-    : `<div class="relic" style="color:var(--bone-faint)">なし</div>`;
-
+  document.getElementById("v-energy").textContent = S.energy + " / " + ENERGY;
+  document.getElementById("p-cap").textContent = S.wand.length + " / " + CAP;
   document.getElementById("p-deck").textContent = S.deck.length;
   document.getElementById("p-disc").textContent = S.discard.length;
-  document.getElementById("p-cap").textContent = S.wand.length + " / " + S.wandCap;
 }
 
-/** テープ下の結合括弧：どの修飾がどの発射体に乗るか */
-function analyzeGroups(wand){
-  const out = [];
-  let i = 0;
-  while (i < wand.length){
-    const c = wand[i];
-    if (c.type === "modifier"){
-      let j = i;
-      while (j < wand.length && wand[j].type === "modifier") j++;
-      if (j < wand.length && (wand[j].type === "projectile")){
-        markRange(out, i, j, "修飾 ▸ " + wand[j].name);
-        i = j+1; continue;
-      }
-      if (j < wand.length && (wand[j].type === "multicast" || wand[j].type === "trigger")){
-        markRange(out, i, j, "修飾 ▸ " + wand[j].name);
-        i = j+1; continue;
-      }
-      markRange(out, i, j-1, "不発 — 発射体なし");
-      i = j; continue;
-    }
-    if (c.type === "multicast"){
-      const end = Math.min(wand.length-1, i + c.n);
-      markRange(out, i, end, `同時 ×${end-i}`);
-      i = end+1; continue;
-    }
-    if (c.type === "trigger"){
-      markRange(out, i, wand.length-1, "起動 ▸ ペイロード");
-      i = wand.length; continue;
-    }
-    out[i] = {pos:"start end", label:c.type === "projectile" ? "発射" : ""};
-    i++;
-  }
-  return out;
-}
-function markRange(out, a, b, label){
-  if (b < a) { out[a] = {pos:"start end", label}; return; }
-  for (let k=a;k<=b;k++){
-    let pos = "mid";
-    if (k===a && k===b) pos = "start end";
-    else if (k===a) pos = "start";
-    else if (k===b) pos = "end";
-    out[k] = {pos, label: k===a ? label : ""};
-  }
-}
-
-/* ============================================================
-   起動
-   ============================================================ */
 newRun();
 render();
 </script>

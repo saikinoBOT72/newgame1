@@ -86,9 +86,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .dgrid{display:grid;gap:0}
 .dc{width:var(--ts);height:var(--ts);position:relative}
 .dc.wall{background:transparent}
-.dc.floor{background:#39406B;box-shadow:inset 0 0 0 1px #2E3558}
-.dc.room{background:#4A5488;box-shadow:inset 0 0 0 1px #3A4370}
-.dc.edge{background:#232846}
+.dc.floor{background:#39406B;box-shadow:inset 0 0 0 2px #2A3050}
+.dc.room{background:#5A66A0;box-shadow:inset 0 0 0 2px #414C82}
+.dc.edge{background:#171B33}
 .dc .ic{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
 .dc.done .ic{opacity:.28}
 .dc.here{outline:2px solid var(--gold);outline-offset:-2px}
@@ -906,15 +906,19 @@ function genFloor(fl){
   const start = {x:cx, y:DH-2};
   g[start.y][start.x] = 1;
   // 床に接する空きマスを壁にする（通路が囲われて見える）
-  const w = g.map(r=>r.slice());
-  for (let y=0;y<DH;y++) for (let x=0;x<DW;x++){
-    if (g[y][x] !== 0) continue;
-    let near = false;
-    for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++){
-      const ny=y+j, nx=x+i;
-      if (ny>=0&&nx>=0&&ny<DH&&nx<DW&&g[ny][nx]!==0){ near = true; break; }
+  let w = g.map(r=>r.slice());
+  for (let pass=0; pass<2; pass++){          // 2 段膨張。内側に黒い穴が残らない
+    const nx2 = w.map(r=>r.slice());
+    for (let y=0;y<DH;y++) for (let x=0;x<DW;x++){
+      if (w[y][x] !== 0) continue;
+      let near = false;
+      for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++){
+        const ny=y+j, mx=x+i;
+        if (ny>=0&&mx>=0&&ny<DH&&mx<DW&&w[ny][mx]!==0){ near = true; break; }
+      }
+      if (near) nx2[y][x] = 3;
     }
-    if (near) w[y][x] = 3;
+    w = nx2;
   }
   return {g:w, rooms, px:start.x, py:start.y};
 }

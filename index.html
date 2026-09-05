@@ -213,8 +213,9 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .dsrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
 .dsrow .nm{flex:1 1 auto}
 .dsrow .ct{color:var(--c5)}
-.dsbar{height:var(--px);background:var(--c2);width:100%}
-.dsbar i{display:block;height:100%;background:var(--c7)}
+.dsbar{height:calc(var(--px)*3);background:var(--c0);width:100%;
+  border:var(--px) solid var(--c2);margin-bottom:var(--px)}
+.dsbar i{display:block;height:100%;background:var(--ca)}
 
 /* ═══ 図鑑 ═══ */
 #dexv{position:absolute;inset:0;background:#0B0E1A;z-index:30;
@@ -1514,7 +1515,7 @@ function drawBoard(){
   /* ── 明かり。ディザで面を薄く塗ると壊れたテクスチャに見えるので、
         棚の背面にベタの「光だまり」を敷き、上端だけ階段状に切る ── */
   for (const sh of SHELVES){
-    const L = sh.x0 - 2, W = sh.x1 - sh.x0 + 4;
+    const L = sh.x0 - 5, W = sh.x1 - sh.x0 + 10;
     for (let k=0;k<5;k++){                                   // 上端を 5 段の階段に
       const inset = [10,6,3,1,0][k];
       R(L+inset, sh.y-24+k*2, W-inset*2, 2, "#232A44");
@@ -1646,13 +1647,11 @@ function drawFx(){
     if (hp && hp.st === "stand"){
       const need = Math.min(PH/2, W_NEED / (SPIN * S.gun.power));
       const x0 = X(hp.b.x - PW/2), w = X(hp.b.x + PW/2) - x0;
-      // 倒れる境界を 1 ドットの線 2 本で示すだけ。面を塗らない
+      // 倒れる境界を 1 ドットの破線 2 本で示すだけ。
+      // 面を塗ったり枠で囲うと、札に検査用のギズモを重ねたように見える
       fx.fillStyle = "#E2622F";
       for (const yy of [hp.b.y - need, hp.b.y + need])
-        for (let k=0;k<w;k+=PX) fx.fillRect(x0+k, Y(yy), PX, PX);
-      // 倒れる側の端に短い爪を出して、どちらへ倒れるかを示す
-      fx.fillRect(x0-PX*2, Y(hp.b.y-PH/2), PX*2, PX);
-      fx.fillRect(x0+w,    Y(hp.b.y+PH/2)-PX, PX*2, PX);
+        for (let k=0;k<w;k+=PX*2) fx.fillRect(x0+k, Y(yy), PX, PX);
     }
     // 散りの大きさ＝括弧の開き。値が形で読める
     const r = Math.max(3, Math.round(S.gun.spread));
@@ -1887,8 +1886,8 @@ function renderDungeon(){
     const d = document.createElement("div");
     d.className = "dc " + (v===0 ? "wall" : v===3 ? "edge" : v===2 ? "room" : "floor")
               + " v" + ((x*7 + y*13) % 4)
-              + (v && !S.d.g[y-1]?.[x] ? " tn" : "")
-              + (v && !S.d.g[y+1]?.[x] ? " bn" : "");
+              + ((v===1||v===2) && y>0 && !S.d.g[y-1][x] ? " tn" : "")
+              + ((v===1||v===2) && y<DH-1 && !S.d.g[y+1][x] ? " bn" : "");
     if (v===1 || v===2){ d.style.cursor = "pointer"; d.onclick = ()=>walkTo(x,y); }
     const rm = roomAt(x,y);
     if (rm){

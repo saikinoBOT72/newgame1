@@ -646,9 +646,9 @@ function stockShelves(){
       if (groups[bi] > 2) groups[bi]--; else groups.splice(bi, 1);
     }
     const inner = groups.reduce((a,c)=>a + c*PW + (c-1)*GAP, 0);
-    const sep = groups.length > 1
-      ? Math.max(MINSEP, (span - inner)/(groups.length-1)) : 0;
-    let x = sh.x0 + 2 + (span - inner - sep*(groups.length-1))/2 + PW/2;
+    const sep = groups.length > 1 ? MINSEP : 0;   // 束の間は常に最小。中央に寄せる
+    const total = inner + sep*(groups.length-1);
+    let x = sh.x0 + 2 + (span - total)/2 + PW/2;
     for (const g of groups){
       for (let k=0;k<g;k++){ S.prizes.push(newCard(x, sh.y)); x += PW + GAP; }
       x += sep - GAP;
@@ -1456,12 +1456,25 @@ function drawBoard(){
   }
   for (const [kx,ky] of KNOTS) R(kx,ky,1.2,1.2,"#0B0E1A");   // 節穴
 
-  /* ── 棚の上を照らす明かり。ベタの帯ではなくディザで散らす ── */
+  /* ── 明かり。ディザで面を薄く塗ると壊れたテクスチャに見えるので、
+        棚の背面にベタの「光だまり」を敷き、上端だけ階段状に切る ── */
   for (const sh of SHELVES){
-    // 端ほど狭く・粗く。四角い塊に見えないように段で絞る
-    const bands = [[24,5,8,26],[19,5,5,18],[14,5,3,10],[9,7,2,3]];
-    for (const [up,h,step,inset] of bands)
-      D(sh.x0+inset, sh.y-up, sh.x1-sh.x0-inset*2, h, "#232A44", step);
+    const L = sh.x0 - 2, W = sh.x1 - sh.x0 + 4;
+    for (let k=0;k<5;k++){                                   // 上端を 5 段の階段に
+      const inset = [10,6,3,1,0][k];
+      R(L+inset, sh.y-24+k*2, W-inset*2, 2, "#232A44");
+    }
+    R(L, sh.y-14, W, 14, "#232A44");
+    R(L, sh.y-14, W, 0.6, "#3A4467");                        // 光だまりの上端
+  }
+  /* ── 裸電球。光だまりの上に描く（光源が見えないと光に見えない） ── */
+  for (const sh of SHELVES){
+    const bx = sh.x0 + 26, by = sh.y - 32;
+    R(bx-0.3, by-10, 0.6, 10, "#0B0E1A");                    // コード
+    R(bx-2, by, 4, 2, "#8A6E22");                            // ソケット
+    R(bx-2.6, by+2, 5.2, 4, "#F7D97A");                      // 玉
+    R(bx-1.6, by+6, 3.2, 1, "#E0B23C");
+    R(bx+1.2, by+2.6, 1.2, 2.6, "#E0B23C");                  // 玉の影側
   }
 
   /* ── 立っている札の接地影 ── */
@@ -1490,8 +1503,8 @@ function drawBoard(){
   R(0,0,192,bandH,"#151A2E");
   {
     for (let x=0; x<192; x+=8){
-      R(x,0,4,5,"#8E3320"); R(x+4,0,4,5,"#E8E4D6");
-      R(x,5,1,1.2,"#8E3320");   R(x+3,5,1,1.2,"#8E3320");     // 裾を階段状に
+      R(x,0,4,5,"#E2622F"); R(x+4,0,4,5,"#E8E4D6");
+      R(x,5,1,1.2,"#E2622F");   R(x+3,5,1,1.2,"#E2622F");     // 裾を階段状に
       R(x+4,5,1,1.2,"#E8E4D6"); R(x+7,5,1,1.2,"#E8E4D6");
     }
     R(0,0,192,0.6,"#0B0E1A");

@@ -90,14 +90,14 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .hud{position:absolute;top:calc(var(--u)*6.4);left:0;right:0;display:flex;align-items:center;
   justify-content:space-between;padding:0 calc(var(--u)*2);z-index:6;pointer-events:none;
   gap:calc(var(--u)*2);height:calc(var(--u)*4.6)}
-.hud .l,.hud .r{display:flex;align-items:center;gap:.7em}
-.chip{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.1em;padding:.3em .7em;
+.hud .l,.hud .r{display:flex;align-items:center;gap:calc(var(--px)*3)}
+.chip{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;padding:var(--px) calc(var(--px)*3);
   background:#0B0E1A;border:var(--bw) solid var(--line);color:var(--mute);
   border-radius:0;white-space:nowrap}
 .chip.solid{background:var(--panel);color:var(--ivory)}
 .chip b{color:var(--ivory);font-weight:700}
 .chip .hp{color:#E2622F} .chip .bk{color:var(--sky)}
-.corks{display:flex;gap:.3em;align-items:center}
+.corks{display:flex;gap:calc(var(--px)*1);align-items:center}
 .ck{width:calc(var(--px)*3);height:calc(var(--px)*4);background:var(--c2);border:var(--bw) solid var(--c3)}
 .ck.on{background:var(--gold);border-color:#F7D97A}
 
@@ -108,7 +108,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   image-rendering:pixelated;pointer-events:none;z-index:4}
 #sign{position:absolute;left:50%;top:1.2%;transform:translateX(-50%);z-index:3;
   width:26%;height:11.5%;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:.1em;pointer-events:none}
+  justify-content:center;gap:calc(var(--px)*1);pointer-events:none}
 #foebar{position:absolute;left:50%;top:calc(var(--u)*11);transform:translateX(-50%);
   z-index:5;display:flex;gap:calc(var(--px)*6);align-items:flex-start}
 #foebar .fb{display:flex;flex-direction:column;align-items:center;gap:var(--px);
@@ -124,24 +124,24 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   font-variant-numeric:tabular-nums;line-height:1.1}
 #foebar .fba{font-family:var(--f-mono);font-size:var(--t1);color:#F5A55C;line-height:1.1}
 #foebar .fbd{font-family:var(--f-mono);font-size:var(--t1);color:var(--g1);line-height:1.1;
-  letter-spacing:.02em;min-height:1em}
-#sign b{font-family:var(--f-disp);font-size:var(--t4);letter-spacing:.42em;
-  color:var(--gold);text-indent:.42em;line-height:1}
-#sign i{font-family:var(--f-mono);font-style:normal;font-size:var(--t1);letter-spacing:.3em;
-  color:var(--gold-dim);text-indent:.3em}
+  letter-spacing:0;min-height:1em}
+#sign b{font-family:var(--f-disp);font-size:var(--t4);letter-spacing:1px;
+  color:var(--gold);text-indent:calc(var(--px)*2);line-height:1}
+#sign i{font-family:var(--f-mono);font-style:normal;font-size:var(--t1);letter-spacing:1px;
+  color:var(--gold-dim);text-indent:calc(var(--px)*1)}
 #prizes .card{position:absolute;transform-origin:50% 50%;
   transition:none;box-shadow:none}  /* 物理と 1 フレームもずらさない。影は回らないので出さない */
 #board{image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;touch-action:none}
 .shootfoot{position:absolute;left:0;bottom:0;display:flex;align-items:flex-end;
-  padding:.7em 1.4em 1em;z-index:6;gap:.7em}
-.tip{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);letter-spacing:.04em}
-.got{display:flex;gap:.4em;align-items:center}
-.gotcard{font-family:var(--f-body);font-size:var(--t1);padding:.25em .6em;
+  padding:calc(var(--px)*3) calc(var(--px)*6) calc(var(--px)*4);z-index:6;gap:calc(var(--px)*3)}
+.tip{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);letter-spacing:0}
+.got{display:flex;gap:calc(var(--px)*2);align-items:center}
+.gotcard{font-family:var(--f-body);font-size:var(--t1);padding:var(--px) calc(var(--px)*2);
   background:var(--c1);border:var(--bw) solid;font-weight:400}
-.gotcap{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);letter-spacing:.06em}
-.gotsum{font-family:var(--f-mono);font-size:var(--t1);padding:.25em .6em;
+.gotcap{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);letter-spacing:0}
+.gotsum{font-family:var(--f-mono);font-size:var(--t1);padding:var(--px) calc(var(--px)*2);
   background:var(--c1);border:var(--bw) solid var(--c6);color:var(--c7);font-weight:700}
-.gotdud{font-family:var(--f-mono);font-size:var(--t1);padding:.25em .6em;
+.gotdud{font-family:var(--f-mono);font-size:var(--t1);padding:var(--px) calc(var(--px)*2);
   background:var(--c1);border:var(--bw) solid var(--c9);color:var(--cb)}
 
 /* ═══ 画面0：ダンジョン ═══
@@ -182,7 +182,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   display:flex;align-items:center;justify-content:center}
 .hspr{width:100%;height:100%;image-rendering:pixelated}
 .dtip{position:absolute;left:0;right:0;bottom:6%;text-align:center;
-  font-family:var(--f-mono);font-size:var(--t2);color:var(--faint);letter-spacing:.08em}
+  font-family:var(--f-mono);font-size:var(--t2);color:var(--faint);letter-spacing:1px}
 .dex{position:absolute;right:calc(var(--u)*2);bottom:calc(var(--u)*2);z-index:6;
   font-size:var(--t1);padding:var(--px) calc(var(--px)*3)}
 /* 盤面の左右に、いま持っているプールの内訳を出す（両端の黒帯を埋める） */
@@ -191,7 +191,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .dside.left{left:calc(var(--u)*3)}
 .dside.right{right:calc(var(--u)*3);align-items:flex-end}
 .dside h3{font-family:var(--f-disp);font-size:var(--t2);color:var(--c7);
-  margin:0 0 var(--px);letter-spacing:.1em}
+  margin:0 0 var(--px);letter-spacing:1px}
 .dsrow{display:flex;align-items:center;gap:var(--px);width:100%;
   font-family:var(--f-mono);font-size:var(--t1);color:var(--c4)}
 .dsrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
@@ -202,14 +202,14 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 
 /* ═══ 図鑑 ═══ */
 #dexv{position:absolute;inset:0;background:#0B0E1A;z-index:30;
-  overflow:auto;padding:1.4em 1.6em 2em}
-#dexv h2{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold);margin:0 0 .2em;letter-spacing:.1em}
+  overflow:auto;padding:calc(var(--px)*6) calc(var(--px)*6) calc(var(--px)*8)}
+#dexv h2{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold);margin:0 0 calc(var(--px)*1);letter-spacing:1px}
 #dexv .sub{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);margin-bottom:1em}
-.dexrow{display:flex;flex-wrap:wrap;gap:.8em;margin-bottom:1.4em}
-.dexcell{display:flex;flex-direction:column;align-items:center;gap:.3em}
+.dexrow{display:flex;flex-wrap:wrap;gap:calc(var(--px)*3);margin-bottom:calc(var(--px)*6)}
+.dexcell{display:flex;flex-direction:column;align-items:center;gap:calc(var(--px)*1)}
 .dexcell .n{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute)}
-.dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:.5em .9em}
-.dexi{border:var(--bw) solid #3A4467;background:#151A2E;padding:.5em .7em}
+.dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:calc(var(--px)*2) calc(var(--px)*4)}
+.dexi{border:var(--bw) solid #3A4467;background:#151A2E;padding:calc(var(--px)*2) calc(var(--px)*3)}
 .dexi b{font-family:var(--f-disp);font-size:var(--t2);display:block}
 .dexi span{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute);line-height:1.5}
 #dexclose{position:sticky;top:0;float:right}
@@ -224,16 +224,20 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
     var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
 .rwrap{display:flex;flex-direction:column;align-items:center;
   gap:calc(var(--px)*4);padding:calc(var(--u)*4)}
-.rwrap h2{font-family:var(--f-disp);font-size:var(--t4);margin:0;color:var(--c7);letter-spacing:.1em}
+.rwrap h2{font-family:var(--f-disp);font-size:var(--t4);margin:0;color:var(--c7);letter-spacing:1px}
 .rwrap p{margin:0;color:var(--c4);font-size:var(--t2)}
 .picks3{display:flex;gap:calc(var(--u)*4);align-items:stretch}
 .pk{background:none;border:0;padding:0;display:flex;flex-direction:column;
-  align-items:center;gap:calc(var(--px)*2);text-align:center;width:calc(var(--u)*26);
+  align-items:center;gap:calc(var(--px)*2);text-align:center;width:calc(var(--u)*30);
   transition:transform .1s steps(2)}
-.pk .card{--u:calc(var(--px)*4);cursor:pointer;pointer-events:none;box-shadow:var(--sh);margin:0}
+/* 札を 2 倍で見せる。--u をここで上書きすると --px:calc(--u/2) と
+   循環参照になり、中の絵の箱だけ縮んで壊れる。整数倍の transform を使う */
+.pk .cwrap{width:calc(var(--u)*30);height:calc(var(--u)*42);position:relative}
+.pk .card{position:absolute;left:0;top:0;transform:scale(2);transform-origin:0 0;
+  cursor:pointer;pointer-events:none;box-shadow:var(--sh);margin:0}
 .pk:hover{transform:translateY(calc(var(--px)*-3))}
 .pk:hover .card{border-color:var(--c7)}
-.pk .pkh{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.16em;color:var(--c4)}
+.pk .pkh{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;color:var(--c4)}
 .pk .pkn{font-family:var(--f-disp);font-size:var(--t3);color:var(--c5)}
 .pk .pkd{font-size:var(--t2);color:var(--c4);line-height:1.4;margin-top:auto}
 
@@ -280,7 +284,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .intent{font-family:var(--f-mono);font-size:var(--t2);font-weight:700;
   padding:0 var(--px);background:var(--c1);border:var(--bw) solid var(--c9);
   color:var(--cb);display:flex;align-items:center;gap:var(--px)}
-.fname{font-family:var(--f-disp);font-size:var(--t2);color:var(--c4);letter-spacing:.05em}
+.fname{font-family:var(--f-disp);font-size:var(--t2);color:var(--c4);letter-spacing:0}
 .foe[aria-pressed="true"] .fname{color:var(--c5)}
 /* 1 ドットの大きさは 2 種類だけ。UI の中は --px、世界の中は --px*2 */
 .glyph{width:calc(var(--px)*32);height:calc(var(--px)*32);color:var(--mute);
@@ -303,12 +307,12 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   pointer-events:none;text-shadow:var(--px) var(--px) 0 var(--c0);animation:pop 1s steps(10) forwards}
 .float.dmg{color:#E2622F}
 .float.kill{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold)}
-@keyframes pop{0%{opacity:0;transform:translate(-50%,.6em)}
-  20%{opacity:1;transform:translate(-50%,-.2em)}
-  100%{opacity:0;transform:translate(-50%,-2.2em)}}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,calc(var(--px)*2))}
+  20%{opacity:1;transform:translate(-50%,calc(var(--px)*-1))}
+  100%{opacity:0;transform:translate(-50%,calc(var(--px)*-9))}}
 .hpflash{animation:hpf .4s steps(4)}
 @keyframes hpf{0%{color:var(--c5);background:var(--c9)}100%{}}
-.fdelta{position:absolute;top:.3em;right:.4em;font-family:var(--f-mono);font-size:var(--t4);
+.fdelta{position:absolute;top:calc(var(--px)*1);right:calc(var(--px)*2);font-family:var(--f-mono);font-size:var(--t4);
   font-weight:700;color:var(--gold);text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
 
 /* 手前の帯：杖（＝手札の扇） */
@@ -341,7 +345,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   box-shadow:var(--sh);
   font-size:var(--t2)}
 .cname{color:var(--c5)}   /* どの画面でも札の中の文字比率を同じにする */
-.card:hover{transform:translateY(-1.5em) scale(1.05) rotate(0deg)!important;z-index:9;
+.card:hover{transform:translateY(calc(var(--px)*-4)) rotate(0deg)!important;z-index:9;
   border-color:var(--gold);box-shadow:var(--sh)}
 .card.t-projectile{border-color:var(--e2);background:var(--e3)}
 /* 色を絞ったぶん、種別は枠の本数で分ける。修飾は二重線 */
@@ -349,12 +353,13 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c6)}
 .card.t-utility{border-color:var(--cc);background:var(--c1);
   box-shadow:var(--sh), inset 0 calc(var(--px)*2) 0 var(--cc)}
-.cidx{position:absolute;top:-.55em;left:-.55em;width:2em;height:2em;border-radius:0;
+.cidx{position:absolute;top:calc(var(--px)*-2);left:calc(var(--px)*-2);width:2em;height:2em;border-radius:0;
   background:#151A2E;border:var(--bw) solid #3A4467;display:flex;align-items:center;
   justify-content:center;font-family:var(--f-mono);font-size:var(--t2);font-weight:700;color:var(--ivory)}
 .card.t-projectile .cidx{border-color:#8E3320;color:#F5A55C}
 .card.t-modifier .cidx{border-color:var(--gold-dim);color:var(--gold)}
 .cname{font-family:var(--f-disp);font-size:var(--t2);letter-spacing:0;line-height:1.05;
+  overflow:hidden;
   text-align:center;word-break:break-all}
 .cart{width:100%;height:calc(var(--px)*13);flex:0 0 auto;border:var(--bw) solid var(--c2);
   background:#151A2E;display:flex;align-items:center;justify-content:center;position:relative}
@@ -368,41 +373,41 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .card.mini .cart::after{content:none}
 .card.mini .cicon{width:calc(var(--px)*16);height:calc(var(--px)*16)}
 .cicon{width:var(--sp8);height:var(--sp8);margin:0;shape-rendering:crispEdges}
-.uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:-.15em}
-.ctext{font-size:var(--t1);line-height:1.15;color:var(--mute);margin-top:auto;
+.uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:calc(var(--px)*-1)}
+.ctext{font-size:var(--t1);line-height:1.15;color:var(--mute);margin-top:auto;overflow:hidden;
   padding:0 var(--px);text-align:center;word-break:break-word}
-.ckind{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.1em;color:var(--faint);margin-top:.1em}
-.cswap{position:absolute;top:-.5em;right:-.5em;width:1.8em;height:1.8em;border-radius:0;
+.ckind{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;color:var(--faint);margin-top:calc(var(--px)*1)}
+.cswap{position:absolute;top:calc(var(--px)*-2);right:calc(var(--px)*-2);width:calc(var(--px)*7);height:calc(var(--px)*7);border-radius:0;
   background:#151A2E;border:var(--bw) solid var(--line2);font-family:var(--f-mono);font-size:var(--t1);
   display:flex;align-items:center;justify-content:center;color:var(--mute);z-index:4}
 .cswap:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
 .cswap:disabled{display:none}
-.cbind{width:100%;text-align:center;margin-top:.15em;padding-top:.15em;
+.cbind{width:100%;text-align:center;margin-top:calc(var(--px)*1);padding-top:calc(var(--px)*1);
   border-top:var(--px) solid var(--c6);
-  font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.04em;color:var(--gold-dim);
+  font-family:var(--f-mono);font-size:var(--t1);letter-spacing:0;color:var(--gold-dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card.t-modifier .cbind{color:var(--gold)}
 
-.fightfoot{position:absolute;right:1.6em;bottom:1.4em;display:flex;flex-direction:column;
-  gap:.5em;align-items:flex-end;z-index:5}
-.btn{font-family:var(--f-body);font-weight:700;font-size:var(--t2);letter-spacing:.1em;
-  padding:.6em 1.5em;border-radius:0;border:var(--bw) solid #3A4467;background:#232A44;
+.fightfoot{position:absolute;right:calc(var(--px)*6);bottom:calc(var(--px)*6);display:flex;flex-direction:column;
+  gap:calc(var(--px)*2);align-items:flex-end;z-index:5}
+.btn{font-family:var(--f-body);font-weight:700;font-size:var(--t2);letter-spacing:1px;
+  padding:calc(var(--px)*2) calc(var(--px)*6);border-radius:0;border:var(--bw) solid #3A4467;background:#232A44;
   color:var(--ivory);transition:filter .12s,border-color .12s}
 .btn:hover:not(:disabled){background:var(--c3);border-color:var(--c7)}
 .btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
 .btn.go{background:#F5A55C;border-color:#F5A55C;color:#151A2E;box-shadow:var(--sh)}
 .btn small{display:block;font-family:var(--f-mono);font-size:var(--t1);font-weight:400;
-  letter-spacing:.1em;opacity:.7;margin-top:.15em}
-.bindrow{position:absolute;left:50%;bottom:12.4em;transform:translateX(-50%);display:flex;
-  gap:.55em;z-index:4;pointer-events:none}
-.bind{width:8.4em;height:1.3em;position:relative}
+  letter-spacing:1px;opacity:.7;margin-top:calc(var(--px)*1)}
+.bindrow{position:absolute;left:50%;bottom:calc(var(--px)*50);transform:translateX(-50%);display:flex;
+  gap:calc(var(--px)*2);z-index:4;pointer-events:none}
+.bind{width:calc(var(--px)*34);height:calc(var(--px)*5);position:relative}
 .bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:var(--t1);color:var(--gold-dim);
   display:flex;align-items:center;justify-content:center;border-top:var(--px) solid var(--c6);
-  padding-top:.2em;white-space:nowrap;overflow:hidden}
+  padding-top:calc(var(--px)*1);white-space:nowrap;overflow:hidden}
 .bind.start span{border-left:var(--px) solid var(--c6)}
 .bind.end span{border-right:var(--px) solid var(--c6)}
 .bind.none span{border:0;color:transparent}
-.log{position:absolute;left:1.6em;bottom:1.4em;font-family:var(--f-mono);font-size:var(--t1);
+.log{position:absolute;left:calc(var(--px)*6);bottom:calc(var(--px)*6);font-family:var(--f-mono);font-size:var(--t1);
   line-height:1.6;color:var(--faint);z-index:5;pointer-events:none}
 .log div{white-space:pre}
 .l-mod{color:var(--gold-dim)} .l-fire{color:var(--mute)}
@@ -413,23 +418,23 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   justify-content:center;padding:2em;z-index:20}
 .veil .box{max-width:36em;background:var(--panel);border:var(--bw) solid var(--gold-dim);
   border-top:calc(var(--px)*2) solid var(--c7);padding:calc(var(--u)*3) calc(var(--u)*4)}
-.veil h2{font-family:var(--f-disp);font-size:var(--t4);margin:0 0 .15em;letter-spacing:.06em}
-.veil .sub{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.18em;text-transform:uppercase;
+.veil h2{font-family:var(--f-disp);font-size:var(--t4);margin:0 0 calc(var(--px)*1);letter-spacing:0}
+.veil .sub{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;text-transform:uppercase;
   color:var(--gold-dim);margin-bottom:1em}
-.veil p{margin:0 0 .7em;color:var(--mute);font-size:var(--t2);line-height:1.65}
-.veil ul{margin:0 0 1em;padding-left:1.2em;color:var(--mute);font-size:var(--t2);line-height:1.65}
-.picks{display:flex;gap:.7em;margin-top:.4em}
-.pick{flex:1;padding:.8em .7em;border:var(--bw) solid #3A4467;border-radius:0;
+.veil p{margin:0 0 calc(var(--px)*3);color:var(--mute);font-size:var(--t2);line-height:1.65}
+.veil ul{margin:0 0 calc(var(--px)*4);padding-left:calc(var(--px)*5);color:var(--mute);font-size:var(--t2);line-height:1.65}
+.picks{display:flex;gap:calc(var(--px)*3);margin-top:calc(var(--px)*2)}
+.pick{flex:1;padding:calc(var(--px)*3) calc(var(--px)*3);border:var(--bw) solid #3A4467;border-radius:0;
   background:#232A44;text-align:left;transition:border-color .12s,background .12s}
 .pick:hover{border-color:var(--gold);background:#151A2E}
-.pick b{display:block;font-family:var(--f-disp);font-size:var(--t2);margin-bottom:.25em}
+.pick b{display:block;font-family:var(--f-disp);font-size:var(--t2);margin-bottom:calc(var(--px)*1)}
 .pick span{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute);line-height:1.4;display:block}
 .hidden{display:none!important}
 
 .notes{width:100%;max-width:1280px;display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 26px;
   font-size:var(--t2);line-height:1.6;color:var(--mute);border-top:var(--px) solid var(--c2);padding-top:12px}
-.notes h3{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.18em;text-transform:uppercase;
+.notes h3{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;text-transform:uppercase;
   color:var(--c6);margin:0 0 4px}
 .notes ul{margin:0;padding-left:15px} .notes li{margin-bottom:4px}
 .notes code{font-family:var(--f-mono);font-size:var(--t1);color:#9AA2BC}
@@ -575,11 +580,11 @@ const CARDS = {
   bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6 ダメージ・貫通1"},
   split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製 3"},
   pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通 +2"},
-  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力 1.5倍・波及 +1"},
-  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"当てた敵の被弾 1.5倍"},
-  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"当てた敵の攻撃 −2"},
-  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"当てた敵に毒 4"},
-  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御 9（即時）"}
+  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力 1.5 倍・波及 +1"},
+  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"被弾 1.5 倍"},
+  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃 −2"},
+  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒 4"},
+  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御 +9"}
 };
 for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 
@@ -615,14 +620,14 @@ const PH = 16, PW = PH*CARD_AR, DT = 1/120;     // 5:7（戦闘の札と完全�
 /* 鉄砲の性能。ここが将来の強化軸そのもの。 */
 const BASE_GUN = {power:1.0, spread:4, pellets:1, blast:0};
 const UPGRADES = [
-  {id:"aim",   name:"銃身の削り出し", note:"散りが半分になる（狙った高さに当たる）",
+  {id:"aim",   name:"削り出し銃身", note:"散りが半分",
    apply:g=>{ g.spread *= 0.5; }},
-  {id:"shot",  name:"散弾に詰め替え",
-   note:"弾 3 発。束をまとめて崩せるが、散りが 1.6 倍になり当たり所を選べない",
+  {id:"shot",  name:"散弾",
+   note:"弾 3 発・散り 1.6 倍",
    apply:g=>{ g.pellets = 3; g.spread *= 1.6; g.power *= 0.75; }},
-  {id:"power", name:"火薬増し",       note:"威力 1.6 倍。中心寄りに当たっても倒れる",
+  {id:"power", name:"火薬増し",       note:"威力 1.6 倍",
    apply:g=>{ g.power *= 1.6; }},
-  {id:"bazooka",name:"筒を太く",      note:"着弾点の周囲 14 の札も一緒に押す。散りは変わらない",
+  {id:"bazooka",name:"筒を太く",      note:"周囲 14 も押す",
    apply:g=>{ g.blast = 14; }}
 ];
 
@@ -1198,25 +1203,25 @@ function enterRoom(rm){
 /* ═══════ 報酬 ═══════ */
 /** 何度でも取れる根本強化。CORE を取り尽くした後の受け皿。 */
 const REPEATABLE = [
-  {id:"hp+",  name:"鍛えた体", note:"最大体力 +15 して全回復",
+  {id:"hp+",  name:"鍛えた体", note:"最大体力 +15",
    apply:()=>{ S.maxHp += 15; S.hp = S.maxHp; }},
   {id:"pow+", name:"良い火薬", note:"威力 1.25 倍",
    apply:()=>{ S.gun.power *= 1.25; }},
-  {id:"swap+",name:"器用な指", note:"詠唱前の入れ替え +1",
+  {id:"swap+",name:"器用な指", note:"入れ替え +1",
    apply:()=>{ S.swapMax++; }},
-  {id:"aim+", name:"照星の調整", note:"散りが 1 縮む",
+  {id:"aim+", name:"照星の調整", note:"散り −1",
    apply:()=>{ S.gun.spread = Math.max(1, S.gun.spread - 1); }},
-  {id:"cap+", name:"継ぎ足した杖", note:"杖の容量 +1",
+  {id:"cap+", name:"継ぎ足した杖", note:"容量 +1",
    apply:()=>{ S.cap++; }},
-  {id:"dmg+", name:"研いだ触媒", note:"発射体すべての威力 +2",
+  {id:"dmg+", name:"研いだ触媒", note:"発射体 威力 +2",
    apply:()=>{ S.dmgUp = (S.dmgUp||0) + 2; }}
 ];
 const CORE = [
-  {id:"cork", name:"弾薬箱", note:"コルクが 1 発増える", apply:()=>{ S.corkMax++; }},
+  {id:"cork", name:"弾薬箱", note:"コルク +1", apply:()=>{ S.corkMax++; }},
   {id:"cap",  name:"長い杖", note:"杖の容量 +1", apply:()=>{ S.cap++; }},
-  {id:"swap", name:"手直し", note:"詠唱前に隣り合う 2 枚を入れ替えられる回数 +1",
+  {id:"swap", name:"手直し", note:"入れ替え +1",
    apply:()=>{ S.swapMax++; }},
-  {id:"tough",name:"厚い外套", note:"最大体力 +25 して全回復", apply:()=>{ S.maxHp += 25; S.hp = S.maxHp; }}
+  {id:"tough",name:"厚い外套", note:"最大体力 +25", apply:()=>{ S.maxHp += 25; S.hp = S.maxHp; }}
 ];
 function rewardPool(kind){
   if (kind === "boss"){
@@ -1932,7 +1937,8 @@ function renderReward(){
       ? fakeCard("根本強化", o.name, o.note, "core")
       : o.kind === "card" ? cardHTML(CARDS[o.id], {})
       : fakeCard("鉄砲の強化", o.u.name, o.u.note, "gun");
-    b.innerHTML = `<span class="pkh">${boss?"根本強化":o.kind==="card"?"札を仕入れる":"鉄砲の強化"}</span>` + face;
+    b.innerHTML = `<span class="pkh">${boss?"根本強化":o.kind==="card"?"札を仕入れる":"鉄砲の強化"}</span>`
+      + `<span class="cwrap">${face}</span>`;
     b.onclick = ()=>takeReward(k);
     host.appendChild(b);
   });
@@ -1997,15 +2003,15 @@ function render(){
     if (!c){                                   // 空きスロット。容量が見える
       const e = document.createElement("div");
       e.className = "slot";
-      e.style.marginLeft = i ? ".55em" : "0";
+      e.style.marginLeft = i ? "calc(var(--px)*2)" : "0";
       hand.appendChild(e);
       continue;
     }
     const w = document.createElement("div");
     w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i], swap:i+1 < S.wand.length});
     const d = w.firstChild;
-    d.style.marginLeft = i ? ".55em" : "0";
-    d.style.transform = `rotate(${(i-mid)*3.4}deg) translateY(${Math.abs(i-mid)*0.5}em)`;
+    d.style.marginLeft = i ? "calc(var(--px)*2)" : "0";
+    d.style.transform = `rotate(${(i-mid)*3}deg) translateY(calc(var(--px) * ${Math.abs(i-mid)*2}))`;
     const sw = d.querySelector(".cswap");
     if (sw){ sw.disabled = S.swaps<=0; sw.onclick = e=>{ e.stopPropagation(); swapAt(i); }; }
     hand.appendChild(d);

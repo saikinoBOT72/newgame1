@@ -17,13 +17,15 @@
 | ファイル | 役割 |
 |---|---|
 | `prototype/index.html` | ゲーム本体。単一ファイル。HTML 断片（doctype / html / head / body を持たない） |
-| `docs/_head.html` | スタンドアロン版の head |
-| `docs/index.html` | `build.sh` が生成する GitHub Pages 用の完全な HTML 文書。直接編集しない |
-| `build.sh` | `docs/index.html` を生成する |
+| `prototype/head.html` | スタンドアロン版の head |
+| `index.html` | `build.sh` が生成する GitHub Pages 用の完全な HTML 文書。直接編集しない |
+| `build.sh` | 直下の `index.html` を生成する |
 | `DESIGN.md` | 設計記録。判断とその理由、実測値 |
 
 本体を編集したら `./build.sh` を実行してから commit する。
 
-## Pages の設定（初回のみ）
+## Pages
 
-Settings → Pages → Source を **Deploy from a branch**、Branch を **main / docs** にして Save。
+Settings → Pages の Source は **Deploy from a branch / main / (root)**。
+直下に `index.html` があるので、README ではなくゲームが開く。
+`.nojekyll` を置いて Jekyll の変換を止めている。

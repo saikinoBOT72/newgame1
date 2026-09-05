@@ -256,6 +256,12 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .cart img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
 .cart::after{content:"仮";position:absolute;right:2px;bottom:0;font-family:var(--f-disp);
   font-size:.5em;color:rgba(255,255,255,.22)}
+/* 棚の札：名前と絵だけ。枠と色は手札と共通 */
+.card.mini{padding:calc(var(--u)*1.2) calc(var(--u)*0.8) calc(var(--u)*1);gap:calc(var(--u)*0.6)}
+.card.mini .cname{font-size:1.05em}
+.card.mini .cart{flex:1 1 auto;height:auto;border:0;background:transparent}
+.card.mini .cart::after{content:none}
+.card.mini .cicon{width:78%;height:auto}
 .cicon{width:calc(var(--u)*4.5);height:calc(var(--u)*4.5);margin:0;shape-rendering:crispEdges}
 .ctext{font-size:.62em;line-height:1.15;color:var(--mute);margin-top:auto;
   padding:0 1px;text-align:center;word-break:break-word}
@@ -490,6 +496,10 @@ const SHELVES = [
   {y:88, x0:20, x1:158}
 ];
 const GUN = {x:166, y:104};
+// 板壁の継ぎ目。等間隔だと placeholder の縞模様に見えるので、幅を散らして固定する
+const WALLSEAM = (()=>{ const a=[]; let x=8;
+  for (const w of [11,14,9,13,10,15,11,9,14,12,10,13,11,15,9,12,14,10,13,11])
+    { a.push(x); x += w; if (x > 190) break; } return a; })();
 const PH = 16, PW = PH*CARD_AR, DT = 1/120;     // 5:7（戦闘の札と完全に同じ比率）
 
 /* 鉄砲の性能。ここが将来の強化軸そのもの。 */
@@ -646,6 +656,15 @@ function spriteSVG(sp, cls){
 /* ═══════ カード部品（射的も戦闘も同じものを使う） ═══════ */
 function cardHTML(c, opt){
   opt = opt || {};
+  // 棚の札は 68x96px しかなく、説明文は物理的に読めない。読めない字を出すと
+  // 情報にならず、密度だけが上がって安っぽく見える。枠・色・絵柄は同じまま、
+  // 名前と絵だけに減らす（＝同じ札だと分かる範囲で、遠くの物として描く）
+  if (opt.mini)
+    return `<div class="card mini t-${c.type}">`+
+      `<span class="cname">${esc(c.name)}</span>`+
+      `<span class="cart">${c.art ? `<img src="${c.art}" alt="">`
+          : spriteSVG(ICONS[c.id], "cicon")}</span>`+
+    `</div>`;
   return `<div class="card t-${c.type}">`+
     (opt.idx ? `<span class="cidx">${opt.idx}</span>` : ``)+
     `<span class="cname">${esc(c.name)}</span>`+
@@ -1321,21 +1340,43 @@ function drawBoard(){
 
   // 地
   ctx.fillStyle = "#12162E"; ctx.fillRect(0,0,cv.width,cv.height);
-  // 奥の板壁
+  // 奥の板壁。板の継ぎ目は幅を変えて、等間隔の縞に見えないようにする
   ctx.fillStyle = "#171B33"; ctx.fillRect(X(6), Y(13), X(188), Y(93));
   ctx.fillStyle = "#101430";
-  for (let x=6; x<194; x+=11) ctx.fillRect(X(x), Y(13), PX, Y(93));
+  for (const x of WALLSEAM) ctx.fillRect(X(x), Y(13), PX, Y(93));
   ctx.fillStyle = "#232941"; ctx.fillRect(X(2), Y(11), X(6), Y(97));
   ctx.fillRect(X(192), Y(11), X(6), Y(97));
 
-  // 倒れた札は棚より奥
+  // 棚の上を照らす明かり。光源を 1 つ決めておかないと、
+  // 何を置いても平らな板の上に貼っただけに見える
+  for (const sh of SHELVES){
+    for (let k=0;k<4;k++){
+      ctx.fillStyle = ["#1E2440","#1A2039","#171C33","#151A2E"][k];
+      ctx.fillRect(X(sh.x0-2), Y(sh.y - 22 + k*5), X(sh.x1-sh.x0+4), Y(5));
+    }
+  }
 
-  // 棚（板と金の縁）
+  // 立っている札の影。棚板の上、札の足元に落とす（光は上から）
+  if (S.prizes) for (const q of S.prizes){
+    if (q.state !== "live" || q.st === "fall") continue;
+    const w = PW * Math.max(0.35, Math.cos(q.a||0)) + 2;
+    ctx.fillStyle = "#0B0E1E";
+    ctx.fillRect(X(q.b.x - w/2), Y(q.sy - 1), X(w), Y(2));
+  }
+
+  // 棚（板・金の縁・手前の落ち・支え）
   for (const sh of SHELVES){
     const L = X(sh.x0-4), R = X(sh.x1+4), T = Y(sh.y);
-    ctx.fillStyle = "#2C3455"; ctx.fillRect(L, T, R-L, Y(3.4));
-    ctx.fillStyle = "#8A6E22"; ctx.fillRect(L, T, R-L, PX);
-    ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(3.4), R-L, PX);
+    ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(3.4), R-L, Y(2.6));   // 手前の落ち
+    ctx.fillStyle = "#2C3455"; ctx.fillRect(L, T, R-L, Y(3.4));          // 天板
+    ctx.fillStyle = "#8A6E22"; ctx.fillRect(L, T, R-L, PX);              // 金の縁
+    ctx.fillStyle = "#3A4368"; ctx.fillRect(L, T+PX, R-L, PX);           // 天板の照り
+    ctx.fillStyle = "#1B2138";                                            // 支え
+    for (const bx of [sh.x0+2, (sh.x0+sh.x1)/2, sh.x1-2]){
+      ctx.fillRect(X(bx-1.5), T+Y(6), X(3), Y(4));
+      ctx.fillStyle = "#141930"; ctx.fillRect(X(bx-1.5), T+Y(6), PX, Y(4));
+      ctx.fillStyle = "#1B2138";
+    }
   }
 
 
@@ -1357,6 +1398,13 @@ function drawBoard(){
     ctx.fillStyle = i < S.corks ? "#E0B23C" : "#3A4160";
     ctx.fillRect(X(138+i*6), Y(108), PX*3, PX*3);
   }
+  // ふちを落とす。4 段のドットで、にじませずに中央へ目を寄せる
+  for (let k=0;k<4;k++){
+    ctx.fillStyle = ["rgba(6,8,18,.10)","rgba(6,8,18,.14)","rgba(6,8,18,.20)","rgba(6,8,18,.30)"][k];
+    const m = Y(3 - k*0.7);
+    ctx.fillRect(0, 0, m, cv.height); ctx.fillRect(cv.width-m, 0, m, cv.height);
+  }
+
   // 鉄砲
   const ga = Math.atan2(GUN.y - ret.y, GUN.x - ret.x);
   ctx.save();
@@ -1433,6 +1481,9 @@ const prizeHost = document.getElementById("prizes");
 let prizeEls = new Map();
 function syncPrizes(){
   if (!S) return;
+  // 棚を積み直すと S.prizes ごと入れ替わる。前の札の DOM が残ると重なって見える
+  for (const [q, el] of prizeEls)
+    if (!S.prizes.includes(q)){ el.remove(); prizeEls.delete(q); }
   for (const p of S.prizes){
     let el = prizeEls.get(p);
     if (p.state !== "live"){
@@ -1441,7 +1492,7 @@ function syncPrizes(){
     }
     if (!el){
       const w = document.createElement("div");
-      w.innerHTML = cardHTML(p.card, {});
+      w.innerHTML = cardHTML(p.card, {mini:true});
       el = w.firstChild;
       prizeHost.appendChild(el);
       prizeEls.set(p, el);

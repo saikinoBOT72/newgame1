@@ -183,7 +183,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 /* 床の汚れ。4 種を座標で振り分けて、反復を隠す */
 .dc.floor::after,.dc.room::after{content:"";position:absolute;inset:0;
   background-repeat:no-repeat}
-.dc.v0::after{background-image:radial-gradient(var(--c1) 40%,transparent 41%);
+.dc.v0::after{background-image:linear-gradient(var(--c1) 0 0);
   background-size:var(--px) var(--px);background-position:30% 60%}
 .dc.v1::after{background-image:linear-gradient(var(--c1) 0 0),linear-gradient(var(--c1) 0 0);
   background-size:var(--px) var(--px);background-position:65% 30%, 25% 75%}
@@ -231,22 +231,27 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #dexclose{position:sticky;top:0;float:right}
 
 /* ═══ 画面3：報酬 ═══ */
-#reward{background:var(--n2);align-items:center;justify-content:center;
+/* ═══ 画面3：報酬 ═══
+   3 択で画面の 74% が空白だった。札を 2 倍まで拡大し、
+   選んでいるものだけを持ち上げる（Hades の恩恵選択の作り） */
+#reward{background:var(--c1);align-items:center;justify-content:center;
   background-image:repeating-linear-gradient(90deg,
-    #151A2E 0 var(--u), transparent var(--u) calc(var(--u)*11))}
-.rwrap{display:flex;flex-direction:column;align-items:center;gap:.9em;padding:2em}
-.rwrap h2{font-family:var(--f-disp);font-size:var(--t4);margin:0;color:var(--gold);letter-spacing:.1em}
-.rwrap p{margin:0;color:var(--mute);font-size:var(--t2)}
-.picks3{display:flex;gap:1.2em;align-items:stretch}
+    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
+    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
+.rwrap{display:flex;flex-direction:column;align-items:center;
+  gap:calc(var(--px)*4);padding:calc(var(--u)*4)}
+.rwrap h2{font-family:var(--f-disp);font-size:var(--t4);margin:0;color:var(--c7);letter-spacing:.1em}
+.rwrap p{margin:0;color:var(--c4);font-size:var(--t2)}
+.picks3{display:flex;gap:calc(var(--u)*4);align-items:stretch}
 .pk{background:none;border:0;padding:0;display:flex;flex-direction:column;
-  align-items:center;gap:calc(var(--u)*0.7);text-align:center}
-.pk:hover{border-color:var(--gold);background:#151A2E}
-.pk .card{cursor:pointer}
-.pk:hover .card{border-color:var(--g1);box-shadow:calc(var(--px)*2) calc(var(--px)*2) 0 var(--c0)}
-.pk .pkh{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.16em;color:var(--faint)}
-.pk .pkn{font-family:var(--f-disp);font-size:var(--t2);color:var(--ivory)}
-.pk .pkd{font-size:var(--t1);color:var(--mute);line-height:1.4;margin-top:auto}
-.pk .card{pointer-events:none;box-shadow:none;margin:0}
+  align-items:center;gap:calc(var(--px)*2);text-align:center;width:calc(var(--u)*26);
+  transition:transform .1s steps(2)}
+.pk .card{--u:calc(var(--px)*4);cursor:pointer;pointer-events:none;box-shadow:var(--sh);margin:0}
+.pk:hover{transform:translateY(calc(var(--px)*-3))}
+.pk:hover .card{border-color:var(--c7)}
+.pk .pkh{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.16em;color:var(--c4)}
+.pk .pkn{font-family:var(--f-disp);font-size:var(--t3);color:var(--c5)}
+.pk .pkd{font-size:var(--t2);color:var(--c4);line-height:1.4;margin-top:auto}
 
 /* ═══ 画面2：戦闘 ═══
    敵は「箱」ではなく「舞台に立っているもの」として置く。
@@ -255,19 +260,19 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #fight{background:var(--c1)}
 /* 奥の壁。板の幅を 2 種類にして、等間隔の縞に見えないようにする */
 #fight::before{content:"";position:absolute;left:0;right:0;top:0;
-  height:calc(var(--u)*66);z-index:0;
+  height:calc(var(--u)*70);z-index:0;
   background:repeating-linear-gradient(90deg,
     var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
     var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
 /* 床。1 本の線ではなく 3 段の帯にして、奥行きと接地を出す */
-#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*66);
+#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*70);
   height:calc(var(--u)*8);z-index:1;
   background:linear-gradient(var(--c6) 0 var(--px),
     var(--c3) var(--px) calc(var(--px)*4),
     var(--c2) calc(var(--px)*4) calc(var(--px)*10),
     var(--c1) calc(var(--px)*10) 100%)}
 .arena{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;
-  gap:calc(var(--u)*14);padding:calc(var(--u)*13) 2em 0;height:calc(var(--u)*68);z-index:2}
+  gap:calc(var(--u)*14);padding:calc(var(--u)*16) 2em 0;height:calc(var(--u)*72);z-index:2}
 .foe{position:relative;display:flex;flex-direction:column;align-items:center;
   gap:var(--px);background:none;border:0;padding:0 calc(var(--u)*2) calc(var(--u)*2);
   transition:transform .1s steps(2);text-align:center}
@@ -278,6 +283,13 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   background:var(--c0)}
 .foe[aria-pressed="true"]::after{background:var(--c7);height:calc(var(--px)*3)}
 .foe.dead::after{display:none}
+/* 待機モーション。1 ドットの 2 コマだけ。止まっているものは死んで見える */
+.foe .glyph{animation:bob 1.1s steps(2) infinite}
+.foe:nth-child(2) .glyph{animation-delay:.26s}
+.foe:nth-child(3) .glyph{animation-delay:.55s}
+.foe.dead .glyph{animation:none}
+@keyframes bob{0%,50%{transform:translateY(0)}
+  50.01%,100%{transform:translateY(calc(var(--px)*-1))}}
 .foe.hurt{animation:hurt .2s steps(2)}
 @keyframes hurt{0%{transform:translateX(calc(var(--px)*-2))}
   50%{transform:translateX(calc(var(--px)*2))}100%{}}
@@ -286,7 +298,8 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   color:var(--cb);display:flex;align-items:center;gap:var(--px)}
 .fname{font-family:var(--f-disp);font-size:var(--t2);color:var(--c4);letter-spacing:.05em}
 .foe[aria-pressed="true"] .fname{color:var(--c5)}
-.glyph{width:calc(var(--px)*48);height:calc(var(--px)*48);color:var(--mute);
+/* 1 ドットの大きさは 2 種類だけ。UI の中は --px、世界の中は --px*2 */
+.glyph{width:calc(var(--px)*32);height:calc(var(--px)*32);color:var(--mute);
   shape-rendering:crispEdges;margin-top:var(--px)}
 .foe[aria-pressed="true"] .glyph{color:var(--gold)}
 /* 選択マーカーは頭上の 1 ドット三角。文字を置かない */
@@ -310,20 +323,30 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   20%{opacity:1;transform:translate(-50%,-.2em)}
   100%{opacity:0;transform:translate(-50%,-2.2em)}}
 .hpflash{animation:hpf .4s steps(4)}
-@keyframes hpf{0%{color:#fff;background:#8E3320}100%{}}
+@keyframes hpf{0%{color:var(--c5);background:var(--c9)}100%{}}
 .fdelta{position:absolute;top:.3em;right:.4em;font-family:var(--f-mono);font-size:var(--t4);
   font-weight:700;color:var(--gold);text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
 
 /* 手前の帯：杖（＝手札の扇） */
 .hand{flex:1 1 auto;position:relative;z-index:3}
-.handrow{position:absolute;left:50%;bottom:calc(var(--u)*7);transform:translateX(-50%);
-  display:flex;align-items:flex-end}
+/* 射的屋と同じ木のカウンター。同じ舞台なのに床から下の作りが違っていた */
+.hand::before{content:"";position:absolute;left:0;right:0;bottom:0;
+  height:calc(var(--u)*10);z-index:0;
+  background:linear-gradient(var(--c7) 0 var(--px),
+    var(--c6) var(--px) calc(var(--px)*4), var(--c0) calc(var(--px)*4) calc(var(--px)*5),
+    var(--c1) calc(var(--px)*5) 100%)}
+.handrow{position:absolute;left:50%;bottom:calc(var(--u)*10);transform:translateX(-50%);
+  display:flex;align-items:flex-end;z-index:1}
+/* 札の接地影。カウンターに置いてあるように見せる */
+.handrow .card::after{content:"";position:absolute;left:calc(var(--px)*-1);
+  right:calc(var(--px)*-1);bottom:calc(var(--px)*-3);height:calc(var(--px)*2);
+  background:var(--c0);z-index:-1}
 /* 空きスロット。容量が見えるので、下半分が「埋め忘れの余白」に見えない */
 .slot{width:calc(var(--u)*15);height:calc(var(--u)*21);position:relative;flex:0 0 auto;
-  background:var(--c1)}
+  background:var(--c0)}
 /* 破線はアンチエイリアスされるので、四隅の鉤括弧をドットで打つ */
 .slot::before,.slot::after{content:"";position:absolute;width:calc(var(--px)*5);
-  height:calc(var(--px)*5);border:var(--bw) solid var(--c2)}
+  height:calc(var(--px)*5);border:var(--bw) solid var(--c3)}
 .slot::before{left:0;top:0;border-right:0;border-bottom:0}
 .slot::after{right:0;bottom:0;border-left:0;border-top:0}
 .card{position:relative;width:calc(var(--u)*15);height:calc(var(--u)*21);border-radius:0;
@@ -332,12 +355,16 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   padding:calc(var(--u)*2) calc(var(--u)*0.7) calc(var(--u)*0.5);gap:var(--px);transform-origin:50% 130%;
   transition:transform .1s steps(3),border-color .1s;
   box-shadow:var(--sh);
-  font-size:var(--t2)}   /* どの画面でも札の中の文字比率を同じにする */
+  font-size:var(--t2)}
+.cname{color:var(--c5)}   /* どの画面でも札の中の文字比率を同じにする */
 .card:hover{transform:translateY(-1.5em) scale(1.05) rotate(0deg)!important;z-index:9;
   border-color:var(--gold);box-shadow:var(--sh)}
 .card.t-projectile{border-color:var(--e2);background:var(--e3)}
-.card.t-modifier{border-color:var(--g2);background:#232A44}
-.card.t-utility{border-color:var(--s2);background:var(--s3)}
+/* 色を絞ったぶん、種別は枠の本数で分ける。修飾は二重線 */
+.card.t-modifier{border-color:var(--c6);background:var(--c1);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c6)}
+.card.t-utility{border-color:var(--cc);background:var(--c1);
+  box-shadow:var(--sh), inset 0 calc(var(--px)*2) 0 var(--cc)}
 .cidx{position:absolute;top:-.55em;left:-.55em;width:2em;height:2em;border-radius:0;
   background:#151A2E;border:var(--bw) solid #3A4467;display:flex;align-items:center;
   justify-content:center;font-family:var(--f-mono);font-size:var(--t2);font-weight:700;color:var(--ivory)}
@@ -355,7 +382,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .card.mini .cname{font-size:var(--t2)}
 .card.mini .cart{flex:1 1 auto;height:auto;border:0;background:none}
 .card.mini .cart::after{content:none}
-.card.mini .cicon{width:var(--sp16);height:var(--sp16)}
+.card.mini .cicon{width:calc(var(--px)*16);height:calc(var(--px)*16)}
 .cicon{width:var(--sp8);height:var(--sp8);margin:0;shape-rendering:crispEdges}
 .uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:-.15em}
 .ctext{font-size:var(--t1);line-height:1.15;color:var(--mute);margin-top:auto;
@@ -377,7 +404,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .btn{font-family:var(--f-body);font-weight:700;font-size:var(--t2);letter-spacing:.1em;
   padding:.6em 1.5em;border-radius:0;border:var(--bw) solid #3A4467;background:#232A44;
   color:var(--ivory);transition:filter .12s,border-color .12s}
-.btn:hover:not(:disabled){filter:brightness(1.25)}
+.btn:hover:not(:disabled){background:var(--c3);border-color:var(--c7)}
 .btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
 .btn.go{background:#F5A55C;border-color:#F5A55C;color:#151A2E;box-shadow:var(--sh)}
 .btn small{display:block;font-family:var(--f-mono);font-size:var(--t1);font-weight:400;
@@ -594,6 +621,7 @@ const SHELVES = [
 ];
 const GUN = {x:166, y:104};
 // 板壁の継ぎ目。等間隔だと placeholder の縞模様に見えるので、幅を散らして固定する
+const HEM = [0,1,0,2,1,0,1,2];        // 幕の裾の高さ（乱数だとチラつく）
 const KNOTS = [[22,31],[57,72],[96,24],[131,58],[160,88],[41,95],[78,44],[147,18]];
 const WALLSEAM = (()=>{ const a=[]; let x=8;
   for (const w of [11,14,9,13,10,15,11,9,14,12,10,13,11,15,9,12,14,10,13,11])
@@ -676,22 +704,22 @@ function stockShelves(){
 /* ═══════ ドット絵スプライト（1 文字 = 1 ピクセル） ═══════ */
 const SPRITES = {
   // 規則: 1=本体 2=影(右下) 3=ハイライト(左上) 4=輪郭/目
-  slime:{p:["","#6FBF6A","#2E7A46","#6FBF6A","#0B0E1A"], d:[
+  slime:{p:["","#6FBF6A","#2E7A46","#E8E4D6","#0B0E1A"], d:[
     "0000000000000000","0000000000000000","0000004444000000","0000441111440000",
     "0000431111114000","0004331111111400","0043311111111240","0431111111111124",
     "0431144111441124","0431144111441124","0431111111111224","0431111441112224",
     "0431111111122224","0442222222222240","0004444444444400","0000000000000000"]},
-  salamander:{p:["","#E2622F","#8E3320","#F5A55C","#151A2E"], d:[
+  salamander:{p:["","#E2622F","#8E3320","#F5A55C","#0B0E1A"], d:[
     "0000000000000000","0000000000440000","0000000004314000","0000000043114000",
     "0000004433111400","0000443311111400","0044331111111440","0431111111114414",
     "0431111111111414","0431111111111114","0422111111112224","0442222222222240",
     "0040040000400400","0040040000400400","0044044004400440","0000000000000000"]},
-  golem:{p:["","#9AA2BC","#3A4467","#E8E4D6","#151A2E"], d:[
+  golem:{p:["","#9AA2BC","#3A4467","#E8E4D6","#0B0E1A"], d:[
     "0000044444440000","0000431111124000","0004311441112400","0004311441112400",
     "0044311111112440","0431111111111124","0431144111441124","0431144111441124",
     "0431111111111124","0422111111112224","0442222222222240","0004400000044000",
     "0043140000431400","0043140000431400","0044440000444400","0000000000000000"]},
-  worm:{p:["","#9AA2BC","#35618C","#7EC0E8","#151A2E"], d:[
+  worm:{p:["","#35618C","#0B0E1A","#7EC0E8","#0B0E1A"], d:[
     "0000000000000000","0000000000000000","0000044444440000","0000431111124000",
     "0004311111112400","0043111211211240","0431112112112124","4311121121121114",
     "4311121121121414","4311121121121114","4321121121121224","0422222222222240",
@@ -700,7 +728,7 @@ const SPRITES = {
 const ICONS = {
   fireball:{p:["","#E2622F","#F5A55C","#8E3320"], d:[
     "00011000","00121000","01221100","01222110","12222211","12222211","01222110","00111100"]},
-  shard:{p:["","#9AA2BC","#3A4467","#9AA2BC"], d:[
+  shard:{p:["","#9AA2BC","#3A4467","#E8E4D6"], d:[
     "00011000","00133100","01333310","13333321","13333221","01332210","00122100","00000000"]},
   bolt:{p:["","#E2622F","#F5A55C","#8E3320"], d:[
     "00001110","00011100","00111000","01112100","11122100","00021000","00210000","00100000"]},
@@ -716,7 +744,7 @@ const ICONS = {
     "00000000","01000010","01100110","00133100","00133100","01100110","01000010","00000000"]},
   venom:{p:["","#6FBF6A","#2E7A46","#6FBF6A"], d:[
     "00011000","00133100","01333310","13333331","13333331","01333310","00133100","00011000"]},
-  guard:{p:["","#35618C","#7EC0E8","#35618C","#7EC0E8"], d:[
+  guard:{p:["","#35618C","#7EC0E8","#0B0E1A","#E8E4D6"], d:[
     "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]}
 };
 /* UI の記号。フォントの記号を使うとそこだけ滲むので、8x8 で自前で打つ */
@@ -746,7 +774,9 @@ const ROOMSPR = {
 };
 /* 倒した敵・踏破済みの部屋。opacity や grayscale で薄めると
    パレットに無い濁った色が無限に生まれるので、暗いランプに差し替える */
-const DEADPAL = ["", "#3A4467", "#232A44", "#3A4467", "#232A44", "#151A2E"];
+const DEADPAL = ["", "#232A44", "#151A2E", "#232A44", "#151A2E", "#0B0E1A"];
+// 被弾の 2 コマだけ白く飛ばす。パレット差し替えなので中間色を作らない
+const HITPAL  = ["", "#E8E4D6", "#E8E4D6", "#E8E4D6", "#E8E4D6", "#0B0E1A"];
 function spriteSVG(sp, cls, pal){
   if (!sp) return "";
   let r = "";
@@ -809,6 +839,7 @@ const SPIN   = 0.60;                 // 当たり所の腕の長さ → 角速�
 const CHAIN_K= 0.80;                 // 隣に渡る勢い
 const W_NEED = Math.sqrt(2*GT*(1 - Math.cos(CRIT)));  // 倒れるのに要る角速度
 const GFALL  = 340;                  // 落下
+let HITSTOP = 0, SHAKE = 0, FLASH = 0;   // 当たった瞬間の間・揺れ・閃光
 const ADAMP = 0.988;                 // 揺れの減衰
 const STEPS  = 12;                   // 回転を 12 段に量子化（ドット絵らしく）
 const QA     = (Math.PI/2)/STEPS;
@@ -860,6 +891,7 @@ function fire(){
   }
   S.mode = "shot";
   S.settle = 0; S.frames = 0;
+  FLASH = 3;                       // 銃口の閃光
   renderHud();
 }
 /** 当たった札に角速度を与える。符号は当たり所（重心の上か下か）で決まる。 */
@@ -873,7 +905,7 @@ function land(sh){
   const g = S.gun;
   const P = 1.0 * g.power;
   const hitP = bodyAt(sh.tx, sh.ty);
-  if (hitP) shove(hitP, sh.ty, P);
+  if (hitP){ shove(hitP, sh.ty, P); HITSTOP = 2; SHAKE = 3; }
   else S.log.push({k:"foe", t:"外した"});
   if (g.blast){
     for (const q of S.prizes){
@@ -1450,7 +1482,9 @@ function drawBoard(){
   if (!S) return;
   const foes = S.foes && S.foes.length;
   ctx.clearRect(0,0,cv.width,cv.height);
-  const R = (x,y,w,h,c)=>{ ctx.fillStyle = c; ctx.fillRect(X(x), Y(y), X(w), Y(h)); };
+  // 当たった 3 フレームだけ画面を 1 ドット揺らす。3 フレームで戻す
+  const sk = SHAKE > 0 ? ((SHAKE-- & 1) ? PX : -PX) : 0;
+  const R = (x,y,w,h,c)=>{ ctx.fillStyle = c; ctx.fillRect(X(x)+sk, Y(y), X(w), Y(h)); };
   // 市松のディザ。半透明を使わずに「中間の明るさ」を出す古典的な手
   const D = (x,y,w,h,c,step)=>{
     ctx.fillStyle = c;
@@ -1488,8 +1522,9 @@ function drawBoard(){
     const bx = sh.x0 + 26, by = sh.y - 32;
     R(bx-0.3, by-10, 0.6, 10, "#0B0E1A");                    // コード
     R(bx-2, by, 4, 2, "#8A6E22");                            // ソケット
-    R(bx-2.6, by+2, 5.2, 4, "#F7D97A");                      // 玉
-    R(bx-1.6, by+6, 3.2, 1, "#E0B23C");
+    const flick = (Math.floor(S.frames/22) + sh.y) % 17 === 0;   // たまに 1 コマ暗く
+    R(bx-2.6, by+2, 5.2, 4, flick ? "#E0B23C" : "#F7D97A");  // 玉
+    R(bx-1.6, by+6, 3.2, 1, flick ? "#8A6E22" : "#E0B23C");
     R(bx+1.2, by+2.6, 1.2, 2.6, "#E0B23C");                  // 玉の影側
   }
 
@@ -1507,21 +1542,25 @@ function drawBoard(){
     R(L, T, W, 3.4, "#8A6E22");                              // 天板
     R(L, T, W, 0.6, "#E0B23C");                              // 上端の照り
     for (let k=0;k<W;k+=9) R(L+k+3, T+1.2, 3, 0.6, "#0B0E1A"); // 木目
-    for (const bx of [sh.x0-1, (sh.x0+sh.x1)/2, sh.x1+1]){   // 支え
-      R(bx-1.5, T+6.4, 3, 5, "#8A6E22");
-      R(bx-1.5, T+6.4, 0.6, 5, "#E0B23C");
-      R(bx+1.0, T+6.4, 0.5, 5, "#0B0E1A");
+    for (const bx of [sh.x0-1, (sh.x0+sh.x1)/2, sh.x1+1]){   // 支え（床まで通す）
+      const top = sh.y + 6.4, h = 100 - top;
+      R(bx-1.5, top, 3, h, "#151A2E");
+      R(bx-1.5, top, 0.6, h, "#8A6E22");
+      R(bx+1.0, top, 0.5, h, "#0B0E1A");
     }
   }
 
   /* ── 紅白幕。射的屋である、と一目で分かる記号 ── */
-  const bandH = foes ? 20 : 11;
+  const bandH = foes ? 14 : 11;
   R(0,0,192,bandH,"#151A2E");
   {
     for (let x=0; x<192; x+=8){
-      R(x,0,4,5,"#E2622F"); R(x+4,0,4,5,"#E8E4D6");
-      R(x,5,1,1.2,"#E2622F");   R(x+3,5,1,1.2,"#E2622F");     // 裾を階段状に
-      R(x+4,5,1,1.2,"#E8E4D6"); R(x+7,5,1,1.2,"#E8E4D6");
+      R(x,0,4,5,"#E2622F"); R(x+4,0,4,5,"#9AA2BC");
+      // 裾は列ごとに 0〜2 ドット違える。乱数にするとチラつくので固定表
+      const h0 = HEM[(x>>3) % HEM.length], h1 = HEM[((x>>3)+3) % HEM.length];
+      const sw = Math.round(Math.sin(T0/34 + x/26)) * 0.6;    // ゆっくり揺れる
+      R(x,5,1,1.2+h0+sw,"#E2622F");   R(x+3,5,1,1.2+h0+sw,"#E2622F");
+      R(x+4,5,1,1.2+h1+sw,"#9AA2BC"); R(x+7,5,1,1.2+h1+sw,"#9AA2BC");
     }
     R(0,0,192,0.6,"#0B0E1A");
     R(0,6.2,192,4.8,"#0B0E1A");                               // HUD の下地
@@ -1537,16 +1576,21 @@ function drawBoard(){
     R(lx+3.4, 16.2, 1.6, 9, "#8E3320");                      // 右の影
     for (let k=0;k<3;k++) R(lx-5, 18.2+k*2.4, 10, 0.6, "#8E3320");
     R(lx-4, 25.4, 8, 1.2, "#0B0E1A");                        // 下の輪
-    R(lx-1.5, 26.6, 3, 1.8, "#F7D97A");                      // 灯り
+    const on = ((T0 >> 4) + lx) % 11 !== 0;                  // たまに 1 コマ落ちる
+    R(lx-1.5, 26.6, 3, 1.8, on ? "#F7D97A" : "#E0B23C");     // 灯り
+    if (on) R(lx-3.5, 27.2, 7, 0.6, "#E0B23C");              // 漏れる光
   }
 
   /* ── 手前のカウンター ── */
-  R(0,100,192,8,"#8A6E22");
+  R(0,100,192,8,"#151A2E");
   R(0,100,192,0.6,"#E0B23C");
-  R(0,101.6,192,0.6,"#0B0E1A");
+  R(0,100.6,192,1.4,"#8A6E22");
+  R(0,102,192,0.6,"#0B0E1A");
   for (let x=0;x<192;x+=13) R(x+4,103,5,0.6,"#0B0E1A");      // 木目
-  for (let i=0;i<S.corkMax;i++)                              // 残りのコルク
-    R(136+i*6, 103.4, 3.4, 3.4, i < S.corks ? "#F7D97A" : "#0B0E1A");
+  for (let i=0;i<S.corkMax;i++){                             // 残りのコルク
+    R(136+i*6, 103.4, 3.4, 4.4, i < S.corks ? "#E0B23C" : "#232A44");
+    R(136+i*6, 103.4, 3.4, 0.6, i < S.corks ? "#F7D97A" : "#3A4467");
+  }
 
   /* ── 鉄砲。画面で一番大きい物なので、いちばん描き込む ── */
   const ga = Math.atan2(GUN.y - ret.y, GUN.x - ret.x);
@@ -1561,6 +1605,12 @@ function drawBoard(){
   G(-1,-1,16,2.2,"#3A4467"); G(-1,-1,16,0.8,"#9AA2BC");      // 銃身
   G(-1,0.4,16,0.8,"#0B0E1A");
   G(15,-1,2,2.2,"#0B0E1A");                                  // 銃口
+  if (FLASH > 0){                                            // 発砲の閃光（3 コマ）
+    FLASH--;
+    G(17,-2,4,4,"#F7D97A");
+    G(21,-1,4,2,"#E0B23C");
+    G(18,-4,2,8,"#E0B23C");
+  }
   G(-5,1.8,2.5,3,"#8A6E22");                                   // 引き金の枠
   ctx.restore();
 }
@@ -1604,9 +1654,9 @@ function drawFx(){
     fx.fillStyle = "#E0B23C";
     for (const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
       const cx = X(ret.x) + sx*r*PX, cy = Y(ret.y) + sy*r*PX;
-      for (let k=0;k<4;k++){
-        fx.fillRect(cx - (sx<0?0:PX) + sx*k*PX, cy, PX, PX);
-        fx.fillRect(cx, cy - (sy<0?0:PX) + sy*k*PX, PX, PX);
+      for (let k=0;k<3;k++){                                 // 腕は 3 ドット
+        fx.fillRect(cx + sx*k*PX, cy, PX, PX);
+        fx.fillRect(cx, cy + sy*k*PX, PX, PX);
       }
     }
     fx.fillStyle = "#F7D97A";
@@ -1709,15 +1759,20 @@ new ResizeObserver(()=>{ fitCanvas(); drawBoard(); syncPrizes(); drawFx();
   w.addEventListener("pointercancel", ()=>{ on=false; });
 })();
 
+let T0 = 0;                       // 演出用の時刻（提灯の明滅・幕の裾）
 function tick(){
+  T0++;
   if (S && (S.mode === "shot" || S.mode === "sim")){
-    for (let k=0;k<4;k++) physics();
+    if (HITSTOP > 0) HITSTOP--;     // 着弾で 2 フレーム止める（Celeste の作法）
+    else for (let k=0;k<4;k++) physics();
     drawBoard(); syncPrizes(); drawFx();
     renderShootFoot();
     if (settled()){
       if (S.corks > 0){ S.mode = "aim"; renderHud(); }
       else toFight();
     }
+  } else if (S && S.phase === "shoot"){
+    drawBoard(); drawFx();          // 照準中も止めない。提灯が揺れ、幕がなびく
   } else if (S && sparks.length){ for (let k=0;k<6;k++) physics(); drawBoard(); }
   requestAnimationFrame(tick);
 }
@@ -1815,7 +1870,9 @@ function renderDungeon(){
   $("d-gun").textContent   = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}`;
 
   const stage = document.getElementById("stage");
-  const ts = Math.max(16, Math.floor(Math.min(stage.clientWidth*0.042, stage.clientHeight*0.070)/8)*8);
+  // タイルは 8x8 のスプライトを --px*2 で描く箱。--px の倍数に丸める
+  const px = parseFloat(getComputedStyle(stage).getPropertyValue('--px')) || 3;
+  const ts = Math.max(px*8, Math.floor(Math.min(stage.clientWidth*0.042, stage.clientHeight*0.070)/(px*2))*(px*2));
   const grid = $("dgrid");
   grid.style.setProperty("--ts", ts + "px");
   grid.style.gridTemplateColumns = `repeat(${DW}, ${ts}px)`;
@@ -1927,7 +1984,8 @@ function render(){
       `<span class="fbar"><i style="width:${wNow}%"></i>`+
         (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
         `<span>${f.hp} / ${f.maxHp}</span></span>`+
-      spriteSVG(SPRITES[f.spr], "glyph", f.hp<=0 ? DEADPAL : null)+
+      spriteSVG(SPRITES[f.spr], "glyph",
+        f.hp<=0 ? DEADPAL : S.flash.includes(i) ? HITPAL : null)+
       (delta>0?`<span class="fdelta">−${delta}</span>`:``);
     b.onclick = ()=>selectTarget(i);
     foes.appendChild(b);

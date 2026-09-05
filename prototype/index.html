@@ -93,7 +93,8 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   color:var(--gold);text-indent:.42em;line-height:1}
 #sign i{font-family:var(--f-mono);font-style:normal;font-size:.75em;letter-spacing:.3em;
   color:var(--gold-dim);text-indent:.3em}
-#prizes .card{position:absolute;transform-origin:50% 50%;box-shadow:var(--sh)}
+#prizes .card{position:absolute;transform-origin:50% 50%;
+  transition:none;box-shadow:none}  /* 物理と 1 フレームもずらさない。影は回らないので出さない */
 #board{image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;touch-action:none}
 .shootfoot{position:absolute;left:0;bottom:0;display:flex;align-items:flex-end;
   padding:.7em 1.4em 1em;z-index:6;gap:.7em}
@@ -213,7 +214,8 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   border:var(--bw) solid #39415F;display:flex;flex-direction:column;align-items:center;
   padding:calc(var(--u)*2) calc(var(--u)*0.7) calc(var(--u)*0.5);gap:1px;transform-origin:50% 130%;
   transition:transform .1s steps(3),border-color .1s;
-  box-shadow:var(--sh)}
+  box-shadow:var(--sh);
+  font-size:calc(var(--u)*2.6)}   /* どの画面でも札の中の文字比率を同じにする */
 .card:hover{transform:translateY(-1.5em) scale(1.05) rotate(0deg)!important;z-index:9;
   border-color:var(--gold);box-shadow:var(--sh)}
 .card.t-projectile{border-color:var(--e2);background:var(--e3)}
@@ -226,15 +228,15 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .card.t-modifier .cidx{border-color:var(--gold-dim);color:var(--gold)}
 .cname{font-family:var(--f-disp);font-size:1em;letter-spacing:0;line-height:1.05;
   text-align:center;word-break:break-all}
-.cart{width:100%;height:calc(var(--u)*8);flex:0 0 auto;border:2px solid var(--n3);
+.cart{width:100%;height:calc(var(--u)*6.5);flex:0 0 auto;border:2px solid var(--n3);
   background:#12162A;display:flex;align-items:center;justify-content:center;position:relative}
 .cart img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
 .cart::after{content:"仮";position:absolute;right:2px;bottom:0;font-family:var(--f-disp);
   font-size:.5em;color:rgba(255,255,255,.22)}
-.cicon{width:calc(var(--u)*5);height:calc(var(--u)*5);margin:0;shape-rendering:crispEdges}
-.ctext{font-size:.75em;line-height:1.2;color:var(--mute);margin-top:auto;
-  padding:0 1px;text-align:center;overflow:hidden}
-.ckind{font-family:var(--f-mono);font-size:.75em;letter-spacing:.16em;color:var(--faint);margin-top:.1em}
+.cicon{width:calc(var(--u)*4.5);height:calc(var(--u)*4.5);margin:0;shape-rendering:crispEdges}
+.ctext{font-size:.62em;line-height:1.15;color:var(--mute);margin-top:auto;
+  padding:0 1px;text-align:center;word-break:break-word}
+.ckind{font-family:var(--f-mono);font-size:.62em;letter-spacing:.1em;color:var(--faint);margin-top:.1em}
 .cswap{position:absolute;top:-.5em;right:-.5em;width:1.8em;height:1.8em;border-radius:0;
   background:#0F1226;border:var(--bw) solid var(--line2);font-family:var(--f-mono);font-size:.75em;
   display:flex;align-items:center;justify-content:center;color:var(--mute);z-index:4}
@@ -434,9 +436,12 @@ const CARDS = {
   fireball:{name:"火球",  type:"projectile", dmg:9, art:null, text:"9 ダメージ"},
   shard:   {name:"石礫",  type:"projectile", dmg:4, art:null, text:"4 ダメージ"},
   bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6 ダメージ・貫通1"},
-  split3:  {name:"三分裂",type:"modifier", mod:{split:3}, art:null, text:"複製3・威力半減"},
-  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2, dmg:3}, art:null, text:"貫通+2・威力+3"},
-  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1, mul:0.5}, art:null, text:"波及+1・威力+50%"},
+  split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製 3"},
+  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通 +2"},
+  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力 1.5倍・波及 +1"},
+  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"当てた敵の被弾 1.5倍"},
+  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"当てた敵の攻撃 −2"},
+  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"当てた敵に毒 4"},
   guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御 9（即時）"}
 };
 for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
@@ -444,6 +449,7 @@ for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 const POOL0 = ["fireball","fireball","fireball","fireball","shard","shard","shard",
                "bolt","bolt","bolt","split3","split3","pierce","pierce",
                "enlarge","enlarge","guard","guard"];
+// 破鎧・弱体・猛毒は報酬でしか手に入らない（初期プールには入れない）
 
 const FOEDEX = [
   {name:"スライム", hp:18, atk:3, spr:"slime"},
@@ -461,21 +467,20 @@ const SHELVES = [
   {y:88, x0:20, x1:158}
 ];
 const GUN = {x:166, y:104};
-const GRAV = 190;
 const PH = 16, PW = PH*CARD_AR, DT = 1/120;     // 5:7（戦闘の札と完全に同じ比率）
 
 /* 鉄砲の性能。ここが将来の強化軸そのもの。 */
-const BASE_GUN = {power:1.0, spread:7, pellets:1, blast:0};
+const BASE_GUN = {power:1.0, spread:4, pellets:1, blast:0};
 const UPGRADES = [
-  {id:"aim",   name:"銃身の削り出し", note:"散り 7 → 3.5（命中力）",
-   apply:g=>{ g.spread = 3.5; }},
+  {id:"aim",   name:"銃身の削り出し", note:"散りが半分になる（狙った高さに当たる）",
+   apply:g=>{ g.spread *= 0.5; }},
   {id:"shot",  name:"散弾に詰め替え",
-   note:"弾 3 発。束をまとめて崩せるが、散りが広がり狙った順に落ちにくい",
-   apply:g=>{ g.pellets = 3; g.spread = Math.round(g.spread*1.6); g.power *= 0.65; }},
-  {id:"power", name:"火薬増し",       note:"威力 1.8 倍（倒れやすくなる）",
-   apply:g=>{ g.power *= 1.8; }},
-  {id:"bazooka",name:"筒を太く",      note:"着弾点の周囲 12 も巻き込む。散りは変わらない",
-   apply:g=>{ g.blast = 12; }}
+   note:"弾 3 発。束をまとめて崩せるが、散りが 1.6 倍になり当たり所を選べない",
+   apply:g=>{ g.pellets = 3; g.spread *= 1.6; g.power *= 0.75; }},
+  {id:"power", name:"火薬増し",       note:"威力 1.6 倍。中心寄りに当たっても倒れる",
+   apply:g=>{ g.power *= 1.6; }},
+  {id:"bazooka",name:"筒を太く",      note:"着弾点の周囲 14 の札も一緒に押す。散りは変わらない",
+   apply:g=>{ g.blast = 14; }}
 ];
 
 let S = null, uid = 0, sparks = [];
@@ -490,7 +495,7 @@ function shuffle(a){                      // Fisher-Yates（sort(()=>Math.random
 
 function newRun(){
   S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, corks:3, swaps:0,
-       corkMax:3, swapMax:0, cap:5,
+       corkMax:2, swapMax:0, cap:5,
        pool:POOL0.slice(), gun:Object.assign({}, BASE_GUN), owned:[], core:[],
        wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
        prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
@@ -505,33 +510,35 @@ function newRound(){
   stockShelves();
 }
 
-/** 棚ごとに 2〜3 の束。1 束 = 下 2 枚 + その上に 1 枚。
-    支え関係は書かない。ただ積むだけで、あとは剛体演算が決める。 */
-function newCard(x, y){
+/** 棚に「束」を並べる。束の中は隣が倒れる距離、束と束の間は届かない距離。
+    どの札を撃つかで、何枚倒れるか・どの順で倒れるかが決まる。 */
+function newCard(bx, sy){
   return {card: mk(S.pool[Math.floor(rnd(S.pool.length))]),
-          b: mkBody(x, y, PW, PH, false), state:"live"};
+          bx, sy, a:0, w:0, st:"stand", vx:0, vy:0,
+          b:{x:bx, y:sy - PH/2, a:0, w:PW, h:PH}, state:"live"};
 }
 function stockShelves(){
   S.prizes = [];
-  S.statics = [];
-  for (const sh of SHELVES)                               // 棚は静的剛体
-    S.statics.push(Object.assign(mkBody((sh.x0+sh.x1)/2, sh.y + 2.5, sh.x1-sh.x0+8, 5, true), {shelf:true}));
-  S.statics.push(mkBody(-6, GH/2, 8, GH*3, true));        // 左右の壁
-  S.statics.push(mkBody(GW+6, GH/2, 8, GH*3, true));
-  S.statics.push(mkBody(GW/2, -10, GW*2, 12, true));   // 天井（上へ吹き飛ぶのを防ぐ）
-  SHELVES.forEach(sh=>{
-    const n = 2 + (rnd(1) < 0.5 ? 1 : 0);
-    const bw = PW*2 + 1.2;
-    const span = sh.x1 - sh.x0 - bw, slot = span/n;
-    for (let k=0;k<n;k++){
-      const cx = sh.x0 + bw/2 + slot*k + slot*0.5 + (rnd(slot*0.3) - slot*0.15);
-      S.prizes.push(newCard(cx - PW/2 - 0.7, sh.y - PH/2 - 0.05));
-      S.prizes.push(newCard(cx + PW/2 + 0.7, sh.y - PH/2 - 0.05));
-      S.prizes.push(newCard(cx,              sh.y - PH*1.5 - 0.15));
+  const GAP = 1.4, MINSEP = PH*1.05;        // 束の中／束の間。間は倒れても届かない
+  const width = gs => gs.reduce((a,c)=>a + c*PW + (c-1)*GAP, 0) + (gs.length-1)*MINSEP;
+  for (const sh of SHELVES){
+    const groups = [];
+    const n = 2 + (rnd(1) < 0.4 ? 1 : 0);
+    for (let g=0; g<n; g++) groups.push(2 + (rnd(1) < 0.4 ? 1 : 0));
+    const span = sh.x1 - sh.x0 - 4;
+    while (groups.length > 1 && width(groups) > span){
+      let bi = 0; groups.forEach((c,i)=>{ if (c > groups[bi]) bi = i; });
+      if (groups[bi] > 2) groups[bi]--; else groups.splice(bi, 1);
     }
-  });
-  S.settle = 0; S.frames = 0;
-  if (typeof clearPrizes === 'function') clearPrizes();
+    const inner = groups.reduce((a,c)=>a + c*PW + (c-1)*GAP, 0);
+    const sep = groups.length > 1
+      ? Math.max(MINSEP, (span - inner)/(groups.length-1)) : 0;
+    let x = sh.x0 + 2 + (span - inner - sep*(groups.length-1))/2 + PW/2;
+    for (const g of groups){
+      for (let k=0;k<g;k++){ S.prizes.push(newCard(x, sh.y)); x += PW + GAP; }
+      x += sep - GAP;
+    }
+  }
 }
 
 
@@ -572,6 +579,12 @@ const ICONS = {
     "00000000","00100100","00100100","11111113","00111133","00100100","00100100","00000000"]},
   enlarge:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
     "00222200","02000020","20133102","20133102","20133102","20133102","02000020","00222200"]},
+  sunder:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+    "00100100","01100110","01111110","11133111","11333311","01111110","00111100","00011000"]},
+  weaken:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+    "00000000","01000010","01100110","00133100","00133100","01100110","01000010","00000000"]},
+  venom:{p:["","#7ED07A","#2E6B38","#C8F5C4"], d:[
+    "00011000","00133100","01333310","13333331","13333331","01333310","00133100","00011000"]},
   guard:{p:["","#3F79A8","#6FA8D6","#255170","#A8D8F0"], d:[
     "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]}
 };
@@ -622,104 +635,58 @@ function cardHTML(c, opt){
   `</div>`;
 }
 
-/* ═══════ 剛体（OBB）— 押す・ぶつかる・傾く・倒れる ═══════
-   当たったら落ちる、ではなく、当たった点に力積を与えて結果を計算する。 */
-const GRAV_A = 210, DAMP = 0.55, ADAMP = 0.85;
-const REST = 0.02, MU = 0.55;          // 反発・摩擦（滑るより倒れやすく）
-const ITER = 10, SLOP = 0.02, CORR = 0.7;
+/* ═══════ 疑似物理 — 倒れる・巻き込む・落ちる ═══════
+   剛体演算はやめた。滑る・跳ねる・微妙に揺れるが積み重なって、
+   結果が読めないうえに見た目も気持ち悪かった。
 
-function mkBody(x, y, w, h, isStatic){
-  const m = isStatic ? 0 : w*h*0.02;
-  return {x, y, w, h, a:0, vx:0, vy:0, av:0,
-          im: m ? 1/m : 0,
-          ii: m ? 1/(m*(w*w+h*h)/12) : 0,
-          st: !!isStatic};
+   札が持つのは「立つ / 倒れる / 落ちる」の 3 状態だけ。
+   ただし倒れ方は本物と同じ理屈で決める。コルクが札の重心より
+   《上》に当たれば向こうへ、《下》に当たれば手前へ倒れる。
+   倒れかけた札は、重心が支点を越えるまでは起き上がろうとする。
+   倒れた札は隣を突き、隣がどくまで押し合う（ドミノ）。 */
+const CRIT   = Math.atan2(PW, PH);   // 重心が支点を越える角。これを超えたら倒れる
+const GT     = 5;                    // 起き上がろうとする力（＝倒しにくさ）
+const GF     = 40;                   // 支点を越えたあと倒れ込む力（＝落ちる速さ）
+const SPIN   = 0.60;                 // 当たり所の腕の長さ → 角速度
+// 倒すのに要る角速度は sqrt(2*GT*(1-cos CRIT)) ≒ 1.37。腕の長さ 2.3 で届く。
+// 札の高さは 16 なので、真ん中の 4.6 に当てると揺れて戻り、外せば倒れる。
+// 倒しにくさ（GT）と落ちる速さ（GF）を分けてあるのは、
+// 「当たり所で決まる」と「もたつかない」を両立させるため。
+const CHAIN_K= 0.80;                 // 隣に渡る勢い
+const W_NEED = Math.sqrt(2*GT*(1 - Math.cos(CRIT)));  // 倒れるのに要る角速度
+const GFALL  = 340;                  // 落下
+const ADAMP = 0.988;                 // 揺れの減衰
+const STEPS  = 12;                   // 回転を 12 段に量子化（ドット絵らしく）
+const QA     = (Math.PI/2)/STEPS;
+
+/** 支点（倒れる向き側の下角）から重心を出す */
+function poseOf(p){
+  const d = Math.sign(p.a) || 1;
+  const px = p.bx + d*PW/2, py = p.sy;
+  const ox = -d*PW/2, oy = -PH/2;
+  const c = Math.cos(p.a), sn = Math.sin(p.a);
+  return {x: px + ox*c - oy*sn, y: py + ox*sn + oy*c};
+}
+function sync(p){
+  const q = poseOf(p);
+  p.b.x = q.x; p.b.y = q.y; p.b.a = p.a;
 }
 function corners(b){
   const c = Math.cos(b.a), s = Math.sin(b.a), hx = b.w/2, hy = b.h/2;
   return [[-hx,-hy],[hx,-hy],[hx,hy],[-hx,hy]].map(([x,y])=>
     ({x: b.x + x*c - y*s, y: b.y + x*s + y*c}));
 }
-function bodyAxes(b){
-  const c = Math.cos(b.a), s = Math.sin(b.a);
-  return [{x:c,y:s},{x:-s,y:c}];
-}
-function proj(pts, ax){
-  let mn = 1e9, mx = -1e9;
-  for (const p of pts){ const d = p.x*ax.x + p.y*ax.y; if (d<mn) mn=d; if (d>mx) mx=d; }
-  return [mn, mx];
-}
-function localInside(p, b, pad){
-  const dx = p.x-b.x, dy = p.y-b.y, c = Math.cos(-b.a), s = Math.sin(-b.a);
+function localInside(pt, b, pad){
+  const dx = pt.x-b.x, dy = pt.y-b.y, c = Math.cos(-b.a), s = Math.sin(-b.a);
   const lx = dx*c - dy*s, ly = dx*s + dy*c;
   return Math.abs(lx) <= b.w/2 + pad && Math.abs(ly) <= b.h/2 + pad;
-}
-/** 分離軸法。重なっていれば法線・侵入量・接触点を返す */
-function collide(A, B){
-  const ca = corners(A), cb = corners(B);
-  let pen = 1e9, n = null;
-  for (const ax of [...bodyAxes(A), ...bodyAxes(B)]){
-    const [a0,a1] = proj(ca, ax), [b0,b1] = proj(cb, ax);
-    if (a1 <= b0 || b1 <= a0) return null;
-    const o = Math.min(a1-b0, b1-a0);
-    if (o < pen){ pen = o; n = ax; }
-  }
-  // 法線を A → B の向きに揃える
-  if ((B.x-A.x)*n.x + (B.y-A.y)*n.y < 0) n = {x:-n.x, y:-n.y};
-  const pts = [];
-  for (const p of ca) if (localInside(p, B, 0.05)) pts.push(p);
-  for (const p of cb) if (localInside(p, A, 0.05)) pts.push(p);
-  if (!pts.length) return null;
-  return {A, B, n, pen, pts: pts.slice(0,2)};
-}
-const cross = (r, v) => r.x*v.y - r.y*v.x;
-
-function solve(c){
-  const {A, B, n} = c;
-  for (const p of c.pts){
-    const ra = {x:p.x-A.x, y:p.y-A.y}, rb = {x:p.x-B.x, y:p.y-B.y};
-    const rv = {x:(B.vx - B.av*rb.y) - (A.vx - A.av*ra.y),
-                y:(B.vy + B.av*rb.x) - (A.vy + A.av*ra.x)};
-    const vn = rv.x*n.x + rv.y*n.y;
-    if (vn > 0) continue;
-    const rn1 = cross(ra, n), rn2 = cross(rb, n);
-    const kn = A.im + B.im + A.ii*rn1*rn1 + B.ii*rn2*rn2;
-    if (kn <= 0) continue;
-    let j = -(1+REST) * vn / kn / c.pts.length;
-    if (j < 0) j = 0;
-    applyImp(A, ra, {x:-n.x*j, y:-n.y*j});
-    applyImp(B, rb, {x: n.x*j, y: n.y*j});
-    // 摩擦
-    const t = {x:-n.y, y:n.x};
-    const rv2 = {x:(B.vx - B.av*rb.y) - (A.vx - A.av*ra.y),
-                 y:(B.vy + B.av*rb.x) - (A.vy + A.av*ra.x)};
-    const vt = rv2.x*t.x + rv2.y*t.y;
-    const rt1 = cross(ra, t), rt2 = cross(rb, t);
-    const kt = A.im + B.im + A.ii*rt1*rt1 + B.ii*rt2*rt2;
-    if (kt <= 0) continue;
-    let jt = -vt / kt / c.pts.length;
-    const max = MU * j;
-    if (jt >  max) jt =  max;
-    if (jt < -max) jt = -max;
-    applyImp(A, ra, {x:-t.x*jt, y:-t.y*jt});
-    applyImp(B, rb, {x: t.x*jt, y: t.y*jt});
-  }
-}
-function applyImp(b, r, J){
-  if (b.st) return;
-  b.vx += J.x * b.im; b.vy += J.y * b.im;
-  b.av += cross(r, J) * b.ii;
-}
-/** 着弾点に力積を与える。当たり所で倒れるか滑るかが変わる。 */
-function impulseAt(b, px, py, jx, jy){
-  applyImp(b, {x:px-b.x, y:py-b.y}, {x:jx, y:jy});
 }
 
 /* ── 照準と発射 ── */
 function bodyAt(x, y){
   let best = null;
   for (const p of S.prizes){
-    if (p.state !== "live") continue;
+    if (p.state !== "live" || p.st === "fall") continue;
     if (localInside({x,y}, p.b, 0) && (!best || p.b.y < best.b.y)) best = p;
   }
   return best;
@@ -741,24 +708,24 @@ function fire(){
   S.settle = 0; S.frames = 0;
   renderHud();
 }
+/** 当たった札に角速度を与える。符号は当たり所（重心の上か下か）で決まる。 */
+function shove(p, hy, P){
+  if (p.st === "fall") return;
+  const lever = p.b.y - hy;                 // + なら重心より下に当たった
+  p.w += SPIN * P * lever;                  // + = 時計回り = 手前（銃側）へ倒れる
+  if (p.st === "stand"){ p.st = "tip"; p.a = p.a || (p.w>0 ? 1e-4 : -1e-4); }
+}
 function land(sh){
   const g = S.gun;
-  const dx = sh.tx - sh.x, dy = sh.ty - sh.y;
-  const L = Math.hypot(dx, dy) || 1;
-  const dir = {x: dx/L, y: dy/L};
-  const P = 560 * g.power;                       // 力積の大きさ
+  const P = 1.0 * g.power;
   const hitP = bodyAt(sh.tx, sh.ty);
-  if (hitP) impulseAt(hitP.b, sh.tx, sh.ty, dir.x*P, dir.y*P - P*0.15);
+  if (hitP) shove(hitP, sh.ty, P);
   else S.log.push({k:"foe", t:"外した"});
   if (g.blast){
     for (const q of S.prizes){
       if (q === hitP || q.state !== "live") continue;
       const d = Math.hypot(q.b.x - sh.tx, q.b.y - sh.ty);
-      if (d < g.blast){
-        const k = (1 - d/g.blast) * P * 0.7;
-        const nx = (q.b.x - sh.tx)/(d||1), ny = (q.b.y - sh.ty)/(d||1);
-        impulseAt(q.b, sh.tx, sh.ty, nx*k, ny*k - 2);
-      }
+      if (d < g.blast) shove(q, sh.ty, P * (1 - d/g.blast) * 0.8);
     }
   }
   for (let i=0;i<9;i++)
@@ -775,77 +742,84 @@ function collect(card){
   S.wand.push(card);
 }
 
+/** 倒れる向きの隣。同じ棚で、その向きにいちばん近い立っている札 */
+function neighbourOf(p, d){
+  let best = null, bd = 1e9;
+  for (const q of S.prizes){
+    if (q === p || q.state !== "live" || q.sy !== p.sy || q.st === "fall") continue;
+    const gap = d>0 ? (q.bx - PW/2) - (p.bx + PW/2) : (p.bx - PW/2) - (q.bx + PW/2);
+    if (gap < -PW || gap > PH) continue;                  // 届かない距離
+    if (gap < bd){ bd = gap; best = q; }
+  }
+  return best ? {q:best, gap:Math.max(bd, 0)} : null;
+}
+
 /** 1 ステップ回す */
 function physics(){
   for (const sh of S.shots){
     if (!sh.live) continue;
-    sh.t += DT*7;
+    sh.t += DT*9;
     if (sh.t >= 1){ sh.t = 1; sh.live = false; land(sh); }
   }
-  const live = S.prizes.filter(p=>p.state === "live").map(p=>p.b);
-  // 重力と減衰
-  for (const b of live){
-    b.vy += GRAV_A*DT;
-    b.vx -= b.vx*DAMP*DT*60*0.016;
-    b.av -= b.av*ADAMP*DT*60*0.016;
-  }
-  // 接触を集める（静的な棚も含む）
-  const all = [...S.statics, ...live];
-  const cs = [];
-  for (let i=0;i<all.length;i++)
-    for (let j=i+1;j<all.length;j++){
-      if (all[i].st && all[j].st) continue;
-      // 倒れ切った札は棚から外れて手前に落ちる
-      if ((all[i].shelf && all[j].tipped) || (all[j].shelf && all[i].tipped)) continue;
-      const c = collide(all[i], all[j]);
-      if (c) cs.push(c);
-    }
-  for (let k=0;k<ITER;k++) for (const c of cs) solve(c);
-  // 位置補正（めり込みを押し戻す）
-  for (const c of cs){
-    const k = Math.max(c.pen - SLOP, 0) / (c.A.im + c.B.im || 1) * CORR;
-    if (!c.A.st){ c.A.x -= c.n.x*k*c.A.im; c.A.y -= c.n.y*k*c.A.im; }
-    if (!c.B.st){ c.B.x += c.n.x*k*c.B.im; c.B.y += c.n.y*k*c.B.im; }
-  }
-  for (const b of live){
-    b.x += b.vx*DT; b.y += b.vy*DT; b.a += b.av*DT;
-    if (Math.abs(b.a) > 0.95) b.tipped = true;      // 倒れ切った
-  }
-  // 落ちきったら回収
   for (const p of S.prizes){
     if (p.state !== "live") continue;
-    if (p.b.y > FLOOR || p.b.x < -20 || p.b.x > GW+20){
-      p.state = "landed"; collect(p.card);
+
+    if (p.st === "tip"){
+      const d = Math.sign(p.a) || Math.sign(p.w) || 1;
+      // 重心が支点を越えるまでは起き上がろうとする。越えたら加速して倒れる。
+      const K = Math.abs(p.a) > CRIT ? GF : GT;
+      p.w += K * Math.sin(Math.abs(p.a) - CRIT) * d * DT;
+      p.w *= ADAMP;
+      p.a += p.w * DT;
+
+      // 隣を突く。隣がどいた分しか進めない（＝めり込まない）
+      const nb = neighbourOf(p, d);
+      if (nb){
+        const reach = PH * Math.sin(Math.min(Math.abs(p.a), Math.PI/2));
+        const room  = nb.gap + (Math.sign(nb.q.a) === d ? PH*Math.sin(Math.abs(nb.q.a)) : 0);
+        if (reach > nb.gap && nb.q.st === "stand" && Math.abs(p.w) > 0.4){
+          nb.q.st = "tip"; nb.q.a = d*1e-4; nb.q.w = p.w * CHAIN_K;
+        }
+        if (reach > room){
+          const cap = Math.asin(Math.max(0, Math.min(1, room / PH)));
+          p.a = d * cap;
+          if (Math.sign(p.w) === d) p.w *= 0.75;
+        }
+      }
+
+      if (Math.abs(p.a) >= Math.PI/2){          // 倒れ切った → 棚から外れて落ちる
+        p.a = d * Math.PI/2; p.st = "fall";
+        p.vy = 20; p.vx = d * 14;
+      } else if (Math.abs(p.a) < 0.02 && Math.abs(p.w) < 0.9){
+        p.a = 0; p.w = 0; p.st = "stand";       // 揺れて元に戻った
+      }
+      sync(p);
+
+    } else if (p.st === "fall"){
+      p.vy += GFALL*DT;
+      p.b.x += p.vx*DT; p.b.y += p.vy*DT;
+      p.b.a += p.w*0.25*DT;
+      if (p.b.y > FLOOR){ p.state = "landed"; collect(p.card); }
     }
   }
-  for (const s of sparks){ s.vy += GRAV_A*DT*0.5; s.x += s.vx*DT; s.y += s.vy*DT; s.t -= DT*2.2; }
+  for (const s of sparks){ s.vy += 210*DT*0.5; s.x += s.vx*DT; s.y += s.vy*DT; s.t -= DT*2.6; }
   sparks = sparks.filter(s=>s.t>0);
-  S.settle = S.prizes.some(p=>p.state==="live" &&
-    (Math.abs(p.b.vx)>1.6 || Math.abs(p.b.vy)>1.6 || Math.abs(p.b.av)>0.14))
-    ? 0 : (S.settle||0) + 1;
+  const moving = S.prizes.some(p=>p.state==="live" &&
+    (p.st === "fall" || (p.st === "tip" && Math.abs(p.w) > 0.25)));
+  S.settle = moving ? 0 : (S.settle||0) + 1;
   S.frames = (S.frames||0) + 1;
-  if (S.frames > 420){          // 保険：止まらない時は、宙に浮いた札は落として回収する
-    for (const p of S.prizes){
-      if (p.state !== "live") continue;
-      if (p.b.y < SHELVES[SHELVES.length-1].y - PH*2.2){ p.state = "landed"; collect(p.card); }
-      else { p.b.vx = 0; p.b.vy = 0; p.b.av = 0; }
-    }
-  }
 }
 function settled(){
   if (S.shots.some(sh=>sh.live)) return false;
-  if (S.frames > 450) return true;              // 保険
-  return (S.settle||0) > 10;
+  if (S.frames > 300) return true;              // 保険
+  return (S.settle||0) > 6;
 }
 
 /* ═══════ 杖 VM ═══════ */
-const newBuf = () => ({split:1, pierce:0, splash:0, dmg:0, mul:1});
-/* 同じ詠唱で n 枚目に撃つ発射体の威力倍率。
-   これが無いと「修飾を拾わず発射体だけ並べる」が常に最善手になり、
-   並び順が結果に影響しなくなる（＝このゲームの売りが消える）。
-   逓減させることで、先頭の 1 枚に修飾を積むことに意味が生まれる。 */
-const CHAIN = [1, 0.6, 0.45, 0.35, 0.3];
-const chainAt = i => CHAIN[Math.min(i, CHAIN.length-1)];
+/* 修飾は威力を下げない。倍率で乗せるか、敵に残るデバフを置くか。
+   以前は分裂に「威力半減」が付いていたせいで、修飾を拾うより発射体を
+   もう 1 枚拾うほうが常に強く、並び順が結果に影響しなくなっていた。 */
+const newBuf = () => ({split:1, pierce:0, splash:0, mul:1, vuln:0, weak:0, psn:0});
 const alive = st => st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
 function nextAlive(st, from){
   const a = alive(st); if (!a.length) return -1;
@@ -856,7 +830,7 @@ let REC = null;                        // 演出用に解決手順を記録す�
 function hit(st, i, amount, log){
   const f = st.foes[i];
   if (!f || f.hp<=0) return;
-  const d = Math.max(0, Math.round(amount));
+  const d = Math.max(0, Math.round(amount * (1 + (f.vuln||0))));   // 破鎧の分だけ通る
   f.hp -= d;
   if (st.flash) st.flash.push(i);
   log.push({k:"fire", t:`  ${f.name} −${d}`});
@@ -864,16 +838,30 @@ function hit(st, i, amount, log){
   if (f.hp<=0){ f.hp = 0; log.push({k:"total", t:`  ${f.name} 撃破`});
     if (REC) REC.push({k:"kill", i}); }
 }
-function shoot(st, card, buf, tgt, log, chain){
+/** 当てた敵に、この発射体が積んでいたデバフを残す */
+function debuff(st, i, buf, log){
+  const f = st.foes[i];
+  if (!f || f.hp<=0) return;
+  if (buf.vuln){ f.vuln = (f.vuln||0) + buf.vuln;
+    log.push({k:"mod", t:`  ${f.name} 破鎧`}); if (REC) REC.push({k:"deb", i, s:"破鎧"}); }
+  if (buf.weak){ f.weak = (f.weak||0) + buf.weak; f.atk = Math.max(1, f.atk - buf.weak);
+    log.push({k:"mod", t:`  ${f.name} 攻撃 −${buf.weak}`}); if (REC) REC.push({k:"deb", i, s:"弱体"}); }
+  if (buf.psn){ f.psn = (f.psn||0) + buf.psn;
+    log.push({k:"mod", t:`  ${f.name} 毒 ${f.psn}`}); if (REC) REC.push({k:"deb", i, s:"毒"}); }
+}
+function shoot(st, card, buf, tgt, log){
   const copies = buf.split;
-  const base   = (card.dmg + buf.dmg) * buf.mul * (copies>1 ? 0.45 : 1) * chain;
+  const base   = card.dmg * buf.mul;            // 修飾は倍率。下げることはしない
   const pierce = (card.pierce||0) + buf.pierce;
   const splash = buf.splash;
   const tags = [];
   if (copies>1)  tags.push(`分裂${copies}`);
   if (pierce)    tags.push(`貫通${pierce}`);
   if (splash)    tags.push(`波及${splash}`);
-  if (chain < 1) tags.push(`連射${Math.round(chain*100)}%`);
+  if (buf.mul!==1) tags.push(`威力${buf.mul}倍`);
+  if (buf.vuln)  tags.push("破鎧");
+  if (buf.weak)  tags.push("弱体");
+  if (buf.psn)   tags.push("毒");
   log.push({k:"fire", t:`▸ ${card.name} ${Math.round(base)}${tags.length?" ["+tags.join(" ")+"]":""}`});
   if (REC) REC.push({k:"fire", name:card.name, tags:tags.join(" ")});
   // 貫通・波及・分裂の「隣」は、すべて生存する敵の並びの上で数える。
@@ -884,27 +872,28 @@ function shoot(st, card, buf, tgt, log, chain){
   if (start < 0) start = 0;
   for (let c=0;c<copies;c++){
     const ai = (start + c) % ring.length;              // 複製は生存する敵を巡る
-    for (let p=0; p<=pierce && ai+p < ring.length; p++) hit(st, ring[ai+p], base, log);
+    for (let p=0; p<=pierce && ai+p < ring.length; p++){
+      hit(st, ring[ai+p], base, log); debuff(st, ring[ai+p], buf, log); }
     for (let dj=1; dj<=splash; dj++)         // 波及 N ＝ N 体隣まで、各 0.5 倍
       for (const sgn of [-1, 1])
         if (ring[ai+sgn*dj] !== undefined) hit(st, ring[ai+sgn*dj], base*0.5, log);
   }
 }
 function runCast(st, wand, tgt, log){
-  let buf = newBuf(), pi = 0;
+  let buf = newBuf();
   for (const c of wand){
     if (c.type === "modifier"){
       // 上書きではなく加算する（貫通+2 と書いてあるのだから重なるべき）
       if (c.mod.pierce) buf.pierce += c.mod.pierce;
       if (c.mod.splash) buf.splash += c.mod.splash;
       if (c.mod.split)  buf.split  += c.mod.split - 1;
-      if (c.mod.dmg)    buf.dmg    += c.mod.dmg;
-      if (c.mod.mul)    buf.mul    += c.mod.mul;   // 乗算だと重ねがけで壊れる
+      if (c.mod.mul)    buf.mul    *= c.mod.mul;
+      if (c.mod.vuln)   buf.vuln   += c.mod.vuln;
+      if (c.mod.weak)   buf.weak   += c.mod.weak;
+      if (c.mod.psn)    buf.psn    += c.mod.psn;
       log.push({k:"mod", t:`+ ${c.name}`});
       if (REC) REC.push({k:"mod", name:c.name}); }
-    else if (c.type === "projectile"){
-      shoot(st, c, buf, tgt, log, chainAt(pi));
-      pi++; buf = newBuf(); }
+    else if (c.type === "projectile"){ shoot(st, c, buf, tgt, log); buf = newBuf(); }
   }
   const tail = [];
   for (let j=wand.length-1; j>=0 && wand[j].type==="modifier"; j--) tail.unshift(wand[j].name);
@@ -999,15 +988,15 @@ function step(dx, dy){
   if (rm && !rm.done){ S.busy = true; setTimeout(()=>{ S.busy = false; enterRoom(rm); }, 180); }
 }
 
-const foeHp  = (f, fl, boss) => Math.round(f.hp * (1 + (fl-1)*0.28 + (boss?0.40:0)));
-const foeAtk = (f, fl) => Math.max(2, Math.round(f.atk * (1 + (fl-1)*0.15)));
+const foeHp  = (f, fl, boss) => Math.round(f.hp * (1 + (fl-1)*0.34 + (boss?0.45:0)));
+const foeAtk = (f, fl) => Math.max(2, Math.round(f.atk * (1 + (fl-1)*0.20)));
 function makeFoes(kind, fl){
   const n = kind === "boss" ? 3 : (rnd(1) < 0.55 ? 2 : 1);
   const pick = shuffle(FOEDEX).slice(0, n);
   const boss = kind === "boss";
   return pick.map(f=>{
     const hp = foeHp(f, fl, boss);
-    return {name:f.name, spr:f.spr, hp, maxHp:hp, atk:foeAtk(f, fl)};
+    return {name:f.name, spr:f.spr, hp, maxHp:hp, atk:foeAtk(f, fl), vuln:0, weak:0, psn:0};
   });
 }
 
@@ -1101,7 +1090,7 @@ function swapAt(i){
   S.swaps--; render();
 }
 function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); } }
-const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, done:240};
+const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, deb:260, psn:340, done:240};
 
 function cast(){
   if (S.over || S.phase !== "fight" || S.anim) return;
@@ -1112,7 +1101,13 @@ function cast(){
   if (!S.wand.length){ S.block += 6; S.log = [{k:"mod", t:"構えた（防御 +6）"}]; }
   if (S.wand.length) runCast(clone, S.wand, S.target, log);
   const evs = REC; REC = null;
-  // 2) 生き残った敵の反撃を予定に加える
+  // 2) 毒は敵の番の直前に入る
+  clone.foes.forEach((f,i)=>{
+    if (f.hp>0 && f.psn){ f.hp = Math.max(0, f.hp - f.psn);
+      evs.push({k:"psn", i, dmg:f.psn});
+      if (f.hp<=0) evs.push({k:"kill", i}); }
+  });
+  // 3) 生き残った敵の反撃を予定に加える
   if (clone.foes.some(f=>f.hp>0)){
     let blk = S.block;
     for (const f of clone.foes){
@@ -1148,6 +1143,20 @@ function playStepOnce(schedule){
     const f = S.foes[e.i];
     if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i); }
     S.log.push({k:"fire", t:`  ${f?f.name:""} −${e.dmg}`});
+  }
+  if (e.k === "deb"){
+    const f = S.foes[e.i];
+    if (f){
+      if (e.s === "破鎧") f.vuln = (f.vuln||0) + 0.5;
+      if (e.s === "弱体"){ f.weak = (f.weak||0) + 2; f.atk = Math.max(1, f.atk - 2); }
+      if (e.s === "毒")   f.psn  = (f.psn||0) + 4;
+      S.log.push({k:"mod", t:`  ${f.name} ${e.s}`});
+    }
+  }
+  if (e.k === "psn"){
+    const f = S.foes[e.i];
+    if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i); }
+    S.log.push({k:"foe", t:`  ${f?f.name:""} 毒 −${e.dmg}`});
   }
   if (e.k === "kill"){
     const f = S.foes[e.i];
@@ -1345,8 +1354,23 @@ function ring(g, cx, cy, r, col, dash){
 function drawFx(){
   if (!S) return;
   fx.clearRect(0,0,fxc.width,fxc.height);
-  // 照準（すべてドットで打つ）
+  // 照準の下にある札の「倒れる帯」を出す。当たり所で結果が決まるゲームなので、
+  // どこに当てれば倒れてどちらへ倒れるかを、撃つ前に見えるようにしておく。
   if (S.phase==="shoot" && S.mode === "aim" && S.corks > 0){
+    const hp = bodyAt(ret.x, ret.y);
+    if (hp && hp.st === "stand"){
+      const need = Math.min(PH/2, W_NEED / (SPIN * S.gun.power));
+      const x0 = X(hp.b.x - PW/2), w = X(hp.b.x + PW/2) - x0;
+      const bandY = (a, b)=>{ const y0 = Y(a); fx.fillRect(x0, y0, w, Y(b) - y0); };
+      fx.fillStyle = "rgba(226,98,47,.34)";                 // 上：向こうへ倒れる
+      bandY(hp.b.y - PH/2, hp.b.y - need);
+      fx.fillStyle = "rgba(226,98,47,.34)";                 // 下：手前へ倒れる
+      bandY(hp.b.y + need, hp.b.y + PH/2);
+      fx.fillStyle = "rgba(10,12,22,.55)";                  // 中央：倒れない
+      bandY(hp.b.y - need, hp.b.y + need);
+      fx.fillStyle = "#98A0B8";
+      for (let k=0;k<w;k+=PX*2) fx.fillRect(x0+k, Y(hp.b.y), PX, PX);
+    }
     ring(fx, ret.x, ret.y, Math.round(S.gun.spread), "#9C4630", true);
     ring(fx, ret.x, ret.y, 4, "#E2622F", false);
     fx.fillStyle = "#F5BE7C";
@@ -1390,7 +1414,9 @@ function syncPrizes(){
     el.style.setProperty("--u", (PW / 15 * PX) + "px");
     el.style.left = (p.b.x / GW * 100) + "%";
     el.style.top  = (p.b.y / GH * 100) + "%";
-    el.style.transform = `translate(-50%,-50%) rotate(${p.b.a}rad)`;
+    // 回転を 12 段に量子化する。中途半端な角度で描かないぶんドット絵が保たれる
+    const qa = Math.round(p.b.a / QA) * QA;
+    el.style.transform = `translate(-50%,-50%) rotate(${qa}rad)`;
   }
 }
 function clearPrizes(){ for (const el of prizeEls.values()) el.remove(); prizeEls.clear(); }

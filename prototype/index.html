@@ -1,71 +1,105 @@
 <title>射的詠唱</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Silkscreen:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 
 <style>
 :root{
-  /* 24 色。すべてここから引く。CSS に直接の色は書かない */
-  --n0:#080A14; --n1:#12162E; --n2:#1B2036; --n3:#2C3350; --n4:#4B5578;
-  --i0:#EDE7DA; --i1:#98A0B8; --i2:#7E86A0;
-  --g0:#FFF0C0; --g1:#E0B23C; --g2:#B8912F; --g3:#3A2E0E;
-  --e0:#F5BE7C; --e1:#E2622F; --e2:#9C4630; --e3:#33202A;
-  --s0:#A8D8F0; --s1:#6FA8D6; --s2:#2F4A63; --s3:#131E2E;
-  --j0:#9CE0A4; --j1:#5FA86B; --j2:#2E6B38;
-  --b1:#C93A2C; --b2:#6E1A12;
+  /* ═══ 16 色。これが全部。CSS にも canvas にも他の色は書かない ═══
+     Into the Breach / Loop Hero と同じ考え方で、装飾ではなく規律で見せる。
+     以前は 107 色あり、同じ「朱」が 7 種類の微妙に違う値で書かれていた。 */
+  --c0:#0B0E1A;   /* 闇・ふち・影 */
+  --c1:#151A2E;   /* 地 */
+  --c2:#232A44;   /* 面 */
+  --c3:#3A4467;   /* 縁・立ち上がり */
+  --c4:#9AA2BC;   /* 薄い字・細い線 */
+  --c5:#E8E4D6;   /* 明るい字 */
+  --c6:#8A6E22;   /* 金・暗 */
+  --c7:#E0B23C;   /* 金 */
+  --c8:#F7D97A;   /* 金・明 */
+  --c9:#8E3320;   /* 朱・暗 */
+  --ca:#E2622F;   /* 朱 */
+  --cb:#F5A55C;   /* 朱・明 */
+  --cc:#35618C;   /* 青・暗 */
+  --cd:#7EC0E8;   /* 青・明 */
+  --ce:#2E7A46;   /* 緑・暗 */
+  --cf:#6FBF6A;   /* 緑・明 */
 
-  /* 別名（既存の参照を壊さないため） */
-  --night:var(--n0); --panel:var(--n2); --panel2:var(--n3);
-  --line:var(--n3); --line2:var(--n4);
-  --ivory:var(--i0); --mute:var(--i1); --faint:var(--i2);
-  --gold:var(--g1); --gold-dim:var(--g2);
-  --ember:var(--e1); --amber:var(--e1); --blood:var(--b1); --jade:var(--j1); --sky:var(--s1);
+  /* 役割の名前。色を選ぶときは必ずこちらを使う */
+  --night:var(--c0);  --panel:var(--c1);  --panel2:var(--c2);
+  --line:var(--c2);   --line2:var(--c3);
+  --ivory:var(--c5);  --mute:var(--c4);   --faint:var(--c4);
+  --gold:var(--c7);   --gold-dim:var(--c6);
+  --ember:var(--ca);  --amber:var(--ca);  --blood:var(--ca);
+  --jade:var(--cf);   --sky:var(--cd);
+  --n0:var(--c0); --n1:var(--c1); --n2:var(--c1); --n3:var(--c2); --n4:var(--c3);
+  --i0:var(--c5); --i1:var(--c4); --i2:var(--c4);
+  --g0:var(--c8); --g1:var(--c7); --g2:var(--c6); --g3:var(--c1);
+  --e0:var(--cb); --e1:var(--ca); --e2:var(--c9); --e3:var(--c1);
+  --s0:var(--cd); --s1:var(--cd); --s2:var(--cc); --s3:var(--c1);
+  --j0:var(--cf); --j1:var(--cf); --j2:var(--ce);
+  --b1:var(--ca); --b2:var(--c9);
 
-  /* 部品の共通値 */
-  --u:6px;                       /* 1 ゲーム単位 = 整数 px */
-  --bw:3px;                      /* 枠の太さは 1 種類 */
-  --sh:4px 4px 0 var(--n0);      /* 影は 1 種類・不透明・向き固定 */
-  --sp16:calc(var(--u) * 8);     /* 16x16 スプライトの箱（1 ドット = u/2） */
-  --sp8:calc(var(--u) * 4);      /* 8x8 スプライトの箱 */
+  /* ═══ ドットの規律 ═══
+     1 ゲーム単位 --u は必ず偶数。その半分 --px が「1 ドット」で、
+     枠・影・スプライトの箱はすべて --px の整数倍で組む。
+     半端な px が 1 箇所でも混じると、そこだけ滲んで素人の絵になる。 */
+  --u:6px;
+  --px:calc(var(--u) / 2);
+  --bw:var(--px);                /* 枠の太さは 1 ドット */
+  --sh:var(--px) var(--px) 0 var(--c0);   /* 影は 1 ドット・不透明・向き固定 */
+  --sp16:calc(var(--px) * 16);   /* 16x16 スプライトの箱（1 ドット = --px） */
+  --sp8:calc(var(--px) * 8);     /* 8x8 スプライトの箱（1 ドット = --px） */
 
+  /* 文字も 4 段だけ。すべて --px の整数倍。
+     .62em や 1.35em のような小数倍は 7.44px や 16.2px になり、
+     ドット書体は設計サイズの整数倍でしか正しく出ないので必ず滲む。 */
+  --t1:calc(var(--px) * 3);      /* 添え字 */
+  --t2:calc(var(--px) * 4);      /* 本文 */
+  --t3:calc(var(--px) * 6);      /* 見出し */
+  --t4:calc(var(--px) * 8);      /* 大見出し */
+
+  /* 書体は 1 つ。和文が無い書体を混ぜると、そこだけ別のゲームになる */
   --f-disp:"DotGothic16","Courier New",monospace;
   --f-body:"DotGothic16","Courier New",monospace;
-  --f-mono:"Silkscreen","DotGothic16","Courier New",monospace;
+  --f-mono:"DotGothic16","Courier New",monospace;
 }
+
 *{box-sizing:border-box}
-body{margin:0;background:#0A0B14;image-rendering:pixelated;color:var(--ivory);font-family:var(--f-body);
-  -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;align-items:center;
+body{margin:0;background:#0B0E1A;image-rendering:pixelated;color:var(--ivory);font-family:var(--f-body);
+  -webkit-font-smoothing:none;font-smooth:never;display:flex;flex-direction:column;align-items:center;
   padding:14px;gap:10px;min-height:100vh}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
-button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:focus-visible{outline:var(--bw) solid var(--c7);outline-offset:var(--px)}
 
 #stagebox{display:flex;align-items:center;justify-content:center;background:var(--n0)}
 body.isfull{padding:0;gap:0;overflow:hidden}
 body.isfull .notes{display:none}
 /* iframe 内では requestFullscreen が拒否されるので、擬似全画面で覆う */
 body.isfull #stagebox{position:fixed;inset:0;z-index:90}
-.full{position:absolute;right:calc(var(--u)*1.4);top:calc(var(--u)*1.4);z-index:12;
-  padding:calc(var(--u)*0.5) calc(var(--u)*1);font-size:.9em;opacity:.45}
-.full:hover{opacity:1}
+.full{padding:var(--px) calc(var(--px)*2);border:var(--bw) solid var(--c2);
+  background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto}
+.full:hover{border-color:var(--c7);color:var(--c7)}
 .stage{width:100%;aspect-ratio:16/9;container-type:size;image-rendering:pixelated;
-  font-size:max(11px, calc(var(--u) * 2));position:relative;overflow:hidden;
+  font-size:var(--t2);position:relative;overflow:hidden;
   border:0;background:var(--n0)}
 .screen{position:absolute;inset:0;display:flex;flex-direction:column}
 .screen.off{display:none}
 
 /* ═══ HUD（両画面共通） ═══ */
-.hud{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;
-  justify-content:space-between;padding:.85em 1.4em;z-index:6;pointer-events:none;gap:1em}
+.hud{position:absolute;top:calc(var(--u)*6.4);left:0;right:0;display:flex;align-items:center;
+  justify-content:space-between;padding:0 calc(var(--u)*2);z-index:6;pointer-events:none;
+  gap:calc(var(--u)*2);height:calc(var(--u)*4.6)}
 .hud .l,.hud .r{display:flex;align-items:center;gap:.7em}
-.chip{font-family:var(--f-mono);font-size:.75em;letter-spacing:.1em;padding:.3em .7em;
-  background:rgba(10,12,22,.78);border:var(--bw) solid var(--line);color:var(--mute);
+.chip{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.1em;padding:.3em .7em;
+  background:#0B0E1A;border:var(--bw) solid var(--line);color:var(--mute);
   border-radius:0;white-space:nowrap}
 .chip.solid{background:var(--panel);color:var(--ivory)}
 .chip b{color:var(--ivory);font-weight:700}
-.chip .hp{color:#E4614F} .chip .bk{color:var(--sky)}
+.chip .hp{color:#E2622F} .chip .bk{color:var(--sky)}
 .corks{display:flex;gap:.3em;align-items:center}
-.ck{width:.55em;height:.72em;background:#2A3050;border:var(--bw) solid #414A6B}
-.ck.on{background:var(--gold);border-color:#F0D07A}
+.ck{width:calc(var(--px)*3);height:calc(var(--px)*4);background:var(--c2);border:var(--bw) solid var(--c3)}
+.ck.on{background:var(--gold);border-color:#F7D97A}
 
 /* ═══ 画面1：射的屋 ═══ */
 #board{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -75,242 +109,303 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #sign{position:absolute;left:50%;top:1.2%;transform:translateX(-50%);z-index:3;
   width:26%;height:11.5%;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:.1em;pointer-events:none}
-#foebar{position:absolute;left:50%;top:calc(var(--u)*0.8);transform:translateX(-50%);
-  z-index:5;display:flex;gap:calc(var(--u)*2);align-items:flex-start}
-#foebar .fb{display:flex;flex-direction:column;align-items:center;gap:1px;
-  padding:0 calc(var(--u)*0.6);border:2px solid transparent;background:none}
-#foebar .fb[aria-pressed="true"]{border-color:var(--g1);background:#1A1710}
-#foebar .fb.dead{opacity:.25;filter:grayscale(1)}
-#foebar .fbs{width:calc(var(--u)*8);height:calc(var(--u)*8);image-rendering:pixelated;color:var(--i1)}
+#foebar{position:absolute;left:50%;top:calc(var(--u)*11);transform:translateX(-50%);
+  z-index:5;display:flex;gap:calc(var(--px)*6);align-items:flex-start}
+#foebar .fb{display:flex;flex-direction:column;align-items:center;gap:var(--px);
+  padding:var(--px) calc(var(--px)*2);border:var(--bw) solid transparent;background:none}
+#foebar .fb[aria-pressed="true"]{border-color:var(--g1);background:#151A2E}
+
+#foebar .fbs{width:var(--sp16);height:var(--sp16);image-rendering:pixelated;color:var(--i1)}
 #foebar .fb[aria-pressed="true"] .fbs{color:var(--g1)}
-#foebar .fbh{width:calc(var(--u)*9);height:calc(var(--u)*0.8);background:var(--n0);
-  border:1px solid var(--n3);position:relative}
+#foebar .fbh{width:var(--sp16);height:calc(var(--px)*2);background:var(--c0);
+  border:var(--px) solid var(--c2);position:relative}
 #foebar .fbh i{position:absolute;inset:0;right:auto;background:var(--b1)}
-#foebar .fbn{font-family:var(--f-mono);font-size:.75em;color:var(--i1);
+#foebar .fbn{font-family:var(--f-mono);font-size:var(--t1);color:var(--i1);
   font-variant-numeric:tabular-nums;line-height:1.1}
-#foebar .fba{font-family:var(--f-mono);font-size:.75em;color:#E8836F;line-height:1.1}
-#foebar .fbd{font-family:var(--f-mono);font-size:.62em;color:var(--g1);line-height:1.1;
+#foebar .fba{font-family:var(--f-mono);font-size:var(--t1);color:#F5A55C;line-height:1.1}
+#foebar .fbd{font-family:var(--f-mono);font-size:var(--t1);color:var(--g1);line-height:1.1;
   letter-spacing:.02em;min-height:1em}
-#sign b{font-family:var(--f-disp);font-size:1.8em;letter-spacing:.42em;
+#sign b{font-family:var(--f-disp);font-size:var(--t4);letter-spacing:.42em;
   color:var(--gold);text-indent:.42em;line-height:1}
-#sign i{font-family:var(--f-mono);font-style:normal;font-size:.75em;letter-spacing:.3em;
+#sign i{font-family:var(--f-mono);font-style:normal;font-size:var(--t1);letter-spacing:.3em;
   color:var(--gold-dim);text-indent:.3em}
 #prizes .card{position:absolute;transform-origin:50% 50%;
   transition:none;box-shadow:none}  /* 物理と 1 フレームもずらさない。影は回らないので出さない */
 #board{image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair;touch-action:none}
 .shootfoot{position:absolute;left:0;bottom:0;display:flex;align-items:flex-end;
   padding:.7em 1.4em 1em;z-index:6;gap:.7em}
-.tip{font-family:var(--f-mono);font-size:.75em;color:var(--faint);letter-spacing:.04em}
+.tip{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);letter-spacing:.04em}
 .got{display:flex;gap:.4em;align-items:center}
-.gotcard{font-family:var(--f-body);font-size:.75em;padding:.25em .6em;
-  background:#171B33;border:2px solid;font-weight:400}
-.gotcap{font-family:var(--f-mono);font-size:.75em;color:var(--faint);letter-spacing:.06em}
-.gotsum{font-family:var(--f-mono);font-size:.75em;padding:.25em .6em;
-  background:#171B33;border:2px solid var(--gold-dim);color:var(--gold);font-weight:700}
-.gotdud{font-family:var(--f-mono);font-size:.75em;padding:.25em .6em;
-  background:#2A1414;border:2px solid #7A2E22;color:#E8836F}
+.gotcard{font-family:var(--f-body);font-size:var(--t1);padding:.25em .6em;
+  background:var(--c1);border:var(--bw) solid;font-weight:400}
+.gotcap{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);letter-spacing:.06em}
+.gotsum{font-family:var(--f-mono);font-size:var(--t1);padding:.25em .6em;
+  background:var(--c1);border:var(--bw) solid var(--c6);color:var(--c7);font-weight:700}
+.gotdud{font-family:var(--f-mono);font-size:var(--t1);padding:.25em .6em;
+  background:var(--c1);border:var(--bw) solid var(--c9);color:var(--cb)}
 
-/* ═══ 画面0：ダンジョン ═══ */
-#dungeon{background:var(--n0);align-items:center;justify-content:center}
-.dwrap{position:relative;touch-action:none}
+/* ═══ 画面0：ダンジョン ═══
+   単色の矩形に罫線を引いただけの面は、ドット絵ではなく Web レイアウト。
+   床には汚れのドットを打ち、上端に照り・下端に影を入れて厚みを出す。 */
+#dungeon{background:var(--c0);align-items:center;justify-content:center;
+  background-image:repeating-linear-gradient(90deg,
+    var(--c0) 0 calc(var(--u)*11), var(--c1) calc(var(--u)*11) calc(var(--u)*11.5))}
+.dwrap{position:relative;touch-action:none;
+  padding:calc(var(--u)*2);background:var(--c1);
+  border:var(--bw) solid var(--c2);box-shadow:var(--sh)}
 .dgrid{display:grid;gap:0}
 .dc{width:var(--ts);height:var(--ts);position:relative}
 .dc.wall{background:transparent}
-.dc.floor{background:#39406B;box-shadow:inset 0 0 0 2px #2A3050}
-.dc.room{background:#5A66A0;box-shadow:inset 0 0 0 2px #414C82}
-.dc.edge{background:#171B33}
-.dc .ic{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
-.dc.done .ic{opacity:.28}
-.dc.here{outline:2px solid var(--gold);outline-offset:-2px}
+/* 通路と部屋。上端 1 ドットの照りと下端 1 ドットの影で厚みを出す */
+.dc.floor{background:var(--c2)}
+.dc.room{background:var(--c3)}
+/* 縁の段差は、隣が壁のときだけ入れる。全タイルに入れると床が横縞の棚に見える */
+.dc.tn{box-shadow:inset 0 var(--px) 0 var(--c4)}
+.dc.bn{box-shadow:inset 0 calc(var(--px)*-1) 0 var(--c0)}
+.dc.tn.bn{box-shadow:inset 0 var(--px) 0 var(--c4), inset 0 calc(var(--px)*-1) 0 var(--c0)}
+.dc.edge{background:var(--c0)}
+/* 床の汚れ。4 種を座標で振り分けて、反復を隠す */
+.dc.floor::after,.dc.room::after{content:"";position:absolute;inset:0;
+  background-repeat:no-repeat}
+.dc.v0::after{background-image:radial-gradient(var(--c1) 40%,transparent 41%);
+  background-size:var(--px) var(--px);background-position:30% 60%}
+.dc.v1::after{background-image:linear-gradient(var(--c1) 0 0),linear-gradient(var(--c1) 0 0);
+  background-size:var(--px) var(--px);background-position:65% 30%, 25% 75%}
+.dc.v2::after{background-image:linear-gradient(var(--c1) 0 0);
+  background-size:calc(var(--px)*2) var(--px);background-position:55% 70%}
+.dc.v3::after{background-image:none}
+.dc .ic{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:2}
+
+.dc.here{box-shadow:inset 0 0 0 var(--px) var(--c7)}
 .hero{position:absolute;width:var(--ts);height:var(--ts);z-index:3;
   transition:left .1s steps(2),top .1s steps(2);pointer-events:none;
   display:flex;align-items:center;justify-content:center}
 .hspr{width:100%;height:100%;image-rendering:pixelated}
 .dtip{position:absolute;left:0;right:0;bottom:6%;text-align:center;
-  font-family:var(--f-mono);font-size:.9em;color:var(--faint);letter-spacing:.08em}
-.dex{position:absolute;right:1.4em;bottom:1.4em;z-index:6;font-size:.75em;padding:.5em 1em}
+  font-family:var(--f-mono);font-size:var(--t2);color:var(--faint);letter-spacing:.08em}
+.dex{position:absolute;right:calc(var(--u)*2);bottom:calc(var(--u)*2);z-index:6;
+  font-size:var(--t1);padding:var(--px) calc(var(--px)*3)}
+/* 盤面の左右に、いま持っているプールの内訳を出す（両端の黒帯を埋める） */
+.dside{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+  display:flex;flex-direction:column;gap:var(--px);width:calc(var(--u)*26)}
+.dside.left{left:calc(var(--u)*3)}
+.dside.right{right:calc(var(--u)*3);align-items:flex-end}
+.dside h3{font-family:var(--f-disp);font-size:var(--t2);color:var(--c7);
+  margin:0 0 var(--px);letter-spacing:.1em}
+.dsrow{display:flex;align-items:center;gap:var(--px);width:100%;
+  font-family:var(--f-mono);font-size:var(--t1);color:var(--c4)}
+.dsrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
+.dsrow .nm{flex:1 1 auto}
+.dsrow .ct{color:var(--c5)}
+.dsbar{height:var(--px);background:var(--c2);width:100%}
+.dsbar i{display:block;height:100%;background:var(--c7)}
 
 /* ═══ 図鑑 ═══ */
-#dexv{position:absolute;inset:0;background:rgba(8,10,18,.97);z-index:30;
+#dexv{position:absolute;inset:0;background:#0B0E1A;z-index:30;
   overflow:auto;padding:1.4em 1.6em 2em}
-#dexv h2{font-family:var(--f-disp);font-size:1.35em;color:var(--gold);margin:0 0 .2em;letter-spacing:.1em}
-#dexv .sub{font-family:var(--f-mono);font-size:.75em;color:var(--faint);margin-bottom:1em}
+#dexv h2{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold);margin:0 0 .2em;letter-spacing:.1em}
+#dexv .sub{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);margin-bottom:1em}
 .dexrow{display:flex;flex-wrap:wrap;gap:.8em;margin-bottom:1.4em}
 .dexcell{display:flex;flex-direction:column;align-items:center;gap:.3em}
-.dexcell .n{font-family:var(--f-mono);font-size:.75em;color:var(--mute)}
+.dexcell .n{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute)}
 .dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:.5em .9em}
-.dexi{border:var(--bw) solid #333B5C;background:#1B2036;padding:.5em .7em}
-.dexi b{font-family:var(--f-disp);font-size:.9em;display:block}
-.dexi span{font-family:var(--f-mono);font-size:.75em;color:var(--mute);line-height:1.5}
+.dexi{border:var(--bw) solid #3A4467;background:#151A2E;padding:.5em .7em}
+.dexi b{font-family:var(--f-disp);font-size:var(--t2);display:block}
+.dexi span{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute);line-height:1.5}
 #dexclose{position:sticky;top:0;float:right}
 
 /* ═══ 画面3：報酬 ═══ */
 #reward{background:var(--n2);align-items:center;justify-content:center;
   background-image:repeating-linear-gradient(90deg,
-    #101430 0 var(--u), transparent var(--u) calc(var(--u)*11))}
+    #151A2E 0 var(--u), transparent var(--u) calc(var(--u)*11))}
 .rwrap{display:flex;flex-direction:column;align-items:center;gap:.9em;padding:2em}
-.rwrap h2{font-family:var(--f-disp);font-size:1.8em;margin:0;color:var(--gold);letter-spacing:.1em}
-.rwrap p{margin:0;color:var(--mute);font-size:.9em}
+.rwrap h2{font-family:var(--f-disp);font-size:var(--t4);margin:0;color:var(--gold);letter-spacing:.1em}
+.rwrap p{margin:0;color:var(--mute);font-size:var(--t2)}
 .picks3{display:flex;gap:1.2em;align-items:stretch}
 .pk{background:none;border:0;padding:0;display:flex;flex-direction:column;
   align-items:center;gap:calc(var(--u)*0.7);text-align:center}
-.pk:hover{border-color:var(--gold);background:#241F14}
+.pk:hover{border-color:var(--gold);background:#151A2E}
 .pk .card{cursor:pointer}
-.pk:hover .card{border-color:var(--g1);box-shadow:6px 6px 0 var(--n0)}
-.pk .pkh{font-family:var(--f-mono);font-size:.75em;letter-spacing:.16em;color:var(--faint)}
-.pk .pkn{font-family:var(--f-disp);font-size:1em;color:var(--ivory)}
-.pk .pkd{font-size:.75em;color:var(--mute);line-height:1.4;margin-top:auto}
+.pk:hover .card{border-color:var(--g1);box-shadow:calc(var(--px)*2) calc(var(--px)*2) 0 var(--c0)}
+.pk .pkh{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.16em;color:var(--faint)}
+.pk .pkn{font-family:var(--f-disp);font-size:var(--t2);color:var(--ivory)}
+.pk .pkd{font-size:var(--t1);color:var(--mute);line-height:1.4;margin-top:auto}
 .pk .card{pointer-events:none;box-shadow:none;margin:0}
 
-/* ═══ 画面2：戦闘（2枚目の参照） ═══ */
-#fight{background:var(--n2);
-  background-image:repeating-linear-gradient(90deg,
-    #101430 0 var(--u), transparent var(--u) calc(var(--u)*11))}
-#fight::before{content:"";position:absolute;left:0;right:0;
-  top:calc(var(--u)*56);height:calc(var(--u)*4);
-  background:var(--n3);border-top:var(--bw) solid var(--g2);z-index:1}
-#fight::after{content:"";position:absolute;left:0;right:0;bottom:0;
-  height:calc(var(--u)*20);background:var(--n1);
-  border-top:var(--bw) solid var(--n3);z-index:1}
+/* ═══ 画面2：戦闘 ═══
+   敵は「箱」ではなく「舞台に立っているもの」として置く。
+   枠は "プレイヤーが触る UI" の記号として予約し、世界の中の存在には使わない
+   （Slay the Spire も Darkest Dungeon もこの切り分けをしている）。 */
+#fight{background:var(--c1)}
+/* 奥の壁。板の幅を 2 種類にして、等間隔の縞に見えないようにする */
+#fight::before{content:"";position:absolute;left:0;right:0;top:0;
+  height:calc(var(--u)*66);z-index:0;
+  background:repeating-linear-gradient(90deg,
+    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
+    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
+/* 床。1 本の線ではなく 3 段の帯にして、奥行きと接地を出す */
+#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*66);
+  height:calc(var(--u)*8);z-index:1;
+  background:linear-gradient(var(--c6) 0 var(--px),
+    var(--c3) var(--px) calc(var(--px)*4),
+    var(--c2) calc(var(--px)*4) calc(var(--px)*10),
+    var(--c1) calc(var(--px)*10) 100%)}
 .arena{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;
-  gap:calc(var(--u)*3);padding:calc(var(--u)*6) 2em 0;height:calc(var(--u)*56);z-index:2}
-.foe{position:relative;width:calc(var(--u)*34);padding:calc(var(--u)*1.5) calc(var(--u)*1.5) 0;border-radius:0;
-  background:#171B33;
-  border:var(--bw) solid #2C3350;display:flex;flex-direction:column;align-items:center;gap:.5em;
-  transition:border-color .1s,transform .1s steps(2);text-align:center}
-.foe:hover:not(:disabled){transform:translateY(-.25em)}
-.foe[aria-pressed="true"]{border-color:var(--gold);box-shadow:var(--sh)}
-.foe.dead{opacity:.2;filter:grayscale(1)}
-.foe.hurt{animation:hurt .3s ease-out}
-@keyframes hurt{0%{background:#3A1414;transform:translateX(-.3em)}100%{}}
-.intent{font-family:var(--f-mono);font-size:.9em;font-weight:700;letter-spacing:.06em;
-  padding:.22em .8em;border-radius:0;background:#3A1418;border:var(--bw) solid #6A2A2A;
-  color:#E8836F;display:flex;align-items:center;gap:.4em;margin-top:-.1em}
-.fname{font-family:var(--f-disp);font-size:1.35em;color:var(--ivory);letter-spacing:.05em}
-.glyph{width:calc(var(--u)*16);height:calc(var(--u)*16);color:var(--mute);shape-rendering:crispEdges}
+  gap:calc(var(--u)*14);padding:calc(var(--u)*13) 2em 0;height:calc(var(--u)*68);z-index:2}
+.foe{position:relative;display:flex;flex-direction:column;align-items:center;
+  gap:var(--px);background:none;border:0;padding:0 calc(var(--u)*2) calc(var(--u)*2);
+  transition:transform .1s steps(2);text-align:center}
+.foe:hover:not(:disabled){transform:translateY(calc(var(--px)*-2))}
+/* 接地影。選んでいる敵は影が金になる（枠を足さない） */
+.foe::after{content:"";position:absolute;left:50%;bottom:0;
+  transform:translateX(-50%);width:calc(var(--px)*26);height:calc(var(--px)*2);
+  background:var(--c0)}
+.foe[aria-pressed="true"]::after{background:var(--c7);height:calc(var(--px)*3)}
+.foe.dead::after{display:none}
+.foe.hurt{animation:hurt .2s steps(2)}
+@keyframes hurt{0%{transform:translateX(calc(var(--px)*-2))}
+  50%{transform:translateX(calc(var(--px)*2))}100%{}}
+.intent{font-family:var(--f-mono);font-size:var(--t2);font-weight:700;
+  padding:0 var(--px);background:var(--c1);border:var(--bw) solid var(--c9);
+  color:var(--cb);display:flex;align-items:center;gap:var(--px)}
+.fname{font-family:var(--f-disp);font-size:var(--t2);color:var(--c4);letter-spacing:.05em}
+.foe[aria-pressed="true"] .fname{color:var(--c5)}
+.glyph{width:calc(var(--px)*48);height:calc(var(--px)*48);color:var(--mute);
+  shape-rendering:crispEdges;margin-top:var(--px)}
 .foe[aria-pressed="true"] .glyph{color:var(--gold)}
-.tgt{font-family:var(--f-mono);font-size:.75em;letter-spacing:.28em;color:var(--gold-dim)}
-.foe[aria-pressed="true"] .tgt{color:var(--gold)}
-.fbar{width:100%;height:1.35em;background:#0A0C16;border-radius:0;
-  border-top:1px solid #2C3350;position:relative;overflow:hidden}
-.fbar i{position:absolute;inset:0;right:auto;background:#C93A2C;transition:width .18s steps(6)}
+/* 選択マーカーは頭上の 1 ドット三角。文字を置かない */
+.tgt{width:calc(var(--px)*7);height:calc(var(--px)*4);
+  clip-path:polygon(50% 100%, 0 0, 100% 0);background:transparent}
+.foe[aria-pressed="true"] .tgt{background:var(--c7)}
+.fbar{width:calc(var(--u)*15);height:calc(var(--px)*5);background:var(--c0);
+  border:var(--bw) solid var(--c2);position:relative;overflow:hidden}
+.fbar i{position:absolute;inset:0;right:auto;background:var(--ca);transition:width .18s steps(6)}
 .fbar .ghost{position:absolute;top:0;bottom:0;background:var(--g2)}
 .fbar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:var(--f-mono);font-size:.75em;font-weight:700;color:var(--i0);
-  text-shadow:2px 2px 0 var(--n0);font-variant-numeric:tabular-nums}
+  font-family:var(--f-mono);font-size:var(--t1);font-weight:700;color:var(--i0);
+  text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
 #floats{position:absolute;inset:0;pointer-events:none;z-index:9}
 .float{position:absolute;transform:translateX(-50%);
-  font-family:var(--f-mono);font-size:1.8em;font-weight:700;z-index:8;
-  pointer-events:none;text-shadow:0 3px 0 #000;animation:pop 1s steps(10) forwards}
-.float.dmg{color:#FF6A4D}
-.float.kill{font-family:var(--f-disp);font-size:1.35em;color:var(--gold)}
+  font-family:var(--f-mono);font-size:var(--t4);font-weight:700;z-index:8;
+  pointer-events:none;text-shadow:var(--px) var(--px) 0 var(--c0);animation:pop 1s steps(10) forwards}
+.float.dmg{color:#E2622F}
+.float.kill{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold)}
 @keyframes pop{0%{opacity:0;transform:translate(-50%,.6em)}
   20%{opacity:1;transform:translate(-50%,-.2em)}
   100%{opacity:0;transform:translate(-50%,-2.2em)}}
 .hpflash{animation:hpf .4s steps(4)}
-@keyframes hpf{0%{color:#fff;background:#5A1A14}100%{}}
-.fdelta{position:absolute;top:.3em;right:.4em;font-family:var(--f-mono);font-size:1.8em;
-  font-weight:700;color:var(--gold);text-shadow:0 2px 6px #000;font-variant-numeric:tabular-nums}
+@keyframes hpf{0%{color:#fff;background:#8E3320}100%{}}
+.fdelta{position:absolute;top:.3em;right:.4em;font-family:var(--f-mono);font-size:var(--t4);
+  font-weight:700;color:var(--gold);text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
 
 /* 手前の帯：杖（＝手札の扇） */
 .hand{flex:1 1 auto;position:relative;z-index:3}
-.handrow{position:absolute;left:50%;bottom:calc(var(--u)*2);transform:translateX(-50%);
+.handrow{position:absolute;left:50%;bottom:calc(var(--u)*7);transform:translateX(-50%);
   display:flex;align-items:flex-end}
+/* 空きスロット。容量が見えるので、下半分が「埋め忘れの余白」に見えない */
+.slot{width:calc(var(--u)*15);height:calc(var(--u)*21);position:relative;flex:0 0 auto;
+  background:var(--c1)}
+/* 破線はアンチエイリアスされるので、四隅の鉤括弧をドットで打つ */
+.slot::before,.slot::after{content:"";position:absolute;width:calc(var(--px)*5);
+  height:calc(var(--px)*5);border:var(--bw) solid var(--c2)}
+.slot::before{left:0;top:0;border-right:0;border-bottom:0}
+.slot::after{right:0;bottom:0;border-left:0;border-top:0}
 .card{position:relative;width:calc(var(--u)*15);height:calc(var(--u)*21);border-radius:0;
-  background:#222840;
-  border:var(--bw) solid #39415F;display:flex;flex-direction:column;align-items:center;
-  padding:calc(var(--u)*2) calc(var(--u)*0.7) calc(var(--u)*0.5);gap:1px;transform-origin:50% 130%;
+  background:#232A44;
+  border:var(--bw) solid #3A4467;display:flex;flex-direction:column;align-items:center;
+  padding:calc(var(--u)*2) calc(var(--u)*0.7) calc(var(--u)*0.5);gap:var(--px);transform-origin:50% 130%;
   transition:transform .1s steps(3),border-color .1s;
   box-shadow:var(--sh);
-  font-size:calc(var(--u)*2.6)}   /* どの画面でも札の中の文字比率を同じにする */
+  font-size:var(--t2)}   /* どの画面でも札の中の文字比率を同じにする */
 .card:hover{transform:translateY(-1.5em) scale(1.05) rotate(0deg)!important;z-index:9;
   border-color:var(--gold);box-shadow:var(--sh)}
 .card.t-projectile{border-color:var(--e2);background:var(--e3)}
-.card.t-modifier{border-color:var(--g2);background:#242942}
+.card.t-modifier{border-color:var(--g2);background:#232A44}
 .card.t-utility{border-color:var(--s2);background:var(--s3)}
 .cidx{position:absolute;top:-.55em;left:-.55em;width:2em;height:2em;border-radius:0;
-  background:#0F1226;border:var(--bw) solid #4B5578;display:flex;align-items:center;
-  justify-content:center;font-family:var(--f-mono);font-size:.9em;font-weight:700;color:var(--ivory)}
-.card.t-projectile .cidx{border-color:#9C4630;color:#F0A08A}
+  background:#151A2E;border:var(--bw) solid #3A4467;display:flex;align-items:center;
+  justify-content:center;font-family:var(--f-mono);font-size:var(--t2);font-weight:700;color:var(--ivory)}
+.card.t-projectile .cidx{border-color:#8E3320;color:#F5A55C}
 .card.t-modifier .cidx{border-color:var(--gold-dim);color:var(--gold)}
-.cname{font-family:var(--f-disp);font-size:1em;letter-spacing:0;line-height:1.05;
+.cname{font-family:var(--f-disp);font-size:var(--t2);letter-spacing:0;line-height:1.05;
   text-align:center;word-break:break-all}
-.cart{width:100%;height:calc(var(--u)*6.5);flex:0 0 auto;border:2px solid var(--n3);
-  background:#12162A;display:flex;align-items:center;justify-content:center;position:relative}
+.cart{width:100%;height:calc(var(--px)*13);flex:0 0 auto;border:var(--bw) solid var(--c2);
+  background:#151A2E;display:flex;align-items:center;justify-content:center;position:relative}
 .cart img{width:100%;height:100%;object-fit:cover;image-rendering:pixelated}
-.cart::after{content:"仮";position:absolute;right:2px;bottom:0;font-family:var(--f-disp);
-  font-size:.5em;color:rgba(255,255,255,.22)}
+.cart::after{content:"仮";position:absolute;right:var(--px);bottom:0;font-family:var(--f-disp);
+  font-size:var(--t1);color:#3A4467}
 /* 棚の札：名前と絵だけ。枠と色は手札と共通 */
 .card.mini{padding:calc(var(--u)*1.2) calc(var(--u)*0.8) calc(var(--u)*1);gap:calc(var(--u)*0.6)}
-.card.mini .cname{font-size:1.05em}
-.card.mini .cart{flex:1 1 auto;height:auto;border:0;background:transparent}
+.card.mini .cname{font-size:var(--t2)}
+.card.mini .cart{flex:1 1 auto;height:auto;border:0;background:none}
 .card.mini .cart::after{content:none}
-.card.mini .cicon{width:78%;height:auto}
-.cicon{width:calc(var(--u)*4.5);height:calc(var(--u)*4.5);margin:0;shape-rendering:crispEdges}
-.ctext{font-size:.62em;line-height:1.15;color:var(--mute);margin-top:auto;
-  padding:0 1px;text-align:center;word-break:break-word}
-.ckind{font-family:var(--f-mono);font-size:.62em;letter-spacing:.1em;color:var(--faint);margin-top:.1em}
+.card.mini .cicon{width:var(--sp16);height:var(--sp16)}
+.cicon{width:var(--sp8);height:var(--sp8);margin:0;shape-rendering:crispEdges}
+.uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:-.15em}
+.ctext{font-size:var(--t1);line-height:1.15;color:var(--mute);margin-top:auto;
+  padding:0 var(--px);text-align:center;word-break:break-word}
+.ckind{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.1em;color:var(--faint);margin-top:.1em}
 .cswap{position:absolute;top:-.5em;right:-.5em;width:1.8em;height:1.8em;border-radius:0;
-  background:#0F1226;border:var(--bw) solid var(--line2);font-family:var(--f-mono);font-size:.75em;
+  background:#151A2E;border:var(--bw) solid var(--line2);font-family:var(--f-mono);font-size:var(--t1);
   display:flex;align-items:center;justify-content:center;color:var(--mute);z-index:4}
 .cswap:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
 .cswap:disabled{display:none}
 .cbind{width:100%;text-align:center;margin-top:.15em;padding-top:.15em;
-  border-top:1px solid rgba(224,178,60,.28);
-  font-family:var(--f-mono);font-size:.75em;letter-spacing:.04em;color:var(--gold-dim);
+  border-top:var(--px) solid var(--c6);
+  font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.04em;color:var(--gold-dim);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .card.t-modifier .cbind{color:var(--gold)}
 
 .fightfoot{position:absolute;right:1.6em;bottom:1.4em;display:flex;flex-direction:column;
   gap:.5em;align-items:flex-end;z-index:5}
-.btn{font-family:var(--f-body);font-weight:700;font-size:.9em;letter-spacing:.1em;
-  padding:.6em 1.5em;border-radius:0;border:var(--bw) solid #4B5578;background:#20263C;
+.btn{font-family:var(--f-body);font-weight:700;font-size:var(--t2);letter-spacing:.1em;
+  padding:.6em 1.5em;border-radius:0;border:var(--bw) solid #3A4467;background:#232A44;
   color:var(--ivory);transition:filter .12s,border-color .12s}
 .btn:hover:not(:disabled){filter:brightness(1.25)}
-.btn:disabled{opacity:.3;cursor:default}
-.btn.go{background:#E8892E;border-color:#F5BE7C;color:#2A1704;box-shadow:var(--sh)}
-.btn small{display:block;font-family:var(--f-mono);font-size:.75em;font-weight:400;
+.btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
+.btn.go{background:#F5A55C;border-color:#F5A55C;color:#151A2E;box-shadow:var(--sh)}
+.btn small{display:block;font-family:var(--f-mono);font-size:var(--t1);font-weight:400;
   letter-spacing:.1em;opacity:.7;margin-top:.15em}
 .bindrow{position:absolute;left:50%;bottom:12.4em;transform:translateX(-50%);display:flex;
   gap:.55em;z-index:4;pointer-events:none}
 .bind{width:8.4em;height:1.3em;position:relative}
-.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:.75em;color:var(--gold-dim);
-  display:flex;align-items:center;justify-content:center;border-top:1px solid var(--gold-dim);
+.bind span{position:absolute;inset:0;font-family:var(--f-mono);font-size:var(--t1);color:var(--gold-dim);
+  display:flex;align-items:center;justify-content:center;border-top:var(--px) solid var(--c6);
   padding-top:.2em;white-space:nowrap;overflow:hidden}
-.bind.start span{border-left:1px solid var(--gold-dim)}
-.bind.end span{border-right:1px solid var(--gold-dim)}
+.bind.start span{border-left:var(--px) solid var(--c6)}
+.bind.end span{border-right:var(--px) solid var(--c6)}
 .bind.none span{border:0;color:transparent}
-.log{position:absolute;left:1.6em;bottom:1.4em;font-family:var(--f-mono);font-size:.75em;
+.log{position:absolute;left:1.6em;bottom:1.4em;font-family:var(--f-mono);font-size:var(--t1);
   line-height:1.6;color:var(--faint);z-index:5;pointer-events:none}
 .log div{white-space:pre}
 .l-mod{color:var(--gold-dim)} .l-fire{color:var(--mute)}
-.l-foe{color:#C4776A} .l-total{color:var(--gold);font-weight:700}
+.l-foe{color:#F5A55C} .l-total{color:var(--gold);font-weight:700}
 
 /* ═══ 幕 ═══ */
-.veil{position:absolute;inset:0;background:rgba(6,8,14,.93);display:flex;align-items:center;
+.veil{position:absolute;inset:0;background:#0B0E1A;display:flex;align-items:center;
   justify-content:center;padding:2em;z-index:20}
 .veil .box{max-width:36em;background:var(--panel);border:var(--bw) solid var(--gold-dim);
-  border-top:4px solid var(--gold);border-radius:0;padding:1.7em 2em}
-.veil h2{font-family:var(--f-disp);font-size:1.8em;margin:0 0 .15em;letter-spacing:.06em}
-.veil .sub{font-family:var(--f-mono);font-size:.75em;letter-spacing:.18em;text-transform:uppercase;
+  border-top:calc(var(--px)*2) solid var(--c7);padding:calc(var(--u)*3) calc(var(--u)*4)}
+.veil h2{font-family:var(--f-disp);font-size:var(--t4);margin:0 0 .15em;letter-spacing:.06em}
+.veil .sub{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.18em;text-transform:uppercase;
   color:var(--gold-dim);margin-bottom:1em}
-.veil p{margin:0 0 .7em;color:var(--mute);font-size:.9em;line-height:1.65}
-.veil ul{margin:0 0 1em;padding-left:1.2em;color:var(--mute);font-size:.9em;line-height:1.65}
+.veil p{margin:0 0 .7em;color:var(--mute);font-size:var(--t2);line-height:1.65}
+.veil ul{margin:0 0 1em;padding-left:1.2em;color:var(--mute);font-size:var(--t2);line-height:1.65}
 .picks{display:flex;gap:.7em;margin-top:.4em}
-.pick{flex:1;padding:.8em .7em;border:var(--bw) solid #4B5578;border-radius:0;
-  background:#20263C;text-align:left;transition:border-color .12s,background .12s}
-.pick:hover{border-color:var(--gold);background:#2A2F1C}
-.pick b{display:block;font-family:var(--f-disp);font-size:1em;margin-bottom:.25em}
-.pick span{font-family:var(--f-mono);font-size:.75em;color:var(--mute);line-height:1.4;display:block}
+.pick{flex:1;padding:.8em .7em;border:var(--bw) solid #3A4467;border-radius:0;
+  background:#232A44;text-align:left;transition:border-color .12s,background .12s}
+.pick:hover{border-color:var(--gold);background:#151A2E}
+.pick b{display:block;font-family:var(--f-disp);font-size:var(--t2);margin-bottom:.25em}
+.pick span{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute);line-height:1.4;display:block}
 .hidden{display:none!important}
 
 .notes{width:100%;max-width:1280px;display:grid;
   grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 26px;
-  font-size:12.5px;line-height:1.6;color:var(--mute);border-top:1px solid #222840;padding-top:12px}
-.notes h3{font-family:var(--f-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
-  color:#6A5A2A;margin:0 0 4px}
+  font-size:var(--t2);line-height:1.6;color:var(--mute);border-top:var(--px) solid var(--c2);padding-top:12px}
+.notes h3{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:.18em;text-transform:uppercase;
+  color:var(--c6);margin:0 0 4px}
 .notes ul{margin:0;padding-left:15px} .notes li{margin-bottom:4px}
-.notes code{font-family:var(--f-mono);font-size:10px;color:#7E86A0}
+.notes code{font-family:var(--f-mono);font-size:var(--t1);color:#9AA2BC}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -355,7 +450,9 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
         <span class="chip" id="d-gun">威力 1.0</span>
       </div>
     </div>
+    <div class="dside left" id="dsl"></div>
     <div class="dwrap"><div class="dgrid" id="dgrid"></div><div class="hero" id="hero"></div></div>
+    <div class="dside right" id="dsr"></div>
     <div class="dtip" id="dtip"></div>
     <button class="btn dex" id="btn-dex">図鑑</button>
   </div>
@@ -394,7 +491,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 
   <div id="dexv" class="hidden"></div>
   <div class="veil hidden" id="veil"><div class="box" id="veilbox"></div></div>
-  <button class="btn full" id="btn-full" title="全画面（F）">⛶</button>
+  <button class="btn full" id="btn-full" title="全画面（F）"></button>
 </div></div>
 
 <div class="notes">
@@ -481,6 +578,7 @@ const SHELVES = [
 ];
 const GUN = {x:166, y:104};
 // 板壁の継ぎ目。等間隔だと placeholder の縞模様に見えるので、幅を散らして固定する
+const KNOTS = [[22,31],[57,72],[96,24],[131,58],[160,88],[41,95],[78,44],[147,18]];
 const WALLSEAM = (()=>{ const a=[]; let x=8;
   for (const w of [11,14,9,13,10,15,11,9,14,12,10,13,11,15,9,12,14,10,13,11])
     { a.push(x); x += w; if (x > 190) break; } return a; })();
@@ -562,64 +660,78 @@ function stockShelves(){
 /* ═══════ ドット絵スプライト（1 文字 = 1 ピクセル） ═══════ */
 const SPRITES = {
   // 規則: 1=本体 2=影(右下) 3=ハイライト(左上) 4=輪郭/目
-  slime:{p:["","#4FBF5A","#2E7A38","#9CE8A4","#0E2A14"], d:[
+  slime:{p:["","#6FBF6A","#2E7A46","#6FBF6A","#0B0E1A"], d:[
     "0000000000000000","0000000000000000","0000004444000000","0000441111440000",
     "0000431111114000","0004331111111400","0043311111111240","0431111111111124",
     "0431144111441124","0431144111441124","0431111111111224","0431111441112224",
     "0431111111122224","0442222222222240","0004444444444400","0000000000000000"]},
-  salamander:{p:["","#E2622F","#9C3A14","#F5BE7C","#2A1008"], d:[
+  salamander:{p:["","#E2622F","#8E3320","#F5A55C","#151A2E"], d:[
     "0000000000000000","0000000000440000","0000000004314000","0000000043114000",
     "0000004433111400","0000443311111400","0044331111111440","0431111111114414",
     "0431111111111414","0431111111111114","0422111111112224","0442222222222240",
     "0040040000400400","0040040000400400","0044044004400440","0000000000000000"]},
-  golem:{p:["","#8E9AA8","#5A6472","#C2CCD8","#20262E"], d:[
+  golem:{p:["","#9AA2BC","#3A4467","#E8E4D6","#151A2E"], d:[
     "0000044444440000","0000431111124000","0004311441112400","0004311441112400",
     "0044311111112440","0431111111111124","0431144111441124","0431144111441124",
     "0431111111111124","0422111111112224","0442222222222240","0004400000044000",
     "0043140000431400","0043140000431400","0044440000444400","0000000000000000"]},
-  worm:{p:["","#7FA3C0","#3E5A75","#B8D6EA","#12202C"], d:[
+  worm:{p:["","#9AA2BC","#35618C","#7EC0E8","#151A2E"], d:[
     "0000000000000000","0000000000000000","0000044444440000","0000431111124000",
     "0004311111112400","0043111211211240","0431112112112124","4311121121121114",
     "4311121121121414","4311121121121114","4321121121121224","0422222222222240",
     "0044444444444400","0004004004004000","0000000000000000","0000000000000000"]}
 };
 const ICONS = {
-  fireball:{p:["","#E2622F","#F0A055","#8E2E0E"], d:[
+  fireball:{p:["","#E2622F","#F5A55C","#8E3320"], d:[
     "00011000","00121000","01221100","01222110","12222211","12222211","01222110","00111100"]},
-  shard:{p:["","#C08A6A","#8A5A42","#E0B49A"], d:[
+  shard:{p:["","#9AA2BC","#3A4467","#9AA2BC"], d:[
     "00011000","00133100","01333310","13333321","13333221","01332210","00122100","00000000"]},
-  bolt:{p:["","#E2622F","#F5BE7C","#9C4630"], d:[
+  bolt:{p:["","#E2622F","#F5A55C","#8E3320"], d:[
     "00001110","00011100","00111000","01112100","11122100","00021000","00210000","00100000"]},
-  split3:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+  split3:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
     "00033000","00011000","00111100","01100110","01000010","11000011","10000001","00000000"]},
-  pierce:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+  pierce:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
     "00000000","00100100","00100100","11111113","00111133","00100100","00100100","00000000"]},
-  enlarge:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+  enlarge:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
     "00222200","02000020","20133102","20133102","20133102","20133102","02000020","00222200"]},
-  sunder:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+  sunder:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
     "00100100","01100110","01111110","11133111","11333311","01111110","00111100","00011000"]},
-  weaken:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+  weaken:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
     "00000000","01000010","01100110","00133100","00133100","01100110","01000010","00000000"]},
-  venom:{p:["","#7ED07A","#2E6B38","#C8F5C4"], d:[
+  venom:{p:["","#6FBF6A","#2E7A46","#6FBF6A"], d:[
     "00011000","00133100","01333310","13333331","13333331","01333310","00133100","00011000"]},
-  guard:{p:["","#3F79A8","#6FA8D6","#255170","#A8D8F0"], d:[
+  guard:{p:["","#35618C","#7EC0E8","#35618C","#7EC0E8"], d:[
     "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]}
 };
-const HERO = {p:["","#E8C98A","#8A6A3A","#3E4870","#C93A2C"], d:[
+/* UI の記号。フォントの記号を使うとそこだけ滲むので、8x8 で自前で打つ */
+const UI = {
+  full:{p:["","#9AA2BC"], d:[
+    "11000011","10000001","00000000","00000000","00000000","00000000","10000001","11000011"]},
+  swap:{p:["","#9AA2BC"], d:[
+    "00000000","00100000","01111110","00100000","00000100","01111110","00000100","00000000"]},
+  atk:{p:["","#E2622F","#F5A55C"], d:[
+    "00000120","00001210","00012100","10121000","11210000","01100000","11000000","10000000"]},
+  aim:{p:["","#E0B23C"], d:[
+    "00011000","00011000","01100110","11000011","11000011","01100110","00011000","00011000"]}
+};
+const HERO = {p:["","#F7D97A","#8A6E22","#3A4467","#E2622F"], d:[
   "00111100","01222210","01211210","00122100","04444440","44444444","04400440","03300330"]};
 const ROOMSPR = {
-  battle:{p:["","#E8836F","#8A3A2E","#F2C8BE"], d:[
+  battle:{p:["","#F5A55C","#8E3320","#E8E4D6"], d:[
     "00000330","00003310","00033100","10331000","01310010","00100110","01001110","11011100"]},
-  chest:{p:["","#E0B23C","#8A6E22","#F5D77A"], d:[
+  chest:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
     "00000000","01111110","12222221","11111111","12211221","12233221","12222221","01111110"]},
-  rest:{p:["","#5FA86B","#2E6B38","#9CE0A4"], d:[
+  rest:{p:["","#6FBF6A","#2E7A46","#6FBF6A"], d:[
     "00000000","01100110","13311331","13333331","01333310","00133100","00013000","00000000"]},
-  boss:{p:["","#C93A2C","#6E1A12","#F0A08A"], d:[
+  boss:{p:["","#E2622F","#8E3320","#F5A55C"], d:[
     "00111100","01333310","13311331","13111131","13322331","01311310","00111100","01011010"]},
-  start:{p:["","#98A0B8","#3E4560","#D8DEEE"], d:[
+  start:{p:["","#9AA2BC","#3A4467","#E8E4D6"], d:[
     "00011000","00133100","01333310","01311310","01311310","01333310","00133100","00011000"]}
 };
-function spriteSVG(sp, cls){
+/* 倒した敵・踏破済みの部屋。opacity や grayscale で薄めると
+   パレットに無い濁った色が無限に生まれるので、暗いランプに差し替える */
+const DEADPAL = ["", "#3A4467", "#232A44", "#3A4467", "#232A44", "#151A2E"];
+function spriteSVG(sp, cls, pal){
   if (!sp) return "";
   let r = "";
   sp.d.forEach((row, y)=>{
@@ -629,7 +741,7 @@ function spriteSVG(sp, cls){
       if (c === "0"){ x++; continue; }
       let w = 1;
       while (x+w < row.length && row[x+w] === c) w++;
-      r += `<rect x="${x}" y="${y}" width="${w}" height="1" fill="${sp.p[+c]}"/>`;
+      r += `<rect x="${x}" y="${y}" width="${w}" height="1" fill="${(pal||sp.p)[+c]}"/>`;
       x += w;
     }
   });
@@ -657,7 +769,7 @@ function cardHTML(c, opt){
     `<span class="ckind">${KIND_JA[c.type]}</span>`+
     `<span class="ctext">${esc(c.text)}</span>`+
     (opt.bind ? `<span class="cbind">${esc(opt.bind)}</span>` : ``)+
-    (opt.swap ? `<button class="cswap" title="右と入れ替え">⇄</button>` : ``)+
+    (opt.swap ? `<button class="cswap" title="右と入れ替え">${spriteSVG(UI.swap,"uic")}</button>` : ``)+
   `</div>`;
 }
 
@@ -888,7 +1000,7 @@ function shoot(st, card, buf, tgt, log){
   if (buf.vuln)  tags.push("破鎧");
   if (buf.weak)  tags.push("弱体");
   if (buf.psn)   tags.push("毒");
-  log.push({k:"fire", t:`▸ ${card.name} ${Math.round(base)}${tags.length?" ["+tags.join(" ")+"]":""}`});
+  log.push({k:"fire", t:`${card.name} ${Math.round(base)}${tags.length?" ["+tags.join(" ")+"]":""}`});
   if (REC) REC.push({k:"fire", name:card.name, tags:tags.join(" ")});
   // 貫通・波及・分裂の「隣」は、すべて生存する敵の並びの上で数える。
   // 生配列で数えると、真ん中を倒した瞬間に波及だけ静かに無効化されていた。
@@ -923,7 +1035,7 @@ function runCast(st, wand, tgt, log){
   }
   const tail = [];
   for (let j=wand.length-1; j>=0 && wand[j].type==="modifier"; j--) tail.unshift(wand[j].name);
-  if (tail.length) log.push({k:"foe", t:`· 不発：${tail.join("・")}`});
+  if (tail.length) log.push({k:"foe", t:`不発：${tail.join("・")}`});
 }
 function preview(){
   if (!S.wand.length) return {log:[], hp:S.foes.map(f=>f.hp), total:0, dud:[]};
@@ -1172,7 +1284,7 @@ function playStepOnce(schedule){
   if (a.i >= a.evs.length){ S.anim = null; return finishCast(); }
   const e = a.evs[a.i++];
   if (e.k === "mod")  S.log.push({k:"mod", t:`+ ${e.name}`});
-  if (e.k === "fire") S.log.push({k:"fire", t:`▸ ${e.name}${e.tags?" ["+e.tags+"]":""}`});
+  if (e.k === "fire") S.log.push({k:"fire", t:`${e.name}${e.tags?" ["+e.tags+"]":""}`});
   if (e.k === "hit"){
     const f = S.foes[e.i];
     if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i); }
@@ -1267,7 +1379,7 @@ function analyzeGroups(wand){
     if (wand[i].type === "modifier"){
       let j = i;
       while (j < wand.length && wand[j].type === "modifier") j++;
-      if (j < wand.length){ mark(out, i, j, "▸ " + wand[j].name); i = j+1; }
+      if (j < wand.length){ mark(out, i, j, wand[j].name); i = j+1; }
       else { mark(out, i, j-1, "不発"); i = j; }
       continue;
     }
@@ -1312,94 +1424,116 @@ function block(cx, cy, w, h, front, top, side, dep){
 }
 /* 戦闘の札と同じ色分け */
 const TONE = {
-  projectile:{edge:"#9C4630", fill:"#33202A", tint:"#E2622F"},
-  modifier:  {edge:"#8A6E22", fill:"#242942", tint:"#E0B23C"},
-  utility:   {edge:"#2F4A63", fill:"#1B2740", tint:"#6FA8D6"}
+  projectile:{edge:"#8E3320", fill:"#151A2E", tint:"#E2622F"},
+  modifier:  {edge:"#8A6E22", fill:"#232A44", tint:"#E0B23C"},
+  utility:   {edge:"#35618C", fill:"#232A44", tint:"#7EC0E8"}
 };
 
 /** 戦闘とまったく同じ意匠・同じ縦横比の札。厚みは付けない。 */
 function drawBoard(){
   if (!S) return;
+  const foes = S.foes && S.foes.length;
   ctx.clearRect(0,0,cv.width,cv.height);
+  const R = (x,y,w,h,c)=>{ ctx.fillStyle = c; ctx.fillRect(X(x), Y(y), X(w), Y(h)); };
+  // 市松のディザ。半透明を使わずに「中間の明るさ」を出す古典的な手
+  const D = (x,y,w,h,c,step)=>{
+    ctx.fillStyle = c;
+    for (let py=0; py<Y(h); py+=PX)
+      for (let px=(Math.round(py/PX)%step)*PX; px<X(w); px+=PX*step)
+        ctx.fillRect(X(x)+px, Y(y)+py, PX, PX);
+  };
 
-  // 地
-  ctx.fillStyle = "#12162E"; ctx.fillRect(0,0,cv.width,cv.height);
-  // 奥の板壁。板の継ぎ目は幅を変えて、等間隔の縞に見えないようにする
-  ctx.fillStyle = "#171B33"; ctx.fillRect(X(6), Y(13), X(188), Y(93));
-  ctx.fillStyle = "#101430";
-  for (const x of WALLSEAM) ctx.fillRect(X(x), Y(13), PX, Y(93));
-  ctx.fillStyle = "#232941"; ctx.fillRect(X(2), Y(11), X(6), Y(97));
-  ctx.fillRect(X(192), Y(11), X(6), Y(97));
+  R(0,0,192,108,"#151A2E");                                  // 地
 
-  // 棚の上を照らす明かり。光源を 1 つ決めておかないと、
-  // 何を置いても平らな板の上に貼っただけに見える
+  /* ── 奥の板壁。板ごとに幅を変え、節穴を打つ。
+        等間隔の縦線 1 種類だと placeholder の縞にしか見えない ── */
+  R(4,10,184,94,"#151A2E");
+  for (let i=0;i<WALLSEAM.length;i++){
+    const x = WALLSEAM[i];
+    if (x > 186) break;
+    R(x,10,0.6,94,"#0B0E1A");
+    if (i % 3 === 1) R(x+0.6,10,0.6,94,"#232A44");           // 板の照り
+  }
+  for (const [kx,ky] of KNOTS) R(kx,ky,1.2,1.2,"#0B0E1A");   // 節穴
+
+  /* ── 棚の上を照らす明かり。ベタの帯ではなくディザで散らす ── */
   for (const sh of SHELVES){
-    for (let k=0;k<4;k++){
-      ctx.fillStyle = ["#1E2440","#1A2039","#171C33","#151A2E"][k];
-      ctx.fillRect(X(sh.x0-2), Y(sh.y - 22 + k*5), X(sh.x1-sh.x0+4), Y(5));
-    }
+    // 端ほど狭く・粗く。四角い塊に見えないように段で絞る
+    const bands = [[24,5,8,26],[19,5,5,18],[14,5,3,10],[9,7,2,3]];
+    for (const [up,h,step,inset] of bands)
+      D(sh.x0+inset, sh.y-up, sh.x1-sh.x0-inset*2, h, "#232A44", step);
   }
 
-  // 立っている札の影。棚板の上、札の足元に落とす（光は上から）
+  /* ── 立っている札の接地影 ── */
   if (S.prizes) for (const q of S.prizes){
     if (q.state !== "live" || q.st === "fall") continue;
     const w = PW * Math.max(0.35, Math.cos(q.a||0)) + 2;
-    ctx.fillStyle = "#0B0E1E";
-    ctx.fillRect(X(q.b.x - w/2), Y(q.sy - 1), X(w), Y(2));
+    R(q.b.x - w/2, q.sy - 1, w, 1.4, "#0B0E1A");
   }
 
-  // 棚（板・金の縁・手前の落ち・支え）
+  /* ── 棚は木。青い板だと縁日にならない ── */
   for (const sh of SHELVES){
-    const L = X(sh.x0-4), R = X(sh.x1+4), T = Y(sh.y);
-    ctx.fillStyle = "#0E1226"; ctx.fillRect(L, T+Y(3.4), R-L, Y(2.6));   // 手前の落ち
-    ctx.fillStyle = "#2C3455"; ctx.fillRect(L, T, R-L, Y(3.4));          // 天板
-    ctx.fillStyle = "#8A6E22"; ctx.fillRect(L, T, R-L, PX);              // 金の縁
-    ctx.fillStyle = "#3A4368"; ctx.fillRect(L, T+PX, R-L, PX);           // 天板の照り
-    ctx.fillStyle = "#1B2138";                                            // 支え
-    for (const bx of [sh.x0+2, (sh.x0+sh.x1)/2, sh.x1-2]){
-      ctx.fillRect(X(bx-1.5), T+Y(6), X(3), Y(4));
-      ctx.fillStyle = "#141930"; ctx.fillRect(X(bx-1.5), T+Y(6), PX, Y(4));
-      ctx.fillStyle = "#1B2138";
+    const L = sh.x0-5, W = sh.x1-sh.x0+10, T = sh.y;
+    R(L, T+3.4, W, 3, "#0B0E1A");                            // 手前の落ち
+    R(L, T, W, 3.4, "#8A6E22");                              // 天板
+    R(L, T, W, 0.6, "#E0B23C");                              // 上端の照り
+    for (let k=0;k<W;k+=9) R(L+k+3, T+1.2, 3, 0.6, "#0B0E1A"); // 木目
+    for (const bx of [sh.x0-1, (sh.x0+sh.x1)/2, sh.x1+1]){   // 支え
+      R(bx-1.5, T+6.4, 3, 5, "#8A6E22");
+      R(bx-1.5, T+6.4, 0.6, 5, "#E0B23C");
+      R(bx+1.0, T+6.4, 0.5, 5, "#0B0E1A");
     }
   }
 
+  /* ── 紅白幕。射的屋である、と一目で分かる記号 ── */
+  const bandH = foes ? 20 : 11;
+  R(0,0,192,bandH,"#151A2E");
+  {
+    for (let x=0; x<192; x+=8){
+      R(x,0,4,5,"#8E3320"); R(x+4,0,4,5,"#E8E4D6");
+      R(x,5,1,1.2,"#8E3320");   R(x+3,5,1,1.2,"#8E3320");     // 裾を階段状に
+      R(x+4,5,1,1.2,"#E8E4D6"); R(x+7,5,1,1.2,"#E8E4D6");
+    }
+    R(0,0,192,0.6,"#0B0E1A");
+    R(0,6.2,192,4.8,"#0B0E1A");                               // HUD の下地
+  }
+  R(0,bandH,192,0.6,"#8A6E22");
 
-  // 上の帯と看板（HUD と同じ意匠）
-  const bandH = (S.foes && S.foes.length) ? 15 : 12;
-  ctx.fillStyle = "#12162E"; ctx.fillRect(0, 0, cv.width, Y(bandH));
-  ctx.fillStyle = "#2C3350"; ctx.fillRect(0, Y(bandH), cv.width, PX);
-  ctx.fillStyle = "#8A6E22"; ctx.fillRect(0, Y(bandH)+PX, cv.width, PX);
-  // 看板は敵バーが出ていない時だけ。空の枠の上に敵バーが乗っていた
-  if (!(S.foes && S.foes.length)){
-    ctx.fillStyle = "#8A6E22"; ctx.fillRect(X(68), Y(1), X(56), Y(10));
-    ctx.fillStyle = "#1B2036"; ctx.fillRect(X(68)+PX, Y(1)+PX, X(56)-PX*2, Y(10)-PX*2);
+  /* ── 提灯。左右に 2 つ吊るして額縁を作る ── */
+  for (const lx of [16, 176]){
+    R(lx-0.3, 11, 0.6, 4, "#0B0E1A");                        // 紐
+    R(lx-4, 15, 8, 1.2, "#0B0E1A");                          // 上の輪
+    R(lx-5, 16.2, 10, 9, "#E2622F");                         // 胴
+    R(lx-5, 16.2, 1.2, 9, "#F5A55C");                        // 左の照り
+    R(lx+3.4, 16.2, 1.6, 9, "#8E3320");                      // 右の影
+    for (let k=0;k<3;k++) R(lx-5, 18.2+k*2.4, 10, 0.6, "#8E3320");
+    R(lx-4, 25.4, 8, 1.2, "#0B0E1A");                        // 下の輪
+    R(lx-1.5, 26.6, 3, 1.8, "#F7D97A");                      // 灯り
   }
 
-  // 手前の台
-  ctx.fillStyle = "#1B2036"; ctx.fillRect(0, Y(102), cv.width, Y(6));
-  ctx.fillStyle = "#2C3350"; ctx.fillRect(0, Y(102), cv.width, PX);
-  for (let i=0;i<S.corkMax;i++){
-    ctx.fillStyle = i < S.corks ? "#E0B23C" : "#3A4160";
-    ctx.fillRect(X(138+i*6), Y(108), PX*3, PX*3);
-  }
-  // ふちを落とす。4 段のドットで、にじませずに中央へ目を寄せる
-  for (let k=0;k<4;k++){
-    ctx.fillStyle = ["rgba(6,8,18,.10)","rgba(6,8,18,.14)","rgba(6,8,18,.20)","rgba(6,8,18,.30)"][k];
-    const m = Y(3 - k*0.7);
-    ctx.fillRect(0, 0, m, cv.height); ctx.fillRect(cv.width-m, 0, m, cv.height);
-  }
+  /* ── 手前のカウンター ── */
+  R(0,100,192,8,"#8A6E22");
+  R(0,100,192,0.6,"#E0B23C");
+  R(0,101.6,192,0.6,"#0B0E1A");
+  for (let x=0;x<192;x+=13) R(x+4,103,5,0.6,"#0B0E1A");      // 木目
+  for (let i=0;i<S.corkMax;i++)                              // 残りのコルク
+    R(136+i*6, 103.4, 3.4, 3.4, i < S.corks ? "#F7D97A" : "#0B0E1A");
 
-  // 鉄砲
+  /* ── 鉄砲。画面で一番大きい物なので、いちばん描き込む ── */
   const ga = Math.atan2(GUN.y - ret.y, GUN.x - ret.x);
   ctx.save();
   ctx.translate(X(GUN.x), Y(GUN.y));
   ctx.rotate(Math.PI - ga);
-  ctx.fillStyle = "#2A3050"; ctx.fillRect(2*PX, -2*PX, 15*PX, 6*PX);
-  ctx.fillStyle = "#343B5C"; ctx.fillRect(-13*PX, -2*PX, 15*PX, 4*PX);
-  ctx.fillStyle = "#48506F"; ctx.fillRect(-30*PX, -1.5*PX, 18*PX, 3*PX);
-  ctx.fillStyle = "#232941"; ctx.fillRect(-32*PX, -2*PX, 3*PX, 4*PX);
+  const G = (x,y,w,h,c)=>{ ctx.fillStyle=c; ctx.fillRect(x*PX, y*PX, w*PX, h*PX); };
+  G(-26,-1.5,8,3,"#8A6E22");  G(-26,-1.5,8,0.8,"#E0B23C");       // 木の台尻
+  G(-18,-1.5,13,3,"#8A6E22");  G(-18,-1.5,13,0.8,"#E0B23C");       // 木の胴
+  G(-18,0.7,13,0.8,"#0B0E1A");
+  G(-6,-2,5,4,"#3A4467");  G(-6,-2,5,0.8,"#9AA2BC");       // 金具
+  G(-1,-1,16,2.2,"#3A4467"); G(-1,-1,16,0.8,"#9AA2BC");      // 銃身
+  G(-1,0.4,16,0.8,"#0B0E1A");
+  G(15,-1,2,2.2,"#0B0E1A");                                  // 銃口
+  G(-5,1.8,2.5,3,"#8A6E22");                                   // 引き金の枠
   ctx.restore();
-
 }
 
 /** 前面レイヤ：照準・弾・火花（札の DOM より手前に出す） */
@@ -1428,34 +1562,38 @@ function drawFx(){
     if (hp && hp.st === "stand"){
       const need = Math.min(PH/2, W_NEED / (SPIN * S.gun.power));
       const x0 = X(hp.b.x - PW/2), w = X(hp.b.x + PW/2) - x0;
-      const bandY = (a, b)=>{ const y0 = Y(a); fx.fillRect(x0, y0, w, Y(b) - y0); };
-      fx.fillStyle = "rgba(226,98,47,.34)";                 // 上：向こうへ倒れる
-      bandY(hp.b.y - PH/2, hp.b.y - need);
-      fx.fillStyle = "rgba(226,98,47,.34)";                 // 下：手前へ倒れる
-      bandY(hp.b.y + need, hp.b.y + PH/2);
-      fx.fillStyle = "rgba(10,12,22,.55)";                  // 中央：倒れない
-      bandY(hp.b.y - need, hp.b.y + need);
-      fx.fillStyle = "#98A0B8";
-      for (let k=0;k<w;k+=PX*2) fx.fillRect(x0+k, Y(hp.b.y), PX, PX);
+      // 倒れる境界を 1 ドットの線 2 本で示すだけ。面を塗らない
+      fx.fillStyle = "#E2622F";
+      for (const yy of [hp.b.y - need, hp.b.y + need])
+        for (let k=0;k<w;k+=PX) fx.fillRect(x0+k, Y(yy), PX, PX);
+      // 倒れる側の端に短い爪を出して、どちらへ倒れるかを示す
+      fx.fillRect(x0-PX*2, Y(hp.b.y-PH/2), PX*2, PX);
+      fx.fillRect(x0+w,    Y(hp.b.y+PH/2)-PX, PX*2, PX);
     }
-    ring(fx, ret.x, ret.y, Math.round(S.gun.spread), "#9C4630", true);
-    ring(fx, ret.x, ret.y, 4, "#E2622F", false);
-    fx.fillStyle = "#F5BE7C";
-    for (const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]])
-      for (let k=6;k<=9;k++)
-        fx.fillRect(X(ret.x)+dx*k*PX, Y(ret.y)+dy*k*PX, PX, PX);
-    fx.fillRect(X(ret.x), Y(ret.y), PX, PX);
+    // 散りの大きさ＝括弧の開き。値が形で読める
+    const r = Math.max(3, Math.round(S.gun.spread));
+    fx.fillStyle = "#E0B23C";
+    for (const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+      const cx = X(ret.x) + sx*r*PX, cy = Y(ret.y) + sy*r*PX;
+      for (let k=0;k<4;k++){
+        fx.fillRect(cx - (sx<0?0:PX) + sx*k*PX, cy, PX, PX);
+        fx.fillRect(cx, cy - (sy<0?0:PX) + sy*k*PX, PX, PX);
+      }
+    }
+    fx.fillStyle = "#F7D97A";
+    fx.fillRect(X(ret.x)-PX, Y(ret.y), PX*3, PX);
+    fx.fillRect(X(ret.x), Y(ret.y)-PX, PX, PX*3);
   }
 
   // 飛んでいる弾
   for (const sh of S.shots){
     if (!sh.live) continue;
     const cx = sh.x + (sh.tx-sh.x)*sh.t, cy = sh.y + (sh.ty-sh.y)*sh.t;
-    fx.fillStyle = "#F2DDAC"; fx.fillRect(X(cx)-PX, Y(cy)-PX*2, PX*2, PX*4);
+    fx.fillStyle = "#E8E4D6"; fx.fillRect(X(cx)-PX, Y(cy)-PX*2, PX*2, PX*4);
   }
 
   for (const sp of sparks){
-    fx.fillStyle = `rgba(224,178,60,${sp.t})`;
+    fx.fillStyle = sp.t > .66 ? "#F7D97A" : sp.t > .33 ? "#E0B23C" : "#8A6E22";
     fx.fillRect(X(sp.x), Y(sp.y), PX*2, PX*2);
   }
 }
@@ -1602,14 +1740,18 @@ function renderFoeBar(){
   S.foes.forEach((f,i)=>{
     const b = host.children[i];
     if (!b) return;
+    const wasDead = b.classList.contains("dead");
     b.classList.toggle("dead", f.hp<=0);
+    if ((f.hp<=0) !== wasDead)
+      b.querySelector(".fbs").outerHTML =
+        spriteSVG(SPRITES[f.spr], "fbs", f.hp<=0 ? DEADPAL : null);
     b.disabled = f.hp<=0;
     b.setAttribute("aria-pressed", String(S.target===i));
     b.querySelector(".fbh i").style.width = Math.max(0, f.hp/f.maxHp*100) + "%";
     b.querySelector(".fbn").textContent = `${f.hp}/${f.maxHp}`;
     b.querySelector(".fba").textContent = `攻 ${f.atk}`;
     const d = [];
-    if (f.vuln) d.push(`破鎧×${(1+f.vuln).toFixed(1)}`);
+    if (f.vuln) d.push(`破鎧 ${(1+f.vuln).toFixed(1)}倍`);
     if (f.weak) d.push(`弱体−${f.weak}`);
     if (f.psn)  d.push(`毒${f.psn}`);
     b.querySelector(".fbd").textContent = d.join(" ");
@@ -1617,14 +1759,14 @@ function renderFoeBar(){
 }
 
 function renderShootFoot(){
-  $("tip").textContent = (S.mode==="sim"||S.mode==="shot") ? "…"
+  $("tip").textContent = (S.mode==="sim"||S.mode==="shot") ? "・・・"
     : S.corks>0 ? "画面をクリック / 矢印キーで狙いを動かし、射撃ボタン（Space）で撃つ"
     : "コルクを使い切った";
   const pv = S.foes && S.foes.length ? preview() : {total:0, dud:[]};
   $("got").innerHTML =
     `<span class="gotcap">杖 ${S.wand.length}/${S.cap}</span>`+
     S.wand.map((c,i)=>{
-      const col = c.type==="projectile" ? "#E2622F" : c.type==="modifier" ? "#E0B23C" : "#6FA8D6";
+      const col = c.type==="projectile" ? "#E2622F" : c.type==="modifier" ? "#E0B23C" : "#7EC0E8";
       return `<span class="gotcard" style="border-color:${col};color:${col}">${i+1}. ${esc(c.name)}</span>`;
     }).join("")+
     (S.wand.length ? `<span class="gotsum">${pv.total} ダメージ</span>` : "")+
@@ -1644,7 +1786,7 @@ function renderDungeon(){
   $("d-gun").textContent   = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}`;
 
   const stage = document.getElementById("stage");
-  const ts = Math.max(16, Math.floor(Math.min(stage.clientWidth*0.052, stage.clientHeight*0.075)/8)*8);
+  const ts = Math.max(16, Math.floor(Math.min(stage.clientWidth*0.042, stage.clientHeight*0.070)/8)*8);
   const grid = $("dgrid");
   grid.style.setProperty("--ts", ts + "px");
   grid.style.gridTemplateColumns = `repeat(${DW}, ${ts}px)`;
@@ -1652,16 +1794,38 @@ function renderDungeon(){
   for (let y=0;y<DH;y++) for (let x=0;x<DW;x++){
     const v = S.d.g[y][x];
     const d = document.createElement("div");
-    d.className = "dc " + (v===0 ? "wall" : v===3 ? "edge" : v===2 ? "room" : "floor");
+    d.className = "dc " + (v===0 ? "wall" : v===3 ? "edge" : v===2 ? "room" : "floor")
+              + " v" + ((x*7 + y*13) % 4)
+              + (v && !S.d.g[y-1]?.[x] ? " tn" : "")
+              + (v && !S.d.g[y+1]?.[x] ? " bn" : "");
     if (v===1 || v===2){ d.style.cursor = "pointer"; d.onclick = ()=>walkTo(x,y); }
     const rm = roomAt(x,y);
     if (rm){
-      d.innerHTML = spriteSVG(ROOMSPR[rm.t], "ic");
+      d.innerHTML = spriteSVG(ROOMSPR[rm.t], "ic", rm.done ? DEADPAL : null);
       d.title = ROOM_JA[rm.t];
       if (rm.done) d.classList.add("done");
     }
     grid.appendChild(d);
   }
+  // 左右の帯：プールの内訳と、この階の残り。黒い余白を情報で埋める
+  const cnt = {};
+  for (const id of S.pool) cnt[id] = (cnt[id]||0) + 1;
+  const rows = Object.keys(CARDS).filter(id=>cnt[id])
+    .sort((a,b)=>cnt[b]-cnt[a])
+    .map(id=>`<div class="dsrow">${spriteSVG(ICONS[id],"sw")}`+
+             `<span class="nm">${esc(CARDS[id].name)}</span>`+
+             `<span class="ct">${cnt[id]}</span></div>`).join("");
+  $("dsl").innerHTML = `<h3>杖のプール</h3>${rows}`;
+  const undone = S.d.rooms.filter(r=>!r.done);
+  $("dsr").innerHTML =
+    `<h3>この階</h3>`+
+    `<div class="dsrow"><span class="nm">のこり</span><span class="ct">${undone.length}</span></div>`+
+    `<div class="dsrow"><span class="nm">体力</span><span class="ct">${Math.max(0,S.hp)}/${S.maxHp}</span></div>`+
+    `<div class="dsbar"><i style="width:${Math.max(0,S.hp/S.maxHp*100)}%"></i></div>`+
+    `<div class="dsrow"><span class="nm">杖の容量</span><span class="ct">${S.cap}</span></div>`+
+    `<div class="dsrow"><span class="nm">コルク</span><span class="ct">${S.corkMax}</span></div>`+
+    (S.swapMax?`<div class="dsrow"><span class="nm">入れ替え</span><span class="ct">${S.swapMax}</span></div>`:``);
+
   const hero = $("hero");
   hero.style.width = hero.style.height = ts + "px";
   hero.style.left = (S.d.px*ts) + "px";
@@ -1728,13 +1892,13 @@ function render(){
     const after = pv.hp[i], delta = f.hp - after;
     const wNow = Math.max(0,f.hp/f.maxHp*100), wAfter = Math.max(0,after/f.maxHp*100);
     b.innerHTML =
-      (f.hp>0?`<span class="intent">⚔ 攻撃 ${f.atk}</span>`:`<span class="intent" style="visibility:hidden">—</span>`)+
+      `<span class="tgt"></span>`+
+      (f.hp>0?`<span class="intent">${spriteSVG(UI.atk,"uic")}${f.atk}</span>`:`<span class="intent" style="visibility:hidden">—</span>`)+
       `<span class="fname">${esc(f.name)}</span>`+
-      spriteSVG(SPRITES[f.spr], "glyph")+
-      `<span class="tgt">${S.target===i?"▼ TARGET ▼":"　"}</span>`+
       `<span class="fbar"><i style="width:${wNow}%"></i>`+
         (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
         `<span>${f.hp} / ${f.maxHp}</span></span>`+
+      spriteSVG(SPRITES[f.spr], "glyph", f.hp<=0 ? DEADPAL : null)+
       (delta>0?`<span class="fdelta">−${delta}</span>`:``);
     b.onclick = ()=>selectTarget(i);
     foes.appendChild(b);
@@ -1747,7 +1911,7 @@ function render(){
   {
     let cur = "";
     for (let i=S.wand.length-1;i>=0;i--){
-      if (S.wand[i].type === "projectile"){ cur = "▸ " + S.wand[i].name; bindLabel[i] = ""; }
+      if (S.wand[i].type === "projectile"){ cur = S.wand[i].name; bindLabel[i] = ""; }
       else if (S.wand[i].type === "modifier") bindLabel[i] = cur || "不発";
       else bindLabel[i] = "";
     }
@@ -1759,7 +1923,13 @@ function render(){
   const mid = (n-1)/2;
   for (let i=0;i<S.cap;i++){
     const c = S.wand[i];
-    if (!c) continue;
+    if (!c){                                   // 空きスロット。容量が見える
+      const e = document.createElement("div");
+      e.className = "slot";
+      e.style.marginLeft = i ? ".55em" : "0";
+      hand.appendChild(e);
+      continue;
+    }
     const w = document.createElement("div");
     w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i], swap:i+1 < S.wand.length});
     const d = w.firstChild;
@@ -1784,6 +1954,7 @@ function render(){
 
 $("btn-next").onclick = toFight;
 $("btn-dex").onclick = openDex;
+$("btn-full").innerHTML = spriteSVG(UI.full, "uic");
 $("btn-full").onclick = toggleFull;
 
 /* ═══════ 図鑑（開発用） ═══════ */
@@ -1810,9 +1981,9 @@ function openDex(){
     `<h2 style="font-size:1em">札 ${Object.keys(CARDS).length} 種 / プール ${S.pool.length} 枚</h2>`+
     `<div class="dexrow">${cards}</div>`+
     `<h2 style="font-size:1em">鉄砲の強化</h2><div class="dexlist">${guns}</div>`+
-    `<h2 style="font-size:1em;margin-top:1em">根本的な強化（ボス報酬）</h2><div class="dexlist">${cores}</div>`+
-    `<h2 style="font-size:1em;margin-top:1em">敵</h2><div class="dexlist">${foes}</div>`+
-    `<h2 style="font-size:1em;margin-top:1em">いまの状態</h2><div class="dexlist">`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">根本的な強化（ボス報酬）</h2><div class="dexlist">${cores}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">敵</h2><div class="dexlist">${foes}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">いまの状態</h2><div class="dexlist">`+
     `<div class="dexi"><b>鉄砲</b><span>威力 ${S.gun.power.toFixed(2)} ・散り ${S.gun.spread}`+
     ` ・弾 ${S.gun.pellets} ・爆風 ${S.gun.blast}</span></div>`+
     `<div class="dexi"><b>杖</b><span>容量 ${S.cap} ・入れ替え ${S.swapMax} ・コルク ${S.corkMax}</span></div>`+
@@ -1827,7 +1998,9 @@ function snapStage(){
   const full = isFull();
   const availW = (full ? window.innerWidth  : window.innerWidth - 28);
   const availH = (full ? window.innerHeight : window.innerHeight - 150);
-  const u = Math.max(2, Math.min(Math.floor(availW / 192), Math.floor(availH / 108)));
+  // --u は偶数に丸める。--px = --u/2 を整数に保つため（1 ドットが半端だと滲む）
+  let u = Math.max(2, Math.min(Math.floor(availW / 192), Math.floor(availH / 108)));
+  u -= u % 2;
   st.style.width = (u * 192) + "px";
   st.style.setProperty("--u", u + "px");
   return u;

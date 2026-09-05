@@ -89,6 +89,8 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #foebar .fbn{font-family:var(--f-mono);font-size:.75em;color:var(--i1);
   font-variant-numeric:tabular-nums;line-height:1.1}
 #foebar .fba{font-family:var(--f-mono);font-size:.75em;color:#E8836F;line-height:1.1}
+#foebar .fbd{font-family:var(--f-mono);font-size:.62em;color:var(--g1);line-height:1.1;
+  letter-spacing:.02em;min-height:1em}
 #sign b{font-family:var(--f-disp);font-size:1.8em;letter-spacing:.42em;
   color:var(--gold);text-indent:.42em;line-height:1}
 #sign i{font-family:var(--f-mono);font-style:normal;font-size:.75em;letter-spacing:.3em;
@@ -102,6 +104,11 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .got{display:flex;gap:.4em;align-items:center}
 .gotcard{font-family:var(--f-body);font-size:.75em;padding:.25em .6em;
   background:#171B33;border:2px solid;font-weight:400}
+.gotcap{font-family:var(--f-mono);font-size:.75em;color:var(--faint);letter-spacing:.06em}
+.gotsum{font-family:var(--f-mono);font-size:.75em;padding:.25em .6em;
+  background:#171B33;border:2px solid var(--gold-dim);color:var(--gold);font-weight:700}
+.gotdud{font-family:var(--f-mono);font-size:.75em;padding:.25em .6em;
+  background:#2A1414;border:2px solid #7A2E22;color:#E8836F}
 
 /* ═══ 画面0：ダンジョン ═══ */
 #dungeon{background:var(--n0);align-items:center;justify-content:center}
@@ -318,7 +325,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
       <div class="r">
         <span class="chip">体力 <b class="hp" id="s-hp">70</b></span>
         <span class="chip">防御 <b class="bk" id="s-block">0</b></span>
-        <span class="chip" id="s-gun">散り 9</span>
+        <span class="chip" id="s-gun">威力 1.0 ・散り 4</span>
         <span class="chip">コルク <span class="corks" id="corks"></span></span>
       </div>
     </div>
@@ -335,7 +342,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
     <div class="hud">
       <div class="l">
         <span class="chip solid">第<b id="d-floor">1</b>層</span>
-        <span class="chip">札 <b id="d-pool">17</b></span>
+        <span class="chip">札 <b id="d-pool">18</b></span>
       </div>
       <div class="r">
         <span class="chip">体力 <b class="hp" id="d-hp">70</b></span>
@@ -367,7 +374,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
       <div class="r">
         <span class="chip">体力 <b class="hp" id="f-hp">70</b></span>
         <span class="chip">防御 <b class="bk" id="f-block">0</b></span>
-        <span class="chip" id="f-swap">入れ替え 1</span>
+        <span class="chip" id="f-swap">入れ替え なし</span>
       </div>
     </div>
     <div class="arena" id="foes"></div>
@@ -495,7 +502,7 @@ function shuffle(a){                      // Fisher-Yates（sort(()=>Math.random
 
 function newRun(){
   S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, corks:3, swaps:0,
-       corkMax:2, swapMax:0, cap:5,
+       corkMax:2, swapMax:0, cap:5, dmgUp:0,
        pool:POOL0.slice(), gun:Object.assign({}, BASE_GUN), owned:[], core:[],
        wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
        prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
@@ -851,7 +858,7 @@ function debuff(st, i, buf, log){
 }
 function shoot(st, card, buf, tgt, log){
   const copies = buf.split;
-  const base   = card.dmg * buf.mul;            // 修飾は倍率。下げることはしない
+  const base   = (card.dmg + (S.dmgUp||0)) * buf.mul;   // 修飾は倍率。下げることはしない
   const pierce = (card.pierce||0) + buf.pierce;
   const splash = buf.splash;
   const tags = [];
@@ -900,11 +907,15 @@ function runCast(st, wand, tgt, log){
   if (tail.length) log.push({k:"foe", t:`· 不発：${tail.join("・")}`});
 }
 function preview(){
-  if (!S.wand.length) return {log:[], hp:S.foes.map(f=>f.hp)};
-  const st = {foes:S.foes.map(f=>({name:f.name, hp:f.hp}))};
+  if (!S.wand.length) return {log:[], hp:S.foes.map(f=>f.hp), total:0, dud:[]};
+  const st = {foes:S.foes.map(f=>Object.assign({}, f))};
   const log = [];
   runCast(st, S.wand, S.target, log);
-  return {log, hp:st.foes.map(f=>f.hp)};
+  const total = S.foes.reduce((a,f,i)=>a + Math.max(0, f.hp - st.foes[i].hp), 0);
+  // 発射体より後ろに置かれて撃たれなかった修飾
+  const dud = [];
+  for (let j=S.wand.length-1; j>=0 && S.wand[j].type==="modifier"; j--) dud.unshift(S.wand[j].name);
+  return {log, hp:st.foes.map(f=>f.hp), total, dud};
 }
 
 /* ═══════ ダンジョン ═══════ */
@@ -1031,7 +1042,11 @@ const REPEATABLE = [
   {id:"swap+",name:"器用な指", note:"詠唱前の入れ替え +1",
    apply:()=>{ S.swapMax++; }},
   {id:"aim+", name:"照星の調整", note:"散りが 1 縮む",
-   apply:()=>{ S.gun.spread = Math.max(2, S.gun.spread - 1); }}
+   apply:()=>{ S.gun.spread = Math.max(1, S.gun.spread - 1); }},
+  {id:"cap+", name:"継ぎ足した杖", note:"杖の容量 +1",
+   apply:()=>{ S.cap++; }},
+  {id:"dmg+", name:"研いだ触媒", note:"発射体すべての威力 +2",
+   apply:()=>{ S.dmgUp = (S.dmgUp||0) + 2; }}
 ];
 const CORE = [
   {id:"cork", name:"弾薬箱", note:"コルクが 1 発増える", apply:()=>{ S.corkMax++; }},
@@ -1309,11 +1324,15 @@ function drawBoard(){
 
 
   // 上の帯と看板（HUD と同じ意匠）
-  ctx.fillStyle = "#12162E"; ctx.fillRect(0, 0, cv.width, Y(12));
-  ctx.fillStyle = "#2C3350"; ctx.fillRect(0, Y(12), cv.width, PX);
-  ctx.fillStyle = "#8A6E22"; ctx.fillRect(0, Y(12)+PX, cv.width, PX);
-  ctx.fillStyle = "#8A6E22"; ctx.fillRect(X(68), Y(1), X(56), Y(10));
-  ctx.fillStyle = "#1B2036"; ctx.fillRect(X(68)+PX, Y(1)+PX, X(56)-PX*2, Y(10)-PX*2);
+  const bandH = (S.foes && S.foes.length) ? 15 : 12;
+  ctx.fillStyle = "#12162E"; ctx.fillRect(0, 0, cv.width, Y(bandH));
+  ctx.fillStyle = "#2C3350"; ctx.fillRect(0, Y(bandH), cv.width, PX);
+  ctx.fillStyle = "#8A6E22"; ctx.fillRect(0, Y(bandH)+PX, cv.width, PX);
+  // 看板は敵バーが出ていない時だけ。空の枠の上に敵バーが乗っていた
+  if (!(S.foes && S.foes.length)){
+    ctx.fillStyle = "#8A6E22"; ctx.fillRect(X(68), Y(1), X(56), Y(10));
+    ctx.fillStyle = "#1B2036"; ctx.fillRect(X(68)+PX, Y(1)+PX, X(56)-PX*2, Y(10)-PX*2);
+  }
 
   // 手前の台
   ctx.fillStyle = "#1B2036"; ctx.fillRect(0, Y(102), cv.width, Y(6));
@@ -1500,29 +1519,49 @@ function renderHud(){
   $("corks").innerHTML = Array.from({length:S.corkMax},(_,i)=>
     `<span class="ck ${i<S.corks?"on":""}"></span>`).join("");
   $("f-swap").textContent = S.swapMax ? `入れ替え ${S.swaps}/${S.swapMax}` : "入れ替え なし";
-  $("s-gun").textContent = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}` + (S.gun.pellets>1?` ・弾 ${S.gun.pellets}`:"")
+  $("s-gun").textContent = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}`
+    + (S.dmgUp ? ` ・札 +${S.dmgUp}` : "") + (S.gun.pellets>1?` ・弾 ${S.gun.pellets}`:"")
                          + (S.gun.blast?` ・爆風 ${S.gun.blast}`:"");
   renderShootFoot();
 }
 /** 射的中も敵が見えるように。ここで狙う相手も選べる。 */
+/* 敵バー。射的中は毎フレーム呼ばれるので、作り直すのは顔ぶれが変わった時だけ。
+   以前は物理と同じフレームで DOM と SVG を全部作り直していた。 */
+let foeBarKey = "";
 function renderFoeBar(){
   const host = $("foebar"), sign = $("sign");
   const live = S.foes && S.foes.length;
   sign.style.display = live ? "none" : "";
   host.style.display = live ? "flex" : "none";
-  if (!live){ host.innerHTML = ""; return; }
-  host.innerHTML = "";
+  if (!live){ host.innerHTML = ""; foeBarKey = ""; return; }
+  const key = S.foes.map(f=>f.spr + f.maxHp).join("|");
+  if (key !== foeBarKey){
+    foeBarKey = key;
+    host.innerHTML = "";
+    S.foes.forEach((f,i)=>{
+      const b = document.createElement("button");
+      b.className = "fb";
+      b.innerHTML = spriteSVG(SPRITES[f.spr], "fbs")+
+        `<span class="fbh"><i></i></span><span class="fbn"></span>`+
+        `<span class="fba"></span><span class="fbd"></span>`;
+      b.onclick = ()=>{ if (S.foes[i].hp>0){ S.target = i; renderFoeBar(); render(); } };
+      host.appendChild(b);
+    });
+  }
   S.foes.forEach((f,i)=>{
-    const b = document.createElement("button");
-    b.className = "fb" + (f.hp<=0 ? " dead" : "");
-    b.setAttribute("aria-pressed", String(S.target===i));
+    const b = host.children[i];
+    if (!b) return;
+    b.classList.toggle("dead", f.hp<=0);
     b.disabled = f.hp<=0;
-    b.innerHTML = spriteSVG(SPRITES[f.spr], "fbs")+
-      `<span class="fbh"><i style="width:${Math.max(0,f.hp/f.maxHp*100)}%"></i></span>`+
-      `<span class="fbn">${f.hp}/${f.maxHp}</span>`+
-      `<span class="fba">攻 ${f.atk}</span>`;
-    b.onclick = ()=>{ if (f.hp>0){ S.target = i; renderFoeBar(); } };
-    host.appendChild(b);
+    b.setAttribute("aria-pressed", String(S.target===i));
+    b.querySelector(".fbh i").style.width = Math.max(0, f.hp/f.maxHp*100) + "%";
+    b.querySelector(".fbn").textContent = `${f.hp}/${f.maxHp}`;
+    b.querySelector(".fba").textContent = `攻 ${f.atk}`;
+    const d = [];
+    if (f.vuln) d.push(`破鎧×${(1+f.vuln).toFixed(1)}`);
+    if (f.weak) d.push(`弱体−${f.weak}`);
+    if (f.psn)  d.push(`毒${f.psn}`);
+    b.querySelector(".fbd").textContent = d.join(" ");
   });
 }
 
@@ -1530,10 +1569,16 @@ function renderShootFoot(){
   $("tip").textContent = (S.mode==="sim"||S.mode==="shot") ? "…"
     : S.corks>0 ? "画面をクリック / 矢印キーで狙いを動かし、射撃ボタン（Space）で撃つ"
     : "コルクを使い切った";
-  $("got").innerHTML = S.wand.map((c,i)=>{
-    const col = c.type==="projectile" ? "#E2622F" : c.type==="modifier" ? "#E0B23C" : "#6FA8D6";
-    return `<span class="gotcard" style="border-color:${col};color:${col}">${i+1}. ${esc(c.name)}</span>`;
-  }).join("");
+  const pv = S.foes && S.foes.length ? preview() : {total:0, dud:[]};
+  $("got").innerHTML =
+    `<span class="gotcap">杖 ${S.wand.length}/${S.cap}</span>`+
+    S.wand.map((c,i)=>{
+      const col = c.type==="projectile" ? "#E2622F" : c.type==="modifier" ? "#E0B23C" : "#6FA8D6";
+      return `<span class="gotcard" style="border-color:${col};color:${col}">${i+1}. ${esc(c.name)}</span>`;
+    }).join("")+
+    (S.wand.length ? `<span class="gotsum">${pv.total} ダメージ</span>` : "")+
+    (pv.dud.length ? `<span class="gotdud">不発 ${pv.dud.map(esc).join("・")}</span>` : "")+
+    (S.wand.length >= S.cap ? `<span class="gotdud">これ以上は溢れる</span>` : "");
   renderFoeBar();
   $("btn-next").disabled = S.mode!=="aim";
   const fb = $("btn-fire");

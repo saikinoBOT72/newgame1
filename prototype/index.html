@@ -54,7 +54,7 @@
   /* 文字も 4 段だけ。すべて --px の整数倍。
      .62em や 1.35em のような小数倍は 7.44px や 16.2px になり、
      ドット書体は設計サイズの整数倍でしか正しく出ないので必ず滲む。 */
-  --t1:calc(var(--px) * 3);      /* 添え字 */
+  --t1:calc(var(--px) * 3);      /* 添え字（数字とラテンのみ） */
   --t2:calc(var(--px) * 4);      /* 本文 */
   --t3:calc(var(--px) * 6);      /* 見出し */
   --t4:calc(var(--px) * 8);      /* 大見出し */
@@ -87,9 +87,9 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .screen.off{display:none}
 
 /* ═══ HUD（両画面共通） ═══ */
-.hud{position:absolute;top:calc(var(--u)*6.4);left:0;right:0;display:flex;align-items:center;
+.hud{position:absolute;top:calc(var(--u)*6);left:0;right:0;display:flex;align-items:center;
   justify-content:space-between;padding:0 calc(var(--u)*2);z-index:6;pointer-events:none;
-  gap:calc(var(--u)*2);height:calc(var(--u)*4.6)}
+  gap:calc(var(--u)*2);height:calc(var(--u)*4)}
 .hud .l,.hud .r{display:flex;align-items:center;gap:calc(var(--px)*3)}
 .chip{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;padding:var(--px) calc(var(--px)*3);
   background:#0B0E1A;border:var(--bw) solid var(--line);color:var(--mute);
@@ -109,13 +109,19 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #sign{position:absolute;left:50%;top:1.2%;transform:translateX(-50%);z-index:3;
   width:26%;height:11.5%;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:calc(var(--px)*1);pointer-events:none}
-#foebar{position:absolute;left:50%;top:calc(var(--u)*11);transform:translateX(-50%);
-  z-index:5;display:flex;gap:calc(var(--px)*6);align-items:flex-start}
-#foebar .fb{display:flex;flex-direction:column;align-items:center;gap:var(--px);
-  padding:var(--px) calc(var(--px)*2);border:var(--bw) solid transparent;background:none}
-#foebar .fb[aria-pressed="true"]{border-color:var(--g1);background:#151A2E}
+#foebar{position:absolute;left:50%;top:calc(var(--u)*12);transform:translateX(-50%);
+  z-index:1;display:flex;gap:calc(var(--px)*8);align-items:flex-end}
+#foebar .fb{position:relative;display:flex;flex-direction:column-reverse;align-items:center;
+  gap:var(--px);padding:0 calc(var(--px)*3) calc(var(--px)*3);border:0;background:none}
+/* 戦闘画面と同じ言語：枠で囲まず、足元の影が金になる */
+#foebar .fb::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:calc(var(--px)*20);height:calc(var(--px)*2);background:var(--c0)}
+#foebar .fb[aria-pressed="true"]::after{background:var(--c7);height:calc(var(--px)*3)}
+#foebar .fb.dead::after{display:none}
 
-#foebar .fbs{width:var(--sp16);height:var(--sp16);image-rendering:pixelated;color:var(--i1)}
+#foebar .fbs{width:calc(var(--px)*32);height:calc(var(--px)*32);image-rendering:pixelated;
+  color:var(--i1);animation:bob 1.1s steps(2) infinite}
+#foebar .fb.dead .fbs{animation:none}
 #foebar .fb[aria-pressed="true"] .fbs{color:var(--g1)}
 #foebar .fbh{width:var(--sp16);height:calc(var(--px)*2);background:var(--c0);
   border:var(--px) solid var(--c2);position:relative}
@@ -303,7 +309,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .fbar{width:calc(var(--u)*15);height:calc(var(--px)*5);background:var(--c0);
   border:var(--bw) solid var(--c2);position:relative;overflow:hidden}
 .fbar i{position:absolute;inset:0;right:auto;background:var(--ca);transition:width .18s steps(6)}
-.fbar .ghost{position:absolute;top:0;bottom:0;background:var(--g2)}
+.fbar .ghost{position:absolute;top:0;bottom:0;background:var(--c9)}
 .fbar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-family:var(--f-mono);font-size:var(--t1);font-weight:700;color:var(--i0);
   text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
@@ -346,7 +352,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .card{position:relative;width:calc(var(--u)*15);height:calc(var(--u)*21);border-radius:0;
   background:#232A44;
   border:var(--bw) solid #3A4467;display:flex;flex-direction:column;align-items:center;
-  padding:calc(var(--u)*2) calc(var(--u)*0.7) calc(var(--u)*0.5);gap:var(--px);transform-origin:50% 130%;
+  padding:calc(var(--px)*4) calc(var(--px)*2) calc(var(--px)*1);gap:var(--px);transform-origin:50% 130%;
   transition:transform .1s steps(3),border-color .1s;
   box-shadow:var(--sh);
   font-size:var(--t2)}
@@ -373,7 +379,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .cart::after{content:"仮";position:absolute;right:var(--px);bottom:0;font-family:var(--f-disp);
   font-size:var(--t1);color:#3A4467}
 /* 棚の札：名前と絵だけ。枠と色は手札と共通 */
-.card.mini{padding:calc(var(--u)*1.2) calc(var(--u)*0.8) calc(var(--u)*1);gap:calc(var(--u)*0.6)}
+.card.mini{padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:calc(var(--px)*1)}
 .card.mini .cname{font-size:var(--t2)}
 .card.mini .cart{flex:1 1 auto;height:auto;border:0;background:none}
 .card.mini .cart::after{content:none}
@@ -402,7 +408,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .btn:hover:not(:disabled){background:var(--c3);border-color:var(--c7)}
 .btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
 .btn.go{background:#F5A55C;border-color:#F5A55C;color:#151A2E;box-shadow:var(--sh)}
-.btn small{display:block;font-family:var(--f-mono);font-size:var(--t1);font-weight:400;
+.btn small{display:block;font-family:var(--f-mono);font-size:var(--t1);font-weight:400;color:var(--c4);
   letter-spacing:1px;opacity:.7;margin-top:calc(var(--px)*1)}
 .bindrow{position:absolute;left:50%;bottom:calc(var(--px)*50);transform:translateX(-50%);display:flex;
   gap:calc(var(--px)*2);z-index:4;pointer-events:none}
@@ -465,7 +471,6 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
         <span class="chip">体力 <b class="hp" id="s-hp">70</b></span>
         <span class="chip">防御 <b class="bk" id="s-block">0</b></span>
         <span class="chip" id="s-gun">威力 1.0 ・散り 4</span>
-        <span class="chip">コルク <span class="corks" id="corks"></span></span>
       </div>
     </div>
     <div class="shootfoot">
@@ -753,6 +758,9 @@ const UI = {
   aim:{p:["","#E0B23C"], d:[
     "00011000","00011000","01100110","11000011","11000011","01100110","00011000","00011000"]}
 };
+/* 歩行の 2 コマ目（脚だけ入れ替える）。滑って動く主人公は素人の絵の代名詞 */
+const HERO2 = {p:["","#F7D97A","#8A6E22","#3A4467","#E2622F"], d:[
+  "00111100","01222210","01211210","00122100","04444440","44444444","00440440","03000330"]};
 const HERO = {p:["","#F7D97A","#8A6E22","#3A4467","#E2622F"], d:[
   "00111100","01222210","01211210","00122100","04444440","44444444","04400440","03300330"]};
 const ROOMSPR = {
@@ -1168,6 +1176,7 @@ function step(dx, dy){
   const nx = S.d.px + dx, ny = S.d.py + dy;
   if (!passable(nx, ny)) return;
   S.d.px = nx; S.d.py = ny;
+  S.d.stepn = (S.d.stepn||0) + 1;      // 1 歩ごとに脚を入れ替える
   const rm = roomAt(nx, ny);
   renderDungeon();
   if (rm && !rm.done){ S.busy = true; setTimeout(()=>{ S.busy = false; enterRoom(rm); }, 180); }
@@ -1553,7 +1562,7 @@ function drawBoard(){
       R(x,0,4,5,"#E2622F"); R(x+4,0,4,5,"#9AA2BC");
       // 裾は列ごとに 0〜2 ドット違える。乱数にするとチラつくので固定表
       const h0 = HEM[(x>>3) % HEM.length], h1 = HEM[((x>>3)+3) % HEM.length];
-      const sw = Math.round(Math.sin(T0/34 + x/26)) * 0.6;    // ゆっくり揺れる
+      const sw = Math.round(Math.sin(T0/34 + x/26));          // ±1 ドットで揺れる
       R(x,5,1,1.2+h0+sw,"#E2622F");   R(x+3,5,1,1.2+h0+sw,"#E2622F");
       R(x+4,5,1,1.2+h1+sw,"#9AA2BC"); R(x+7,5,1,1.2+h1+sw,"#9AA2BC");
     }
@@ -1642,19 +1651,23 @@ function drawFx(){
       for (const yy of [hp.b.y - need, hp.b.y + need])
         for (let k=0;k<w;k+=PX*2) fx.fillRect(x0+k, Y(yy), PX, PX);
     }
-    // 散りの大きさ＝括弧の開き。値が形で読める
+    // 散りの大きさ＝括弧の開き。値が形で読める。
+    // 金の札の上に金の照準を置くと消えるので、必ず黒縁を先に打つ
     const r = Math.max(3, Math.round(S.gun.spread));
-    fx.fillStyle = "#E0B23C";
+    const marks = [];
     for (const [sx,sy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
       const cx = X(ret.x) + sx*r*PX, cy = Y(ret.y) + sy*r*PX;
       for (let k=0;k<3;k++){                                 // 腕は 3 ドット
-        fx.fillRect(cx + sx*k*PX, cy, PX, PX);
-        fx.fillRect(cx, cy + sy*k*PX, PX, PX);
+        marks.push([cx + sx*k*PX, cy], [cx, cy + sy*k*PX]);
       }
     }
-    fx.fillStyle = "#F7D97A";
-    fx.fillRect(X(ret.x)-PX, Y(ret.y), PX*3, PX);
-    fx.fillRect(X(ret.x), Y(ret.y)-PX, PX, PX*3);
+    for (let k=-1;k<=1;k++) marks.push([X(ret.x)+k*PX, Y(ret.y)], [X(ret.x), Y(ret.y)+k*PX]);
+    fx.fillStyle = "#0B0E1A";
+    for (const [mx,my] of marks)
+      for (const [ox,oy] of [[-1,0],[1,0],[0,-1],[0,1]])
+        fx.fillRect(mx+ox*PX, my+oy*PX, PX, PX);
+    fx.fillStyle = "#E0B23C";
+    for (const [mx,my] of marks) fx.fillRect(mx, my, PX, PX);
   }
 
   // 飛んでいる弾
@@ -1691,9 +1704,12 @@ function syncPrizes(){
       prizeHost.appendChild(el);
       prizeEls.set(p, el);
     }
-    el.style.setProperty("--u", (PW / 15 * PX) + "px");
-    el.style.left = (p.b.x / GW * 100) + "%";
-    el.style.top  = (p.b.y / GH * 100) + "%";
+    // --u を偶数 px に丸める。PW/15*PX をそのまま渡すと 4.571px になり、
+    // 1 ドットが 2.29px の半端になって枠だけが灰色に滲む
+    const cu = Math.max(2, Math.round(PW / 15 * PX / 2) * 2);
+    el.style.setProperty("--u", cu + "px");
+    el.style.left = Math.round(p.b.x / GW * fxc.width) + "px";
+    el.style.top  = Math.round(p.b.y / GH * fxc.height) + "px";
     // 回転を 12 段に量子化する。中途半端な角度で描かないぶんドット絵が保たれる
     const qa = Math.round(p.b.a / QA) * QA;
     el.style.transform = `translate(-50%,-50%) rotate(${qa}rad)`;
@@ -1782,7 +1798,8 @@ function renderHud(){
     if (a === "s-hp" && S.hurt){ $(b).classList.remove("hpflash");
       void $(b).offsetWidth; $(b).classList.add("hpflash"); }
   }
-  $("corks").innerHTML = Array.from({length:S.corkMax},(_,i)=>
+  const ck = $("corks");
+  if (ck) ck.innerHTML = Array.from({length:S.corkMax},(_,i)=>
     `<span class="ck ${i<S.corks?"on":""}"></span>`).join("");
   $("f-swap").textContent = S.swapMax ? `入れ替え ${S.swaps}/${S.swapMax}` : "入れ替え なし";
   $("s-gun").textContent = `威力 ${S.gun.power.toFixed(1)} ・散り ${S.gun.spread}`
@@ -1797,8 +1814,8 @@ let foeBarKey = "";
 function renderFoeBar(){
   const host = $("foebar"), sign = $("sign");
   const live = S.foes && S.foes.length;
-  sign.style.display = live ? "none" : "";
-  host.style.display = live ? "flex" : "none";
+  sign.style.display = "";            // 店の看板は常に出す。遊んでいる間だけ
+  host.style.display = live ? "flex" : "none";   // 消すのは本末転倒だった
   if (!live){ host.innerHTML = ""; foeBarKey = ""; return; }
   const key = S.foes.map(f=>f.spr + f.maxHp).join("|");
   if (key !== foeBarKey){
@@ -1900,7 +1917,6 @@ function renderDungeon(){
     `<h3>この階</h3>`+
     `<div class="dsrow"><span class="nm">のこり</span><span class="ct">${undone.length}</span></div>`+
     `<div class="dsrow"><span class="nm">体力</span><span class="ct">${Math.max(0,S.hp)}/${S.maxHp}</span></div>`+
-    `<div class="dsbar"><i style="width:${Math.max(0,S.hp/S.maxHp*100)}%"></i></div>`+
     `<div class="dsrow"><span class="nm">杖の容量</span><span class="ct">${S.cap}</span></div>`+
     `<div class="dsrow"><span class="nm">コルク</span><span class="ct">${S.corkMax}</span></div>`+
     (S.swapMax?`<div class="dsrow"><span class="nm">入れ替え</span><span class="ct">${S.swapMax}</span></div>`:``);
@@ -1909,7 +1925,7 @@ function renderDungeon(){
   hero.style.width = hero.style.height = ts + "px";
   hero.style.left = (S.d.px*ts) + "px";
   hero.style.top  = (S.d.py*ts) + "px";
-  if (!hero.firstChild) hero.innerHTML = spriteSVG(HERO, "hspr");
+  hero.innerHTML = spriteSVG(S.d.stepn & 1 ? HERO2 : HERO, "hspr");
 
   const left = S.d.rooms.filter(r=>!r.done && r.t!=="boss").length;
   $("dtip").textContent = S.note ||
@@ -2000,8 +2016,6 @@ function render(){
 
   // 杖＝手札の扇
   const hand = $("hand"); hand.innerHTML = "";
-  const n = Math.max(S.wand.length, 1);
-  const mid = (n-1)/2;
   for (let i=0;i<S.cap;i++){
     const c = S.wand[i];
     if (!c){                                   // 空きスロット。容量が見える
@@ -2015,7 +2029,8 @@ function render(){
     w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i], swap:i+1 < S.wand.length});
     const d = w.firstChild;
     d.style.marginLeft = i ? "calc(var(--px)*2)" : "0";
-    d.style.transform = `rotate(${(i-mid)*3}deg) translateY(calc(var(--px) * ${Math.abs(i-mid)*2}))`;
+    // 扇にしない。ドット絵を任意角で回すと、角度が何であれ再サンプリングされて
+    // 枠が灰色の階段になる。並びは水平一列で、持ち上げは hover に任せる
     const sw = d.querySelector(".cswap");
     if (sw){ sw.disabled = S.swaps<=0; sw.onclick = e=>{ e.stopPropagation(); swapAt(i); }; }
     hand.appendChild(d);
@@ -2077,7 +2092,6 @@ function openDex(){
     row(ICONS.split3, "杖", `容量 ${S.cap} ・入れ替え ${S.swapMax} ・コルク ${S.corkMax}`, false)+
     `</div>`;
   v.classList.remove("hidden");
-  v.querySelectorAll(".dexcell .card").forEach(c=>{ c.style.fontSize = "13px"; });
   $("dexclose").onclick = ()=>v.classList.add("hidden");
 }
 /** ステージを 192x108 の整数倍に吸着させる。1 ゲーム単位 = --u px（整数）。 */
@@ -2086,9 +2100,12 @@ function snapStage(){
   const full = isFull();
   const availW = (full ? window.innerWidth  : window.innerWidth - 28);
   const availH = (full ? window.innerHeight : window.innerHeight - 150);
-  // --u は偶数に丸める。--px = --u/2 を整数に保つため（1 ドットが半端だと滲む）
-  let u = Math.max(2, Math.min(Math.floor(availW / 192), Math.floor(availH / 108)));
-  u -= u % 2;
+  // --u は 4 の倍数に丸める。--px = --u/2 が偶数になり、
+  // 文字が DotGothic16 の設計サイズ 16px の整数倍（--t2 = --u*2）に乗る。
+  // 半端なサイズだと縦棒が 0.56px などになり、そこだけ灰色に滲んで
+  // 「16 色」の宣言が文字だけで破れる。
+  let u = Math.max(4, Math.min(Math.floor(availW / 192), Math.floor(availH / 108)));
+  u -= u % 4;
   st.style.width = (u * 192) + "px";
   st.style.setProperty("--u", u + "px");
   return u;

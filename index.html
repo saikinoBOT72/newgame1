@@ -226,9 +226,14 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .dexcell{display:flex;flex-direction:column;align-items:center;gap:calc(var(--px)*1)}
 .dexcell .n{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute)}
 .dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:calc(var(--px)*2) calc(var(--px)*4)}
-.dexi{border:var(--bw) solid #3A4467;background:#151A2E;padding:calc(var(--px)*2) calc(var(--px)*3)}
-.dexi b{font-family:var(--f-disp);font-size:var(--t2);display:block}
-.dexi span{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute);line-height:1.5}
+.dexi{border:var(--bw) solid var(--c2);background:var(--c1);
+  padding:calc(var(--px)*2) calc(var(--px)*3);display:flex;align-items:center;
+  gap:calc(var(--px)*3);border-top-color:var(--c6)}
+.dexi.got{border-color:var(--c7);border-top-color:var(--c8)}
+.dexs{width:var(--sp16);height:var(--sp16);flex:0 0 auto;shape-rendering:crispEdges}
+.dexi .dt{display:flex;flex-direction:column;gap:var(--px)}
+.dexi b{font-family:var(--f-disp);font-size:var(--t2);display:block;color:var(--c5)}
+.dexi span{font-family:var(--f-mono);font-size:var(--t1);color:var(--c4);line-height:1.5}
 #dexclose{position:sticky;top:0;float:right}
 
 /* ═══ 画面3：報酬 ═══ */
@@ -592,16 +597,16 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
 /* art: 後から画像を差し替える枠。null の間は仮のアイコンを出す */
 const CARDS = {
-  fireball:{name:"火球",  type:"projectile", dmg:9, art:null, text:"9 ダメージ"},
-  shard:   {name:"石礫",  type:"projectile", dmg:4, art:null, text:"4 ダメージ"},
-  bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6 ダメージ・貫通1"},
-  split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製 3"},
-  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通 +2"},
-  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力 1.5 倍・波及 +1"},
-  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"被弾 1.5 倍"},
-  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃 −2"},
-  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒 4"},
-  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御 +9"}
+  fireball:{name:"火球",  type:"projectile", dmg:9, art:null, text:"9ダメージ"},
+  shard:   {name:"石礫",  type:"projectile", dmg:4, art:null, text:"4ダメージ"},
+  bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6ダメージ・貫通1"},
+  split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製3"},
+  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通+2"},
+  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力1.5倍・波及+1"},
+  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"被弾1.5倍"},
+  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃−2"},
+  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒4"},
+  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御+9"}
 };
 for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 
@@ -2058,15 +2063,21 @@ function openDex(){
     w.innerHTML = cardHTML(CARDS[id], {});
     return `<div class="dexcell">${w.innerHTML}<span class="n">プール ${count(id)} 枚</span></div>`;
   }).join("");
+  // 行の左端に必ず絵を置く。文字だけのリストはこの世界の文法ではない
+  const row = (spr, name, note, got, pal) =>
+    `<div class="dexi${got?" got":""}">${spriteSVG(spr,"dexs",pal)}`+
+    `<span class="dt"><b>${esc(name)}</b><span>${esc(note)}</span></span></div>`;
   const guns = UPGRADES.map(u=>
-    `<div class="dexi"><b>${esc(u.name)}</b><span>${esc(u.note)}`+
-    `${S.owned.includes(u.id)?" ・取得済み":""}</span></div>`).join("");
+    row(UI.aim, u.name, u.note + (S.owned.includes(u.id)?" ・取得済み":""),
+        S.owned.includes(u.id))).join("");
   const cores = CORE.map(c=>
-    `<div class="dexi"><b>${esc(c.name)}</b><span>${esc(c.note)}`+
-    `${S.core.includes(c.id)?" ・取得済み":""}</span></div>`).join("");
+    row(ROOMSPR.boss, c.name, c.note + (S.core.includes(c.id)?" ・取得済み":""),
+        S.core.includes(c.id))).join("");
+  const reps = REPEATABLE.map(c=> row(ROOMSPR.chest, c.name, c.note, false)).join("");
   const foes = FOEDEX.map(f=>
-    `<div class="dexi"><b>${esc(f.name)}</b><span>体力 ${f.hp} ・攻撃 ${f.atk}`+
-    `（第${S.floor}層では 体力 ${foeHp(f,S.floor,false)} ・攻撃 ${foeAtk(f,S.floor)}）</span></div>`).join("");
+    row(SPRITES[f.spr], f.name,
+        `体力 ${f.hp} ・攻撃 ${f.atk}（第${S.floor}層では ${foeHp(f,S.floor,false)} / ${foeAtk(f,S.floor)}）`,
+        false)).join("");
   v.innerHTML =
     `<button class="btn" id="dexclose">閉じる</button>`+
     `<h2>図鑑</h2><div class="sub">開発用 — 実装済みの全要素</div>`+
@@ -2074,11 +2085,12 @@ function openDex(){
     `<div class="dexrow">${cards}</div>`+
     `<h2 style="font-size:1em">鉄砲の強化</h2><div class="dexlist">${guns}</div>`+
     `<h2 style="font-size:var(--t2);margin-top:1em">根本的な強化（ボス報酬）</h2><div class="dexlist">${cores}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">繰り返し取れる強化</h2><div class="dexlist">${reps}</div>`+
     `<h2 style="font-size:var(--t2);margin-top:1em">敵</h2><div class="dexlist">${foes}</div>`+
     `<h2 style="font-size:var(--t2);margin-top:1em">いまの状態</h2><div class="dexlist">`+
-    `<div class="dexi"><b>鉄砲</b><span>威力 ${S.gun.power.toFixed(2)} ・散り ${S.gun.spread}`+
-    ` ・弾 ${S.gun.pellets} ・爆風 ${S.gun.blast}</span></div>`+
-    `<div class="dexi"><b>杖</b><span>容量 ${S.cap} ・入れ替え ${S.swapMax} ・コルク ${S.corkMax}</span></div>`+
+    row(UI.aim, "鉄砲", `威力 ${S.gun.power.toFixed(2)} ・散り ${S.gun.spread}`+
+      ` ・弾 ${S.gun.pellets} ・爆風 ${S.gun.blast} ・札 +${S.dmgUp||0}`, false)+
+    row(ICONS.split3, "杖", `容量 ${S.cap} ・入れ替え ${S.swapMax} ・コルク ${S.corkMax}`, false)+
     `</div>`;
   v.classList.remove("hidden");
   v.querySelectorAll(".dexcell .card").forEach(c=>{ c.style.fontSize = "13px"; });

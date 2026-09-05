@@ -40,8 +40,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;pad
 button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 #stagebox{display:flex;align-items:center;justify-content:center;background:var(--n0)}
-body.isfull{padding:0;gap:0}
+body.isfull{padding:0;gap:0;overflow:hidden}
 body.isfull .notes{display:none}
+/* iframe 内では requestFullscreen が拒否されるので、擬似全画面で覆う */
+body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .full{position:absolute;right:calc(var(--u)*1.4);top:calc(var(--u)*1.4);z-index:12;
   padding:calc(var(--u)*0.5) calc(var(--u)*1);font-size:.9em;opacity:.45}
 .full:hover{opacity:1}
@@ -1398,6 +1400,7 @@ window.addEventListener("keydown", ev=>{
     return;
   }
   if (ev.key === "f" || ev.key === "F"){ toggleFull(); ev.preventDefault(); return; }
+  if (ev.key === "Escape" && PSEUDO){ toggleFull(); ev.preventDefault(); return; }
   if (S.phase === "dungeon"){
     const m = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1],
                a:[-1,0], d:[1,0], w:[0,-1], s:[0,1]}[ev.key];
@@ -1689,7 +1692,7 @@ function openDex(){
 /** ステージを 192x108 の整数倍に吸着させる。1 ゲーム単位 = --u px（整数）。 */
 function snapStage(){
   const st = document.getElementById("stage");
-  const full = !!document.fullscreenElement;
+  const full = isFull();
   const availW = (full ? window.innerWidth  : window.innerWidth - 28);
   const availH = (full ? window.innerHeight : window.innerHeight - 150);
   const u = Math.max(2, Math.min(Math.floor(availW / 192), Math.floor(availH / 108)));
@@ -1697,16 +1700,30 @@ function snapStage(){
   st.style.setProperty("--u", u + "px");
   return u;
 }
+/* 全画面。artifact は iframe の中で動くため、allowfullscreen が付いていないと
+   requestFullscreen() は拒否される。その場合は擬似全画面（position:fixed で
+   枠を覆う）に落として、どの環境でも必ず拡大できるようにする。 */
+let PSEUDO = false;
+function isFull(){ return !!document.fullscreenElement || PSEUDO; }
+function applyFull(){
+  document.body.classList.toggle("isfull", isFull());
+  const b = document.getElementById("btn-full");
+  if (b) b.title = isFull() ? "元に戻す（F / Esc）" : "全画面（F）";
+  snapStage(); fitCanvas(); if (S) render();
+}
 function toggleFull(){
+  if (document.fullscreenElement){ document.exitFullscreen(); return; }
+  if (PSEUDO){ PSEUDO = false; applyFull(); return; }
   const box = document.getElementById("stagebox");
-  if (document.fullscreenElement) document.exitFullscreen();
-  else box.requestFullscreen && box.requestFullscreen();
+  let pr = null;
+  if (document.fullscreenEnabled && box.requestFullscreen){
+    try { pr = box.requestFullscreen(); } catch(e){ pr = null; }
+  }
+  if (pr && pr.then) pr.catch(()=>{ PSEUDO = true; applyFull(); });
+  else if (!pr){ PSEUDO = true; applyFull(); }
 }
 window.addEventListener("resize", ()=>{ snapStage(); fitCanvas(); if (S) render(); });
-document.addEventListener("fullscreenchange", ()=>{
-  document.body.classList.toggle("isfull", !!document.fullscreenElement);
-  snapStage(); fitCanvas(); if (S) render();
-});
+document.addEventListener("fullscreenchange", ()=>{ PSEUDO = false; applyFull(); });
 
 snapStage();
 newRun();

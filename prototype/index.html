@@ -63,7 +63,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;pad
 button:focus-visible{outline:var(--bw) solid var(--c7);outline-offset:var(--px)}
 
 #stagebox{display:flex;align-items:center;justify-content:center;background:var(--c0)}
-body.isfull{padding:0;gap:0;overflow:hidden}
+body.isfull{padding:0;gap:0;overflow:hidden;height:100vh;justify-content:center}
+:fullscreen{background:var(--c0)}
+html:fullscreen body{padding:0;gap:0;justify-content:center}
 body.isfull .notes{display:none}
 body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .stage{width:100%;aspect-ratio:16/9;container-type:size;image-rendering:pixelated;
@@ -98,7 +100,8 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 
 /* ═══ HUD ═══ */
 .hud{position:absolute;top:calc(var(--u)*2);left:0;right:0;display:flex;align-items:center;
-  justify-content:space-between;padding:0 calc(var(--u)*2);z-index:6;pointer-events:none;
+  justify-content:space-between;padding:0 calc(var(--u)*22) 0 calc(var(--u)*2);
+  z-index:6;pointer-events:none;
   gap:calc(var(--u)*2);height:calc(var(--u)*4)}
 .hud .l,.hud .r{display:flex;align-items:center;gap:calc(var(--px)*3)}
 .chip{padding:var(--px) calc(var(--px)*3);background:var(--c1);
@@ -108,14 +111,17 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .chip b{color:var(--c5);font-weight:400}
 .chip .hp{color:var(--cb)} .chip .bk{color:var(--cd)}
 .full{padding:var(--px) calc(var(--px)*2);border:var(--bw) solid var(--c2);
-  background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto}
+  background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto;
+  position:absolute;top:calc(var(--u)*2);z-index:20}
+#btn-full{right:calc(var(--u)*2)}
+#btn-mute{right:calc(var(--u)*10)}
 .full:hover{border-color:var(--c7);color:var(--c7)}
 
 /* ═══ 札 ═══ */
 .card{position:relative;width:calc(var(--u)*15);height:calc(var(--u)*21);
   background:var(--c1);border:var(--bw) solid var(--c3);
   display:flex;flex-direction:column;align-items:center;
-  padding:calc(var(--px)*4) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px);
+  padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px);
   transition:transform .1s steps(2),border-color .1s;box-shadow:var(--sh)}
 .card.t-projectile{border-color:var(--c9);
   box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c9)}
@@ -129,15 +135,17 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   align-items:center;justify-content:center;color:var(--c5);z-index:2}
 .card.t-projectile .cidx{border-color:var(--c9);color:var(--cb)}
 .card.t-modifier .cidx{border-color:var(--c6);color:var(--c7)}
-.cname{color:var(--c5);text-align:center;line-height:1}
-.cart{width:100%;height:calc(var(--px)*11);flex:0 0 auto;border:var(--bw) solid var(--c2);
+.cname{color:var(--c5);text-align:center;line-height:1;flex:0 0 auto}
+.cart{width:100%;height:calc(var(--px)*10);flex:1 1 auto;min-height:calc(var(--px)*7);
+  border:var(--bw) solid var(--c2);
   background:var(--c0);display:flex;align-items:center;justify-content:center;position:relative}
 .cicon{width:calc(var(--px)*7);height:calc(var(--px)*7);shape-rendering:crispEdges}
 .uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:calc(var(--px)*-1)}
-.ckind{color:var(--c4)}
-.ctext{color:var(--c4);margin:auto 0;flex:1 1 auto;display:flex;
-  align-items:center;justify-content:center;overflow:hidden;text-align:center;width:100%}
-.cbind{width:100%;text-align:center;margin-top:var(--px);padding-top:var(--px);
+.ckind{color:var(--c4);flex:0 0 auto}
+/* 説明は縮めない（flex に潰されると 2 行目が切れる）。詰める側は絵札 */
+.ctext{color:var(--c4);margin:auto 0;flex:0 0 auto;display:flex;
+  align-items:center;justify-content:center;text-align:center;width:100%}
+.cbind{width:100%;text-align:center;padding-top:var(--px);flex:0 0 auto;
   border-top:var(--px) solid var(--c6);color:var(--c6)}
 /* 小さく出す札：名前と絵だけ */
 .card.mini{padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px)}
@@ -454,6 +462,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 
   <div id="dexv" class="hidden"></div>
   <div class="veil hidden" id="veil"><div class="box" id="veilbox"></div></div>
+  <button class="btn full" id="btn-mute" title="音（M）"></button>
   <button class="btn full" id="btn-full" title="全画面（F）"></button>
 </div></div>
 
@@ -517,10 +526,10 @@ const CARDS = {
 };
 for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 
-const POOL0 = ["fireball","fireball","fireball","fireball","shard","shard","shard",
-               "bolt","bolt","bolt","split3","split3","pierce","pierce",
-               "enlarge","enlarge","guard","guard"];
-// 破鎧・弱体・猛毒は報酬でしか手に入らない（初期プールには入れない）
+/* 山は 3 枚から始める。区画が少ないほど盤が読めるので、
+   「増やす」と「削る」の両方に意味が出る。 */
+const POOL0 = ["fireball","fireball","split3"];
+// 他の札は報酬・宝箱でのみ手に入る
 
 const FOEDEX = [
   {name:"スライム", hp:18, atk:3, spr:"slime"},
@@ -542,7 +551,7 @@ function shuffle(a){                      // Fisher-Yates（sort(()=>Math.random
 
 function newRun(){
   S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, sift:0,
-       balls:3, cap:5, dmgUp:0, pick:null,
+       balls:2, cap:5, dmgUp:0, pick:null,
        pool:POOL0.slice(), owned:[], core:[],
        wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
        prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
@@ -993,6 +1002,7 @@ function step(dx, dy){
   const nx = S.d.px + dx, ny = S.d.py + dy;
   if (!passable(nx, ny)) return;
   S.d.px = nx; S.d.py = ny;
+  sfx("walk");
   S.d.stepn = (S.d.stepn||0) + 1;      // 1 歩ごとに脚を入れ替える
   const rm = roomAt(nx, ny);
   renderDungeon();
@@ -1082,6 +1092,7 @@ function takeReward(k){
   const o = S.roffer[k];
   if (!o) return;
   if (S.rkind === "boss"){ o.apply(); if (!REPEATABLE.includes(o)) S.core.push(o.id); nextFloor(); return; }
+  sfx("reward");
   if (o.kind === "card") S.pool.push(o.id);
   else { o.u.apply(); S.owned.push(o.u.id); }
   S.hp = Math.min(S.maxHp, S.hp + 5);
@@ -1155,8 +1166,9 @@ function playStepOnce(schedule){
   if (a.i >= a.evs.length){ S.anim = null; return finishCast(); }
   const e = a.evs[a.i++];
   if (e.k === "mod")  S.log.push({k:"mod", t:`+ ${e.name}`});
-  if (e.k === "fire") S.log.push({k:"fire", t:`${e.name}${e.tags?" ["+e.tags+"]":""}`});
+  if (e.k === "fire"){ S.log.push({k:"fire", t:`${e.name}${e.tags?" ["+e.tags+"]":""}`}); sfx("cast"); }
   if (e.k === "hit"){
+    sfx("hit");
     const f = S.foes[e.i];
     if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i); }
     S.log.push({k:"fire", t:`  ${f?f.name:""} −${e.dmg}`});
@@ -1172,17 +1184,20 @@ function playStepOnce(schedule){
     }
   }
   if (e.k === "psn"){
+    sfx("burn");
     const f = S.foes[e.i];
     if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i);
       if (e.brn !== undefined) f.brn = e.brn; }
     S.log.push({k:"foe", t:`  ${f?f.name:""} ${e.s} −${e.dmg}`});
   }
   if (e.k === "kill"){
+    sfx("kill");
     const f = S.foes[e.i];
     S.log.push({k:"total", t:`  ${f?f.name:""} 撃破`});
 
   }
   if (e.k === "enemy"){
+    sfx(e.dmg > 0 ? "hurt" : "block");
     S.block = Math.max(0, S.block - e.abs);
     S.hp -= e.dmg;
     S.hurt = true;
@@ -1251,6 +1266,7 @@ window.addEventListener("keydown", ev=>{
     return;
   }
   if (ev.key === "f" || ev.key === "F"){ toggleFull(); ev.preventDefault(); return; }
+  if (ev.key === "m" || ev.key === "M"){ toggleMute(); ev.preventDefault(); return; }
   if (ev.key === "Escape" && PSEUDO){ toggleFull(); ev.preventDefault(); return; }
   if (S.phase === "roul"){
     if (ev.key === " "){ spinBalls(); ev.preventDefault(); }
@@ -1280,6 +1296,179 @@ window.addEventListener("keydown", ev=>{
   w.addEventListener("pointercancel", ()=>{ on=false; });
 })();
 
+/* ═══════ 音 ═══════
+   音源のファイルは持たない。矩形波・三角波・ノイズをその場で合成する。
+   ドット絵に合わせて、波形も 8 bit 機の作り方に寄せてある（矩形と
+   三角とノイズだけ、包絡線は直線、音程は半音の格子から外さない）。
+   AudioContext は最初の操作まで作れないので、遅延して初期化する。 */
+let AC = null, MASTER = null, MUSGAIN = null, SFXGAIN = null;
+let MUTED = false, BGMTRACK = null, BGMTIMER = null, BGMSTEP = 0;
+
+function audioInit(){
+  if (AC) return AC;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  AC = new Ctx();
+  MASTER = AC.createGain(); MASTER.gain.value = MUTED ? 0 : 0.5;
+  MASTER.connect(AC.destination);
+  MUSGAIN = AC.createGain(); MUSGAIN.gain.value = 0.30; MUSGAIN.connect(MASTER);
+  SFXGAIN = AC.createGain(); SFXGAIN.gain.value = 0.55; SFXGAIN.connect(MASTER);
+  return AC;
+}
+/* 矩形波はデューティ比で音色が変わる。8 bit 機と同じく 12.5 / 25 / 50% を使う */
+const WAVES = {};
+function pulseWave(duty){
+  if (WAVES[duty]) return WAVES[duty];
+  const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k=1;k<n;k++) re[k] = 2/(k*Math.PI) * Math.sin(Math.PI*k*duty);
+  WAVES[duty] = AC.createPeriodicWave(re, im);
+  return WAVES[duty];
+}
+let NOISEBUF = null;
+function noiseBuf(){
+  if (NOISEBUF) return NOISEBUF;
+  const n = AC.sampleRate * 0.6;
+  NOISEBUF = AC.createBuffer(1, n, AC.sampleRate);
+  const d = NOISEBUF.getChannelData(0);
+  let r = 0xACE1;                      // 線形帰還シフトレジスタ。8 bit 機のノイズ
+  for (let i=0;i<n;i++){
+    const bit = ((r ^ (r>>1)) & 1);
+    r = (r>>1) | (bit<<14);
+    d[i] = (r & 1) ? 0.6 : -0.6;
+  }
+  return NOISEBUF;
+}
+/** 1 音。type は pulse12 / pulse25 / pulse50 / tri / noise */
+function tone(type, freq, t0, dur, vol, dest, slide){
+  if (!AC) return;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.004);
+  g.gain.setValueAtTime(vol, t0 + dur*0.55);
+  g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  g.connect(dest || SFXGAIN);
+  let src;
+  if (type === "noise"){
+    src = AC.createBufferSource(); src.buffer = noiseBuf(); src.loop = true;
+    const f = AC.createBiquadFilter();
+    f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.1;
+    src.connect(f); f.connect(g);
+  } else {
+    src = AC.createOscillator();
+    if (type === "tri") src.type = "triangle";
+    else src.setPeriodicWave(pulseWave(type === "pulse12" ? 0.125
+                                     : type === "pulse25" ? 0.25 : 0.5));
+    src.frequency.setValueAtTime(freq, t0);
+    if (slide) src.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t0 + dur);
+    src.connect(g);
+  }
+  src.start(t0); src.stop(t0 + dur + 0.02);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69)/12);   // MIDI 番号 → Hz
+
+/* ── 効果音 ── */
+let lastClack = 0;
+function sfx(name){
+  if (!audioInit() || MUTED) return;
+  const t = AC.currentTime;
+  switch(name){
+    case "click":  tone("pulse25", NOTE(84), t, 0.05, 0.20); break;
+    case "pick":   tone("pulse25", NOTE(79), t, 0.05, 0.22);
+                   tone("pulse25", NOTE(86), t+0.05, 0.06, 0.18); break;
+    case "throw":  tone("noise", 2600, t, 0.20, 0.28, null);
+                   tone("pulse12", NOTE(60), t, 0.22, 0.14, null, NOTE(84)); break;
+    case "clack":  if (t - lastClack < 0.035) return; lastClack = t;
+                   tone("noise", 3400 + rnd(900), t, 0.035, 0.30); break;
+    case "fret":   if (t - lastClack < 0.02) return; lastClack = t;
+                   tone("noise", 1800 + rnd(700), t, 0.028, 0.20); break;
+    case "settle": tone("pulse50", NOTE(72), t, 0.07, 0.26);
+                   tone("pulse50", NOTE(79), t+0.07, 0.10, 0.26);
+                   tone("tri",     NOTE(60), t, 0.18, 0.22); break;
+    case "cast":   tone("pulse12", NOTE(64), t, 0.09, 0.24, null, NOTE(76));
+                   tone("noise", 1400, t, 0.12, 0.18); break;
+    case "hit":    tone("noise", 900, t, 0.10, 0.34);
+                   tone("pulse50", NOTE(52), t, 0.10, 0.22, null, NOTE(40)); break;
+    case "kill":   [72,76,79,84].forEach((n,i)=>
+                     tone("pulse25", NOTE(n), t+i*0.055, 0.09, 0.24)); break;
+    case "hurt":   tone("noise", 420, t, 0.18, 0.34);
+                   tone("tri", NOTE(45), t, 0.20, 0.26, null, NOTE(33)); break;
+    case "block":  tone("pulse50", NOTE(67), t, 0.06, 0.20);
+                   tone("tri", NOTE(55), t, 0.14, 0.20); break;
+    case "walk":   tone("noise", 1100, t, 0.03, 0.12); break;
+    case "reward": [67,71,74,79,curTone(83)].forEach((n,i)=>
+                     tone("pulse25", NOTE(n), t+i*0.07, 0.12, 0.24)); break;
+    case "burn":   tone("noise", 2200, t, 0.14, 0.20); break;
+    case "open":   tone("pulse25", NOTE(70), t, 0.06, 0.18);
+                   tone("pulse25", NOTE(77), t+0.06, 0.08, 0.18); break;
+  }
+}
+const curTone = n => n;
+
+/* ── BGM ──
+   1 小節 16 歩。ベース（三角）・和音（矩形 25%）・ノイズの 3 声。
+   画面ごとに調と刻みを変える。楽譜は半音の格子から外さない。 */
+const TRACKS = {
+  dungeon:{ bpm:96, root:45, scale:[0,3,5,7,10],
+    bass:[0,null,0,null,7,null,0,null,3,null,3,null,7,null,10,null],
+    lead:[12,null,null,15,null,null,19,null,null,15,null,12,null,null,10,null],
+    perc:[1,0,0,0,1,0,0,0,1,0,0,1,1,0,0,0], duty:"pulse25", drive:0.7 },
+  roul:{ bpm:120, root:48, scale:[0,2,3,5,7,8,10],
+    bass:[0,0,7,0,3,3,10,3,5,5,12,5,3,3,7,7],
+    lead:[null,24,null,22,null,19,null,22,null,20,null,19,null,17,null,15],
+    perc:[1,0,1,0,1,0,1,0,1,0,1,0,1,1,0,1], duty:"pulse12", drive:0.85 },
+  fight:{ bpm:132, root:43, scale:[0,3,5,6,7,10],
+    bass:[0,0,null,0,10,null,0,null,5,5,null,5,3,null,7,null],
+    lead:[12,null,15,null,18,null,15,null,17,null,15,null,12,null,10,null],
+    perc:[1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0], duty:"pulse12", drive:1.0 },
+  reward:{ bpm:88, root:50, scale:[0,2,4,7,9],
+    bass:[0,null,null,null,7,null,null,null,4,null,null,null,7,null,9,null],
+    lead:[16,null,19,null,21,null,19,null,16,null,14,null,12,null,null,null],
+    perc:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], duty:"pulse50", drive:0.5 }
+};
+function bgm(name){
+  if (BGMTRACK === name) return;
+  BGMTRACK = name;
+  BGMSTEP = 0;
+  if (BGMTIMER){ clearTimeout(BGMTIMER); BGMTIMER = null; }
+  if (!name || !audioInit()) return;
+  bgmTick();
+}
+function bgmTick(){
+  const tr = TRACKS[BGMTRACK];
+  if (!tr || !AC){ BGMTIMER = null; return; }
+  const spb = 60 / tr.bpm / 4;              // 16 分音符
+  const t = AC.currentTime + 0.02;
+  const i = BGMSTEP % 16;
+  if (!MUTED){
+    const bn = tr.bass[i];
+    if (bn !== null && bn !== undefined)
+      tone("tri", NOTE(tr.root + bn), t, spb*1.7, 0.26*tr.drive, MUSGAIN);
+    const ln = tr.lead[i];
+    if (ln !== null && ln !== undefined)
+      tone(tr.duty, NOTE(tr.root + ln), t, spb*1.3, 0.13*tr.drive, MUSGAIN);
+    if (tr.perc[i]) tone("noise", i%4===0 ? 240 : 5200, t, i%4===0 ? 0.09 : 0.03,
+                         (i%4===0 ? 0.22 : 0.10)*tr.drive, MUSGAIN);
+  }
+  BGMSTEP++;
+  BGMTIMER = setTimeout(bgmTick, spb*1000);
+}
+function toggleMute(){
+  MUTED = !MUTED;
+  if (MASTER) MASTER.gain.value = MUTED ? 0 : 0.5;
+  const b = document.getElementById("btn-mute");
+  if (b) b.innerHTML = D(MUTED ? "音 切" : "音 入");
+  return MUTED;
+}
+/* 最初の操作で音を起こす。ブラウザは操作前に音を出させない */
+function wakeAudio(){
+  if (!audioInit()) return;
+  if (AC.state === "suspended") AC.resume();
+  if (S) bgm(S.phase === "fight" ? "fight" : S.phase === "roul" ? "roul"
+           : S.phase === "reward" || S.phase === "trash" ? "reward" : "dungeon");
+}
+addEventListener("pointerdown", wakeAudio, {once:false});
+addEventListener("keydown", wakeAudio, {once:false});
+
 /* ═══════ ルーレット（抽選） ═══════
    円盤の区画は、いま持っている札そのもの。同じ札を 4 枚持っていれば区画も 4 つ。
    玉は本物と同じ理屈で回す。出目は「先に決めて演出で辻褄を合わせる」のではなく、
@@ -1305,9 +1494,9 @@ const WROT = 33;      // ロータの外周（ここから区画）
 const WPKT = 26;      // ポケットの底（玉が収まる半径）
 const WIN  = 17;      // ハブ
 const NDEF = 8;       // ディフレクタの数
-const DROP_G = 62;    // ここまで遠心力が落ちたらトラックから外れる
-const FRIC_B = 0.994; // 玉の摩擦
-const FRIC_W = 0.996; // 盤の摩擦
+const DROP_G = 44;    // ここまで遠心力が落ちたらトラックから外れる（低いほど長く走る）
+const FRIC_B = 0.9955; // 玉の摩擦（1 に近いほど長く回る）
+const FRIC_W = 0.996;  // 盤の摩擦
 const DT_R   = 1/60;
 
 const wcv = document.getElementById("wheel");
@@ -1354,14 +1543,15 @@ function spinBalls(){
   R.balls = [];
   for (let i=0;i<R.left;i++){
     R.balls.push({
-      a: rnd(TAU), av: -(2.5 + rnd(0.5)),      // 盤と逆向きに投げる
+      a: rnd(TAU), av: -(3.2 + rnd(0.9)),      // 盤と逆向きに、速く投げる
       r: WTRK, rv: 0, on:"track", sec:-1, rest:0,
-      t: -i*10                                  // 少しずつ時間差で投げる
+      t: -i*6                                   // 間隔を詰めて、追いつき・ぶつかりを起こす
     });
   }
   R.left = 0;
   R.spin = 0;
   SPINNING = true;
+  sfx("throw");
   renderRoul();
   stepRoul();
 }
@@ -1369,11 +1559,11 @@ function spinBalls(){
 function stepRoul(){
   if (!S.roul){ SPINNING = false; return; }
   const R = S.roul, n = R.secs.length;
-  for (let k=0;k<2;k++) rouletteStep(R, n);     // 1 フレームに 2 歩
+  rouletteStep(R, n);                          // 1 フレーム 1 歩。ゆっくり見せる
   drawWheel();
   R.spin++;
   const moving = R.balls.some(b=>b.on !== "pocket");
-  if (moving && R.spin < 900) setTimeout(stepRoul, 16);
+  if (moving && R.spin < 620) setTimeout(stepRoul, 16);
   else finishSpin();
 }
 
@@ -1396,21 +1586,21 @@ function rouletteStep(R, n){
       const v = Math.abs(b.av) * b.r;
       if (v*v / b.r < DROP_G){ b.on = "fall"; b.rv = -0.22; }
     } else if (b.on === "fall"){
-      b.rv -= 0.055;                           // 内側へ引かれる
+      b.rv -= 0.045;                           // 内側へ引かれる
       b.r  += b.rv;
       if (r0 > 0.001) b.av *= r0 / Math.max(6, b.r);   // 角運動量の保存
       // ディフレクタ。菱形の突起に当たると角度と径が乱れる
       if (b.r < WDEF + 1.4 && b.r > WDEF - 1.4 && !b.hitDef){
         const da = norm(b.a) / (TAU/NDEF);
         if (Math.abs(da - Math.round(da)) < 0.16){
-          b.hitDef = 1;
+          b.hitDef = 1; sfx("clack");
           b.av *= (0.55 + rnd(0.35)) * (rnd(1) < 0.22 ? -1 : 1);
           b.rv = 0.10 + rnd(0.16);             // いったん跳ね上がる
         }
       }
       if (b.r <= WROT){ b.on = "rotor"; b.rv = -0.06; }
     } else if (b.on === "rotor"){
-      b.rv -= 0.028;
+      b.rv -= 0.024;
       b.r  += b.rv;
       if (b.r < WPKT){ b.r = WPKT; b.rv = -b.rv*0.32; }
       // フレット（仕切り）。盤に対する相対速度で跳ねる
@@ -1420,12 +1610,13 @@ function rouletteStep(R, n){
       if (near < 0.13 && Math.abs(rel) > 0.55){
         b.av = R.wv - rel*0.42;                // 仕切りに当たって減速・反転
         b.rv += 0.08;
+        sfx("fret");
       }
       // 相対速度が十分小さくなったら、その区画で捕まる
-      if (Math.abs(rel) < 0.5 && b.r <= WPKT + 1.2){
+      if (Math.abs(rel) < 0.45 && b.r <= WPKT + 1.2){
         b.rest++;
-        if (b.rest > 12){
-          b.on = "pocket";
+        if (b.rest > 14){
+          b.on = "pocket"; sfx("settle");
           b.sec = ((Math.floor(norm(b.a - R.wa)/sw) % n) + n) % n;
         }
       } else b.rest = 0;
@@ -1434,19 +1625,24 @@ function rouletteStep(R, n){
   }
 
   // 玉どうしの衝突。トラック上でもロータ内でも、近づいたら弾き合う
+  const RW = R.wv;
   for (let i=0;i<R.balls.length;i++) for (let j=i+1;j<R.balls.length;j++){
     const p = R.balls[i], q = R.balls[j];
     if (p.t < 0 || q.t < 0) continue;
-    if (Math.abs(p.r - q.r) > 3.2) continue;
+    if (Math.abs(p.r - q.r) > 4.2) continue;
     let d = norm(p.a - q.a); if (d > Math.PI) d -= TAU;
     const gap = Math.abs(d) * ((p.r + q.r)/2);
-    if (gap > 3.4) continue;
+    if (gap > 4.4) continue;
     if (p.on === "pocket" && q.on === "pocket") continue;
-    const t = p.av; p.av = q.av*0.9; q.av = t*0.9;      // 1 次元の弾性衝突
-    const push = (3.4 - gap) / ((p.r + q.r)/2) * 0.5 * Math.sign(d || 1);
+    const t = p.av; p.av = q.av*0.92; q.av = t*0.92;    // 1 次元の弾性衝突
+    sfx("clack");
+    const push = (4.4 - gap) / ((p.r + q.r)/2) * 0.5 * Math.sign(d || 1);
     p.a = norm(p.a + push); q.a = norm(q.a - push);
-    if (p.on === "pocket"){ p.on = "rotor"; p.rest = 0; p.rv = 0.08; }
-    if (q.on === "pocket"){ q.on = "rotor"; q.rest = 0; q.rv = 0.08; }
+    // ポケットに収まった玉を弾き出すのは、相手が十分速いときの 1 回だけ。
+    // 無条件に弾き出すと、二つの玉が延々と押し合って止まらなくなる
+    const fast = Math.abs(p.av - RW) > 1.2 || Math.abs(q.av - RW) > 1.2;
+    if (fast && p.on === "pocket" && !p.kicked){ p.on = "rotor"; p.rest = 0; p.rv = 0.08; p.kicked = 1; }
+    if (fast && q.on === "pocket" && !q.kicked){ q.on = "rotor"; q.rest = 0; q.rv = 0.08; q.kicked = 1; }
   }
 }
 
@@ -1752,6 +1948,8 @@ function drawGlow(){
 function render(){
   for (const id of ["dungeon","roul","fight","reward","trash"])
     $(id).classList.toggle("off", S.phase !== id);
+  bgm(S.phase === "fight" ? "fight" : S.phase === "roul" ? "roul"
+    : S.phase === "reward" || S.phase === "trash" ? "reward" : "dungeon");
   if (S.phase === "dungeon") return renderDungeon();
   if (S.phase === "reward")  return renderReward();
   if (S.phase === "trash")   return renderTrash();
@@ -1819,6 +2017,7 @@ function render(){
     if (S.pick === i) d.classList.add("picked");
     d.onclick = ()=>{
       if (S.anim) return;
+      sfx("pick");
       if (S.pick === null || S.pick === undefined) S.pick = i;
       else if (S.pick === i) S.pick = null;
       else {
@@ -1849,11 +2048,14 @@ function render(){
 
 $("btn-dex").innerHTML = D("図鑑");
 $("btn-dex").onclick = openDex;
+$("btn-mute").innerHTML = D("音 入");
+$("btn-mute").onclick = ()=>{ toggleMute(); };
 $("btn-full").innerHTML = spriteSVG(UI.full, "uic");
 $("btn-full").onclick = toggleFull;
 
 /* ═══════ 図鑑（開発用） ═══════ */
 function openDex(){
+  sfx("open");
   const v = $("dexv");
   const count = id => S.pool.filter(x=>x===id).length;
   const cards = Object.keys(CARDS).map(id=>{
@@ -1910,26 +2112,49 @@ function snapStage(){
    requestFullscreen() は拒否される。その場合は擬似全画面（position:fixed で
    枠を覆う）に落として、どの環境でも必ず拡大できるようにする。 */
 let PSEUDO = false;
-function isFull(){ return !!document.fullscreenElement || PSEUDO; }
+function isFull(){ return !!fullEl() || PSEUDO; }
 function applyFull(){
   document.body.classList.toggle("isfull", isFull());
   const b = document.getElementById("btn-full");
   if (b) b.title = isFull() ? "元に戻す（F / Esc）" : "全画面（F）";
   snapStage(); if (S) render();
 }
-function toggleFull(){
-  if (document.fullscreenElement){ document.exitFullscreen(); return; }
-  if (PSEUDO){ PSEUDO = false; applyFull(); return; }
-  const box = document.getElementById("stagebox");
-  let pr = null;
-  if (document.fullscreenEnabled && box.requestFullscreen){
-    try { pr = box.requestFullscreen(); } catch(e){ pr = null; }
+/* 本物の全画面を優先する。<html> ごと全画面にすると、
+   ブラウザの UI もタスクバーも消えて、本当に画面いっぱいになる。
+   iframe の中（artifact）では allowfullscreen が無いと拒否されるので、
+   そのときだけ擬似全画面に落ちる。GitHub Pages では本物が使える。 */
+function reqFull(el){
+  const f = el.requestFullscreen || el.webkitRequestFullscreen
+         || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (!f) return null;
+  try { return f.call(el, {navigationUI:"hide"}); } catch(e){
+    try { return f.call(el); } catch(e2){ return null; }
   }
-  if (pr && pr.then) pr.catch(()=>{ PSEUDO = true; applyFull(); });
-  else if (!pr){ PSEUDO = true; applyFull(); }
+}
+function exitFull(){
+  const f = document.exitFullscreen || document.webkitExitFullscreen
+         || document.mozCancelFullScreen || document.msExitFullscreen;
+  if (f) try { f.call(document); } catch(e){}
+}
+function fullEl(){
+  return document.fullscreenElement || document.webkitFullscreenElement
+      || document.mozFullScreenElement || document.msFullscreenElement;
+}
+function toggleFull(){
+  if (fullEl()){ exitFull(); return; }
+  if (PSEUDO){ PSEUDO = false; applyFull(); return; }
+  // まず <html> を試し、駄目なら stagebox、それも駄目なら擬似
+  let pr = reqFull(document.documentElement);
+  if (!pr) pr = reqFull(document.getElementById("stagebox"));
+  if (pr && pr.then){
+    pr.then(()=>{ setTimeout(applyFull, 30); })
+      .catch(()=>{ PSEUDO = true; applyFull(); });
+  } else if (!pr){ PSEUDO = true; applyFull(); }
+  else setTimeout(applyFull, 30);
 }
 window.addEventListener("resize", ()=>{ snapStage(); if (S) render(); });
-document.addEventListener("fullscreenchange", ()=>{ PSEUDO = false; applyFull(); });
+for (const ev of ["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"])
+  document.addEventListener(ev, ()=>{ if (fullEl()) PSEUDO = false; applyFull(); });
 
 snapStage();
 newRun();

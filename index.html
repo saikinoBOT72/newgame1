@@ -22,26 +22,25 @@
 <style>
 :root{
   /* ═══ 16 色。これが全部。CSS にも canvas にも他の色は書かない ═══
-     Into the Breach / Loop Hero と同じ考え方で、装飾ではなく規律で見せる。
-     以前は 107 色あり、同じ「朱」が 7 種類の微妙に違う値で書かれていた。 */
-  --c0:#0B0E1A;   /* 闇・ふち・影 */
-  --c1:#151A2E;   /* 地 */
-  --c2:#232A44;   /* 面 */
-  --c3:#3A4467;   /* 縁・立ち上がり */
-  --c4:#9AA2BC;   /* 薄い字・細い線 */
-  --c5:#E8E4D6;   /* 明るい字 */
-  --c6:#8A6E22;   /* 金・暗 */
-  --c7:#E0B23C;   /* 金 */
-  --c8:#F7D97A;   /* 金・明 */
-  --c9:#8E3320;   /* 朱・暗 */
-  --ca:#E2622F;   /* 朱 */
-  --cb:#F5A55C;   /* 朱・明 */
-  --cc:#35618C;   /* 青・暗 */
-  --cd:#7EC0E8;   /* 青・明 */
-  --ce:#2E7A46;   /* 緑・暗 */
-  --cf:#6FBF6A;   /* 緑・明 */
+     暗所に沈む紺と黒を地にして、金・朱・青を光として使う。
+     縁日の橙と生成りは、祭りの意匠と一緒に落とした。 */
+  --c0:#05070E;   /* 底。画面の縁と穴 */
+  --c1:#0C1020;   /* 地 */
+  --c2:#161C33;   /* 面 */
+  --c3:#28304F;   /* 縁・立ち上がり */
+  --c4:#7C86A6;   /* 添え字・細い線 */
+  --c5:#E4E2DA;   /* 明るい字 */
+  --c6:#7A6320;   /* 金・暗 */
+  --c7:#D9AE44;   /* 金 */
+  --c8:#F6DD92;   /* 金・明 */
+  --c9:#7E2A1C;   /* 朱・暗 */
+  --ca:#D4512A;   /* 朱 */
+  --cb:#EE8C55;   /* 朱・明 */
+  --cc:#2C5C8C;   /* 青・暗 */
+  --cd:#6FB6E8;   /* 青・明 */
+  --ce:#2A6B44;   /* 緑・暗 */
+  --cf:#5FBE72;   /* 緑・明 */
 
-  /* 役割の名前。色を選ぶときは必ずこちらを使う */
   --night:var(--c0);  --panel:var(--c1);  --panel2:var(--c2);
   --line:var(--c2);   --line2:var(--c3);
   --ivory:var(--c5);  --mute:var(--c4);   --faint:var(--c4);
@@ -57,90 +56,124 @@
   --b1:var(--ca); --b2:var(--c9);
 
   /* ═══ ドットの規律 ═══
-     1 ゲーム単位 --u は必ず偶数。その半分 --px が「1 ドット」で、
-     枠・影・スプライトの箱はすべて --px の整数倍で組む。
-     半端な px が 1 箇所でも混じると、そこだけ滲んで素人の絵になる。 */
-  --u:6px;
+     --u は 4 の倍数。その半分 --px が 1 ドット。
+     --dp は「字の 1 ドット」で、常に整数 px。 */
+  --u:8px;
   --px:calc(var(--u) / 2);
-  --bw:var(--px);                /* 枠の太さは 1 ドット */
-  --sh:var(--px) var(--px) 0 var(--c0);   /* 影は 1 ドット・不透明・向き固定 */
-  --sp16:calc(var(--px) * 16);   /* 16x16 スプライトの箱（1 ドット = --px） */
-  --sp8:calc(var(--px) * 8);     /* 8x8 スプライトの箱（1 ドット = --px） */
+  --dp:1px;
+  --bw:var(--px);
+  --sh:var(--px) var(--px) 0 var(--c0);
+  --sp16:calc(var(--px) * 16);
+  --sp8:calc(var(--px) * 8);
 
-  /* 文字も 4 段だけ。すべて --px の整数倍。
-     .62em や 1.35em のような小数倍は 7.44px や 16.2px になり、
-     ドット書体は設計サイズの整数倍でしか正しく出ないので必ず滲む。 */
-  /* 段は 2 つだけ。DotGothic16 は 16px 設計なので、その 1 倍と 2 倍しか使わない。
-     12px や 24px は 0.75 倍・1.5 倍で、必ず縮小リサンプルされて灰色に滲む。
-     階層は字の大きさではなく色と字間で作る。 */
-  --t1:calc(var(--px) * 4);      /* 16px。本文・添え字とも */
-  --t2:calc(var(--px) * 4);
-  --t3:calc(var(--px) * 8);      /* 32px。見出し */
-  --t4:calc(var(--px) * 8);
-
-  /* 書体は 1 つ。和文が無い書体を混ぜると、そこだけ別のゲームになる */
-  --f-disp:"DotGothic16","Courier New",monospace;
-  --f-body:"DotGothic16","Courier New",monospace;
   --f-mono:"DotGothic16","Courier New",monospace;
+  --f-body:"DotGothic16","Courier New",monospace;
+  --f-disp:"DotGothic16","Courier New",monospace;
 }
-
 *{box-sizing:border-box}
-body{margin:0;background:#0B0E1A;image-rendering:pixelated;color:var(--ivory);font-family:var(--f-body);
-  -webkit-font-smoothing:none;font-smooth:never;display:flex;flex-direction:column;align-items:center;
+body{margin:0;background:var(--c0);image-rendering:pixelated;color:var(--c5);
+  font-family:var(--f-body);-webkit-font-smoothing:none;
+  display:flex;flex-direction:column;align-items:center;
   padding:14px;gap:10px;min-height:100vh}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
 button:focus-visible{outline:var(--bw) solid var(--c7);outline-offset:var(--px)}
 
-#stagebox{display:flex;align-items:center;justify-content:center;background:var(--n0)}
+#stagebox{display:flex;align-items:center;justify-content:center;background:var(--c0)}
 body.isfull{padding:0;gap:0;overflow:hidden}
 body.isfull .notes{display:none}
-/* iframe 内では requestFullscreen が拒否されるので、擬似全画面で覆う */
 body.isfull #stagebox{position:fixed;inset:0;z-index:90}
-.full{padding:var(--px) calc(var(--px)*2);border:var(--bw) solid var(--c2);
-  background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto}
-.full:hover{border-color:var(--c7);color:var(--c7)}
 .stage{width:100%;aspect-ratio:16/9;container-type:size;image-rendering:pixelated;
-  font-size:var(--t2);position:relative;overflow:hidden;
-  border:0;background:var(--n0)}
+  position:relative;overflow:hidden;background:var(--c0)}
 .screen{position:absolute;inset:0;display:flex;flex-direction:column}
 .screen.off{display:none}
 
-/* ═══ HUD（両画面共通） ═══ */
-.hud{position:absolute;top:calc(var(--u)*6);left:0;right:0;display:flex;align-items:center;
+/* ═══ ドットで焼いた字 ═══
+   ドット数はそのまま viewBox の単位。高さを --dp の整数倍で決めれば
+   どの倍率でも滲まない。色は currentColor を継ぐ。 */
+.dt{display:inline-block;vertical-align:-0.18em;height:calc(var(--dp)*15);width:auto;
+  flex:0 0 auto}
+.dt.s{height:calc(var(--dp)*15)}
+.dt.m{height:calc(var(--dp)*23)}
+.dt.l{height:calc(var(--dp)*30)}
+.dt.xl{height:calc(var(--dp)*45)}
+.dtp{display:block}
+.dtp .dt{display:block}
+
+/* ═══ 共通の部品 ═══ */
+.btn{font-family:var(--f-mono);letter-spacing:1px;
+  padding:calc(var(--px)*2) calc(var(--px)*4);
+  background:var(--c2);border:var(--bw) solid var(--c3);color:var(--c5);
+  display:inline-flex;flex-direction:column;align-items:center;gap:var(--px);
+  transition:background .1s,border-color .1s}
+.btn:hover:not(:disabled){background:var(--c3);border-color:var(--c7)}
+.btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
+.btn small{display:block;color:var(--c3)}
+.btn.go{background:var(--ca);border-color:var(--cb);color:var(--c5)}
+.btn.go:hover:not(:disabled){background:var(--cb);border-color:var(--c8)}
+.btn.go:disabled{background:var(--c2);border-color:var(--c3);color:var(--c3)}
+
+/* ═══ HUD ═══ */
+.hud{position:absolute;top:calc(var(--u)*2);left:0;right:0;display:flex;align-items:center;
   justify-content:space-between;padding:0 calc(var(--u)*2);z-index:6;pointer-events:none;
   gap:calc(var(--u)*2);height:calc(var(--u)*4)}
 .hud .l,.hud .r{display:flex;align-items:center;gap:calc(var(--px)*3)}
-.chip{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;padding:var(--px) calc(var(--px)*3);
-  background:#0B0E1A;border:var(--bw) solid var(--line);color:var(--mute);
-  border-radius:0;white-space:nowrap}
-.chip.solid{background:var(--panel);color:var(--ivory)}
-.chip b{color:var(--ivory);font-weight:700}
-.chip .hp{color:#E2622F} .chip .bk{color:var(--sky)}
-.ck{width:calc(var(--px)*3);height:calc(var(--px)*4);background:var(--c2);border:var(--bw) solid var(--c3)}
-.ck.on{background:var(--gold);border-color:#F7D97A}
+.chip{padding:var(--px) calc(var(--px)*3);background:var(--c1);
+  border:var(--bw) solid var(--c2);color:var(--c4);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:calc(var(--px)*2)}
+.chip.solid{background:var(--c2);color:var(--c5)}
+.chip b{color:var(--c5);font-weight:400}
+.chip .hp{color:var(--cb)} .chip .bk{color:var(--cd)}
+.full{padding:var(--px) calc(var(--px)*2);border:var(--bw) solid var(--c2);
+  background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto}
+.full:hover{border-color:var(--c7);color:var(--c7)}
 
-/* ═══ 画面0：ダンジョン ═══
-   単色の矩形に罫線を引いただけの面は、ドット絵ではなく Web レイアウト。
-   床には汚れのドットを打ち、上端に照り・下端に影を入れて厚みを出す。 */
-#dungeon{background:var(--c0);align-items:center;justify-content:center;
-  background-image:repeating-linear-gradient(90deg,
-    var(--c0) 0 calc(var(--u)*11), var(--c1) calc(var(--u)*11) calc(var(--u)*11.5))}
-.dwrap{position:relative;touch-action:none;
-  padding:calc(var(--u)*2);background:var(--c1);
-  border:var(--bw) solid var(--c2);box-shadow:var(--sh)}
+/* ═══ 札 ═══ */
+.card{position:relative;width:calc(var(--u)*15);height:calc(var(--u)*21);
+  background:var(--c1);border:var(--bw) solid var(--c3);
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(var(--px)*4) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px);
+  transition:transform .1s steps(2),border-color .1s;box-shadow:var(--sh)}
+.card.t-projectile{border-color:var(--c9);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c9)}
+.card.t-modifier{border-color:var(--c6);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c6)}
+.card.t-utility{border-color:var(--cc);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--cc)}
+.cidx{position:absolute;top:calc(var(--px)*-2);left:calc(var(--px)*-2);
+  width:calc(var(--px)*7);height:calc(var(--px)*7);
+  background:var(--c1);border:var(--bw) solid var(--c3);display:flex;
+  align-items:center;justify-content:center;color:var(--c5);z-index:2}
+.card.t-projectile .cidx{border-color:var(--c9);color:var(--cb)}
+.card.t-modifier .cidx{border-color:var(--c6);color:var(--c7)}
+.cname{color:var(--c5);text-align:center;line-height:1}
+.cart{width:100%;height:calc(var(--px)*11);flex:0 0 auto;border:var(--bw) solid var(--c2);
+  background:var(--c0);display:flex;align-items:center;justify-content:center;position:relative}
+.cicon{width:calc(var(--px)*7);height:calc(var(--px)*7);shape-rendering:crispEdges}
+.uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:calc(var(--px)*-1)}
+.ckind{color:var(--c4)}
+.ctext{color:var(--c4);margin:auto 0;flex:1 1 auto;display:flex;
+  align-items:center;justify-content:center;overflow:hidden;text-align:center;width:100%}
+.cbind{width:100%;text-align:center;margin-top:var(--px);padding-top:var(--px);
+  border-top:var(--px) solid var(--c6);color:var(--c6)}
+/* 小さく出す札：名前と絵だけ */
+.card.mini{padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px)}
+.card.mini .cart{flex:1 1 auto;height:auto;border:0;background:none}
+.card.mini .cicon{width:calc(var(--px)*16);height:calc(var(--px)*16)}
+
+/* ═══ 画面0：ダンジョン ═══ */
+#dungeon{background:var(--c0);align-items:center;justify-content:center}
+.dwrap{position:relative;touch-action:none;padding:calc(var(--px)*4);
+  background:var(--c1);border:var(--bw) solid var(--c2)}
 .dgrid{display:grid;gap:0;position:relative}
 .dc{width:var(--ts);height:var(--ts);position:relative}
 .dc.wall{background:var(--c0)}
-/* 通路と部屋。上端 1 ドットの照りと下端 1 ドットの影で厚みを出す */
 .dc.floor{background:var(--c2)}
 .dc.room{background:var(--c3)}
-/* 縁の段差は、隣が壁のときだけ入れる。全タイルに入れると床が横縞の棚に見える */
+.dc.edge{background:var(--c0)}
 .dc.tn{box-shadow:inset 0 var(--px) 0 var(--c4)}
 .dc.bn{box-shadow:inset 0 calc(var(--px)*-1) 0 var(--c0)}
 .dc.tn.bn{box-shadow:inset 0 var(--px) 0 var(--c4), inset 0 calc(var(--px)*-1) 0 var(--c0)}
-.dc.edge{background:var(--c0)}
-/* 床の汚れ。4 種を座標で振り分けて、反復を隠す */
-.dc.floor::after,.dc.room::after{content:"";position:absolute;inset:0;
+.dc.floor::after,.dc.room::after{content:"";position:absolute;inset:0;z-index:0;
   background-repeat:no-repeat}
 .dc.v0::after{background-image:linear-gradient(var(--c1) 0 0);
   background-size:var(--px) var(--px);background-position:30% 60%}
@@ -150,174 +183,85 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   background-size:calc(var(--px)*2) var(--px);background-position:55% 70%}
 .dc.v3::after{background-image:none}
 .dc .ic{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:2}
-
 .dc.here{box-shadow:inset 0 0 0 var(--px) var(--c7)}
 .hero{position:absolute;width:var(--ts);height:var(--ts);z-index:3;
   transition:left .1s steps(2),top .1s steps(2);pointer-events:none;
   display:flex;align-items:center;justify-content:center}
 .hspr{width:100%;height:100%;image-rendering:pixelated}
-.dtip{position:absolute;left:0;right:0;bottom:6%;text-align:center;
-  font-family:var(--f-mono);font-size:var(--t2);color:var(--faint);letter-spacing:1px}
-.dex{position:absolute;right:calc(var(--u)*2);bottom:calc(var(--u)*2);z-index:6;
-  font-size:var(--t1);padding:var(--px) calc(var(--px)*3)}
-/* 盤面の左右に、いま持っているプールの内訳を出す（両端の黒帯を埋める） */
+.dtip{position:absolute;left:0;right:0;bottom:calc(var(--u)*4);text-align:center;color:var(--c4)}
+.dex{position:absolute;right:calc(var(--u)*2);bottom:calc(var(--u)*2);z-index:6}
 .dside{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
   display:flex;flex-direction:column;gap:var(--px);width:calc(var(--u)*26)}
 .dside.left{left:calc(var(--u)*3)}
 .dside.right{right:calc(var(--u)*3);align-items:flex-end}
-.dside h3{font-family:var(--f-disp);font-size:var(--t2);color:var(--c7);
-  margin:0 0 var(--px);letter-spacing:1px}
-.dsrow{display:flex;align-items:center;gap:var(--px);width:100%;
-  font-family:var(--f-mono);font-size:var(--t1);color:var(--c4)}
+.dside h3{margin:0 0 calc(var(--px)*2);color:var(--c7)}
+.dsrow{display:flex;align-items:center;gap:calc(var(--px)*2);width:100%;color:var(--c4)}
 .dsrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
 .dsrow .nm{flex:1 1 auto}
 .dsrow .ct{color:var(--c5)}
-.dsbar{height:calc(var(--px)*3);background:var(--c0);width:100%;
-  border:var(--px) solid var(--c2);margin-bottom:var(--px)}
-.dsbar i{display:block;height:100%;background:var(--ca)}
 
-/* ═══ 図鑑 ═══ */
-#dexv{position:absolute;inset:0;background:#0B0E1A;z-index:30;
-  overflow:auto;padding:calc(var(--px)*6) calc(var(--px)*6) calc(var(--px)*8)}
-#dexv h2{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold);margin:0 0 calc(var(--px)*1);letter-spacing:1px}
-#dexv .sub{font-family:var(--f-mono);font-size:var(--t1);color:var(--faint);margin-bottom:1em}
-.dexrow{display:flex;flex-wrap:wrap;gap:calc(var(--px)*3);margin-bottom:calc(var(--px)*6)}
-.dexcell{display:flex;flex-direction:column;align-items:center;gap:calc(var(--px)*1)}
-.dexcell .n{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute)}
-.dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(15em,1fr));gap:calc(var(--px)*2) calc(var(--px)*4)}
-.dexi{border:var(--bw) solid var(--c2);background:var(--c1);
-  padding:calc(var(--px)*2) calc(var(--px)*3);display:flex;align-items:center;
-  gap:calc(var(--px)*3);border-top-color:var(--c6)}
-.dexi.got{border-color:var(--c7);border-top-color:var(--c8)}
-.dexs{width:var(--sp16);height:var(--sp16);flex:0 0 auto;shape-rendering:crispEdges}
-.dexi .dt{display:flex;flex-direction:column;gap:var(--px)}
-.dexi b{font-family:var(--f-disp);font-size:var(--t2);display:block;color:var(--c5)}
-.dexi span{font-family:var(--f-mono);font-size:var(--t1);color:var(--c4);line-height:1.5}
-#dexclose{position:sticky;top:0;float:right}
+/* ═══ 画面R：ルーレット ═══ */
+#roul{background:var(--c0);align-items:center;justify-content:center;
+  gap:calc(var(--u)*3);padding-top:calc(var(--u)*6)}
+.rlwrap{display:flex;align-items:center;gap:calc(var(--u)*6)}
+#wheel{image-rendering:pixelated;display:block}
+.rlside{display:flex;flex-direction:column;gap:calc(var(--px)*3);width:calc(var(--u)*40)}
+.rlrow{display:flex;align-items:center;gap:calc(var(--px)*2);color:var(--c4)}
+.rlrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
+.rlrow .nm{flex:1 1 auto}
+.rlrow .ct{color:var(--c5)}
+.rlwand{display:flex;gap:calc(var(--px)*2);align-items:center;
+  min-height:calc(var(--px)*11)}
+.rlw{display:flex;align-items:center;gap:var(--px);color:var(--c5);
+  padding:var(--px) calc(var(--px)*2);background:var(--c1);
+  border:var(--bw) solid var(--c3)}
+.rlw .sw{width:var(--sp8);height:var(--sp8)}
+.rlw.empty{width:calc(var(--u)*12);height:calc(var(--px)*9);background:var(--c1);
+  border:var(--bw) solid var(--c2)}
+.rlfoot{display:flex;align-items:center;gap:calc(var(--u)*3)}
+.balls{display:flex;gap:calc(var(--px)*2);align-items:center}
+.ball{width:calc(var(--px)*5);height:calc(var(--px)*5);background:var(--c8);
+  border:var(--bw) solid var(--c6)}
+.ball.used{background:var(--c2);border-color:var(--c3)}
 
-/* ═══ 画面3：報酬 ═══ */
-/* ═══ 画面3：報酬 ═══
-   3 択で画面の 74% が空白だった。札を 2 倍まで拡大し、
-   選んでいるものだけを持ち上げる（Hades の恩恵選択の作り） */
-#reward{background:var(--c1);align-items:center;justify-content:center;
-  background-image:repeating-linear-gradient(90deg,
-    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
-    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
-.rwrap{display:flex;flex-direction:column;align-items:center;
-  gap:calc(var(--px)*4);padding:calc(var(--u)*4)}
-.rwrap h2{font-family:var(--f-disp);font-size:var(--t4);margin:0;color:var(--c7);letter-spacing:1px}
-.rwrap p{margin:0;color:var(--c4);font-size:var(--t2)}
-.picks3{display:flex;gap:calc(var(--u)*4);align-items:stretch}
-.pk{background:none;border:0;padding:0;display:flex;flex-direction:column;
-  align-items:center;gap:calc(var(--px)*2);text-align:center;width:calc(var(--u)*30);
-  transition:transform .1s steps(2)}
-/* 札を 2 倍で見せる。--u をここで上書きすると --px:calc(--u/2) と
-   循環参照になり、中の絵の箱だけ縮んで壊れる。整数倍の transform を使う */
-.pk .cwrap{width:calc(var(--u)*30);height:calc(var(--u)*42);position:relative}
-.pk .card{position:absolute;left:0;top:0;transform:scale(2);transform-origin:0 0;
-  pointer-events:none;box-shadow:var(--sh);margin:0}
-.pk:hover{transform:translateY(calc(var(--px)*-3))}
-.pk:hover .card{border-color:var(--c7)}
-.pk{cursor:pointer}
-.pk .pkh{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;color:var(--c4)}
-
-/* ═══ 画面4：焼却炉 ═══ */
-#trash{background:var(--c1);align-items:center;justify-content:center;
-  background-image:repeating-linear-gradient(90deg,
-    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
-    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
-.trashgrid{display:flex;flex-wrap:wrap;justify-content:center;
-  gap:calc(var(--px)*4);max-width:calc(var(--u)*160)}
-.tk{background:none;border:0;padding:0;display:flex;flex-direction:column;
-  align-items:center;gap:var(--px);cursor:pointer;
-  transition:transform .1s steps(2)}
-.tk:hover{transform:translateY(calc(var(--px)*-3))}
-.tk:hover .card{border-color:var(--ca)}
-.tk .card{pointer-events:none}
-.tkn{font-family:var(--f-mono);font-size:var(--t1);color:var(--c4)}
-
-/* ═══ 画面2：戦闘 ═══
-   敵は「箱」ではなく「舞台に立っているもの」として置く。
-   枠は "プレイヤーが触る UI" の記号として予約し、世界の中の存在には使わない
-   （Slay the Spire も Darkest Dungeon もこの切り分けをしている）。 */
+/* ═══ 画面2：戦闘 ═══ */
 #fight{background:var(--c1)}
-/* 提灯を一列に吊るす。上半分が空の壁だと、同じ屋台の中に見えない。
-   棚を置くと「撃てる景品がある」と誤解させるので、飾りだけにする */
-.stall{position:absolute;inset:0;z-index:1;pointer-events:none}
-.stall .wire{position:absolute;left:0;right:0;top:calc(var(--u)*13);
-  height:calc(var(--px)*2);background:linear-gradient(var(--c6) 0 var(--px), var(--c0) var(--px) 100%)}
-.stall .lant{position:absolute;top:calc(var(--u)*13);transform:translateX(-50%);
-  width:calc(var(--px)*10);height:calc(var(--px)*13);background:var(--ca);
-  box-shadow:inset calc(var(--px)*2) 0 0 var(--cb),
-    inset calc(var(--px)*-2) 0 0 var(--c9);
-  animation:lsway 3.4s steps(2) infinite}
-/* .stall の 1 番目の子は .wire なので nth-child だと 1 つずれる */
-.stall .lant:nth-of-type(2){animation-delay:.6s}
-.stall .lant:nth-of-type(3){animation-delay:1.2s}
-.stall .lant:nth-of-type(4){animation-delay:1.8s}
-.stall .lant:nth-of-type(5){animation-delay:2.4s}
-.stall .lant:nth-of-type(6){animation-delay:3.0s}
-@keyframes lsway{0%,49.9%{margin-left:0}50%,100%{margin-left:var(--px)}}
-.stall .lant::before{content:"";position:absolute;left:0;right:0;top:calc(var(--px)*3);
-  height:var(--px);background:var(--c9);
-  box-shadow:0 calc(var(--px)*3) 0 var(--c9), 0 calc(var(--px)*6) 0 var(--c9)}
-.stall .lant::after{content:"";position:absolute;left:50%;bottom:calc(var(--px)*-3);
-  transform:translateX(-50%);width:calc(var(--px)*4);height:calc(var(--px)*3);background:var(--c8)}
-
-/* 紅白幕。戦闘も報酬も同じ屋台の中で起きている */
-.drape{position:absolute;left:0;right:0;top:0;height:calc(var(--u)*5);z-index:3;
-  background:repeating-linear-gradient(90deg,
-    var(--ca) 0 calc(var(--u)*4), var(--c5) calc(var(--u)*4) calc(var(--u)*8));
-  border-top:var(--px) solid var(--c0);border-bottom:var(--px) solid var(--c0)}
-.drape::after{content:"";position:absolute;left:0;right:0;top:100%;
-  height:calc(var(--px)*2);
-  background:repeating-linear-gradient(90deg,
-    var(--ca) 0 var(--px), transparent var(--px) calc(var(--u)*3),
-    var(--ca) calc(var(--u)*3) calc(var(--u)*3.5),
-    var(--c5) calc(var(--u)*4) calc(var(--u)*4.5),
-    transparent calc(var(--u)*4.5) calc(var(--u)*7),
-    var(--c5) calc(var(--u)*7) calc(var(--u)*8))}
-/* 奥の壁。板の幅を 2 種類にして、等間隔の縞に見えないようにする */
+/* 奥の壁。板の継ぎ目は 2 種類の幅で刻む */
 #fight::before{content:"";position:absolute;left:0;right:0;top:0;
-  height:calc(var(--u)*70);z-index:0;top:calc(var(--u)*5);
+  height:calc(var(--u)*64);z-index:0;
   background:repeating-linear-gradient(90deg,
     var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
     var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
-/* 床。1 本の線ではなく 3 段の帯にして、奥行きと接地を出す */
-#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*70);
+/* 床。3 段の帯 */
+#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*64);
   height:calc(var(--u)*8);z-index:1;
   background:linear-gradient(var(--c6) 0 var(--px),
     var(--c3) var(--px) calc(var(--px)*4),
     var(--c2) calc(var(--px)*4) calc(var(--px)*10),
     var(--c1) calc(var(--px)*10) 100%)}
+/* 敵の背後の明かり。市松のディザで散らす */
+.glow{position:absolute;left:50%;top:calc(var(--u)*14);transform:translateX(-50%);
+  width:calc(var(--u)*90);height:calc(var(--u)*46);z-index:0;pointer-events:none}
 .arena{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;
-  gap:calc(var(--u)*14);padding:calc(var(--u)*24) calc(var(--u)*4) 0;
-  height:calc(var(--u)*72);z-index:2}
+  gap:calc(var(--u)*16);padding:calc(var(--u)*16) calc(var(--u)*4) 0;
+  height:calc(var(--u)*66);z-index:2}
 .foe{position:relative;display:flex;flex-direction:column;align-items:center;
   gap:var(--px);background:none;border:0;padding:0 calc(var(--u)*2) calc(var(--u)*2);
   transition:transform .1s steps(2);text-align:center}
 .foe:hover:not(:disabled){transform:translateY(calc(var(--px)*-2))}
-/* 接地影。選んでいる敵は影が金になる（枠を足さない） */
-.foe::after{content:"";position:absolute;left:50%;bottom:0;
-  transform:translateX(-50%);width:calc(var(--px)*26);height:calc(var(--px)*2);
-  background:var(--c0)}
+.foe::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:calc(var(--px)*26);height:calc(var(--px)*2);background:var(--c0)}
 .foe[aria-pressed="true"]::after{background:var(--c7);height:calc(var(--px)*3)}
 .foe.dead::after{display:none}
-/* 待機は絵そのものの 2 コマで出す。個体ごとに位相をずらす */
-.foe:nth-child(2) .f2 svg{animation-delay:.29s}
-.foe:nth-child(3) .f2 svg{animation-delay:.61s}
 .foe.hurt{animation:hurt .2s steps(2)}
 @keyframes hurt{0%{transform:translateX(calc(var(--px)*-2))}
   50%{transform:translateX(calc(var(--px)*2))}100%{}}
-.intent{font-family:var(--f-mono);font-size:var(--t2);font-weight:700;
-  padding:0 var(--px);background:var(--c1);border:var(--bw) solid var(--c9);
+.intent{padding:0 var(--px);background:var(--c1);border:var(--bw) solid var(--c9);
   color:var(--cb);display:flex;align-items:center;gap:var(--px)}
-.fname{font-family:var(--f-disp);font-size:var(--t2);color:var(--c4);letter-spacing:0}
+.fname{color:var(--c4)}
 .foe[aria-pressed="true"] .fname{color:var(--c5)}
-/* 1 ドットの大きさは 2 種類だけ。UI の中は --px、世界の中は --px*2 */
-.glyph{width:calc(var(--px)*32);height:calc(var(--px)*32);color:var(--mute);
+.glyph{width:calc(var(--px)*40);height:calc(var(--px)*40);color:var(--c4);
   shape-rendering:crispEdges;margin-top:var(--px)}
-/* 2 コマの待機。visibility を steps で切り替えるので中間の色を作らない */
 .f2{position:relative;display:inline-block}
 .f2 svg{position:absolute;left:0;top:0;width:100%;height:100%;shape-rendering:crispEdges}
 .f2 svg:nth-child(1){animation:fA 1.2s steps(1,end) infinite}
@@ -326,8 +270,9 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 @keyframes fB{0%,49.9%{visibility:hidden}50%,100%{visibility:visible}}
 .dead .f2 svg:nth-child(1){animation:none;visibility:visible}
 .dead .f2 svg:nth-child(2){animation:none;visibility:hidden}
-.foe[aria-pressed="true"] .glyph{color:var(--gold)}
-/* 選択マーカーは頭上の 1 ドット三角。文字を置かない */
+.foe:nth-child(2) .f2 svg{animation-delay:.29s}
+.foe:nth-child(3) .f2 svg{animation-delay:.61s}
+/* 選択マーカーは頭上の 1 ドット三角 */
 .tgt{width:calc(var(--px)*7);height:calc(var(--px)*4);
   clip-path:polygon(50% 100%, 0 0, 100% 0);background:transparent}
 .foe[aria-pressed="true"] .tgt{background:var(--c7)}
@@ -336,45 +281,35 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .fbar i{position:absolute;inset:0;right:auto;background:var(--ca);transition:width .18s steps(6)}
 .fbar .ghost{position:absolute;top:0;bottom:0;background:var(--c9)}
 .fbar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  font-family:var(--f-mono);font-size:var(--t1);font-weight:700;color:var(--i0);
-  text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
+  color:var(--c5)}
 #floats{position:absolute;inset:0;pointer-events:none;z-index:9}
-.float{position:absolute;transform:translateX(-50%);
-  font-family:var(--f-mono);font-size:var(--t4);font-weight:700;z-index:8;
-  pointer-events:none;text-shadow:var(--px) var(--px) 0 var(--c0);animation:pop 1s steps(10) forwards}
-.float.dmg{color:#E2622F}
-.float.kill{font-family:var(--f-disp);font-size:var(--t3);color:var(--gold)}
-/* 半透明でフェードさせない。色を 2 段落として最後に消す */
+.float{position:absolute;transform:translateX(-50%);z-index:8;pointer-events:none;
+  animation:pop 1s steps(10) forwards;color:var(--ca)}
+.float.kill{color:var(--c7)}
 @keyframes pop{0%{transform:translate(-50%,calc(var(--px)*2))}
   20%{transform:translate(-50%,calc(var(--px)*-1))}
   100%{transform:translate(-50%,calc(var(--px)*-9));visibility:hidden}}
 .hpflash{animation:hpf .4s steps(4)}
 @keyframes hpf{0%{color:var(--c5);background:var(--c9)}100%{}}
-.fdelta{position:absolute;top:calc(var(--px)*1);right:calc(var(--px)*2);font-family:var(--f-mono);font-size:var(--t4);
-  font-weight:700;color:var(--gold);text-shadow:var(--px) var(--px) 0 var(--c0);font-variant-numeric:tabular-nums}
+.fdelta{position:absolute;top:calc(var(--px)*-6);left:50%;transform:translateX(-50%);color:var(--c7)}
 
-/* 手前の帯：杖（＝手札の扇） */
+/* 手前の帯：杖 */
 .hand{flex:1 1 auto;position:relative;z-index:3}
-/* 木のカウンター。札はこの上に置かれている */
 .hand::before{content:"";position:absolute;left:0;right:0;bottom:0;
-  height:calc(var(--u)*10);z-index:0;
+  height:calc(var(--u)*7);z-index:0;
   background:linear-gradient(var(--c7) 0 var(--px),
     var(--c6) var(--px) calc(var(--px)*4), var(--c0) calc(var(--px)*4) calc(var(--px)*5),
     var(--c1) calc(var(--px)*5) 100%)}
-.handrow{position:absolute;left:50%;bottom:calc(var(--u)*10);transform:translateX(-50%);
-  display:flex;align-items:flex-end;z-index:1}
-/* 札の接地影。カウンターに置いてあるように見せる */
+.handrow{position:absolute;left:50%;bottom:calc(var(--u)*7);transform:translateX(-50%);
+  display:flex;align-items:flex-end;z-index:1;gap:calc(var(--px)*2)}
+.handrow .card{cursor:grab}
 .handrow .card::after{content:"";position:absolute;left:calc(var(--px)*-1);
   right:calc(var(--px)*-1);bottom:calc(var(--px)*-3);height:calc(var(--px)*2);
   background:var(--c0);z-index:-1}
-/* 空きスロット。容量が見えるので、下半分が「埋め忘れの余白」に見えない */
+.handrow .card.picked{border-color:var(--c7);transform:translateY(calc(var(--px)*-4))}
+.handrow .card:hover{transform:translateY(calc(var(--px)*-4));z-index:9;border-color:var(--c7)}
 .slot{width:calc(var(--u)*15);height:calc(var(--u)*21);position:relative;flex:0 0 auto;
-  background:var(--c1);
-  /* 破線は CSS の dashed だと滲むので、--px の整数倍の縞で作る */
-  box-shadow:inset 0 0 0 var(--px) var(--c2)}
-.slot::after{content:"";position:absolute;left:calc(var(--px)*-1);right:calc(var(--px)*-1);
-  bottom:calc(var(--px)*-3);height:calc(var(--px)*2);background:var(--c0)}
-/* 破線はアンチエイリアスされるので、四隅の鉤括弧をドットで打つ */
+  background:var(--c1);box-shadow:inset 0 0 0 var(--px) var(--c2)}
 .slot::before{content:"";position:absolute;inset:calc(var(--px)*2);
   background:repeating-linear-gradient(90deg,
       var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) top/100% var(--px) no-repeat,
@@ -384,170 +319,152 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
       var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) left/var(--px) 100% no-repeat,
     repeating-linear-gradient(180deg,
       var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) right/var(--px) 100% no-repeat}
-.card{position:relative;width:calc(var(--u)*15);height:calc(var(--u)*21);border-radius:0;
-  background:#232A44;
-  border:var(--bw) solid #3A4467;display:flex;flex-direction:column;align-items:center;
-  padding:calc(var(--px)*4) calc(var(--px)*2) calc(var(--px)*1);gap:var(--px);transform-origin:50% 130%;
-  transition:transform .1s steps(3),border-color .1s;
-  box-shadow:var(--sh);
-  font-size:var(--t2)}
-.cname{color:var(--c5)}   /* どの画面でも札の中の文字比率を同じにする */
-.card:hover{transform:translateY(calc(var(--px)*-4));z-index:9;
-  border-color:var(--gold);box-shadow:var(--sh)}
-/* 種別は色で分ける。枠の本数は 3 種とも同じにする（3 択で 1 枚だけ細く見えるため） */
-.card.t-projectile{border-color:var(--c9);background:var(--c1);
-  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c9)}
-/* 色を絞ったぶん、種別は枠の本数で分ける。修飾は二重線 */
-.card.t-modifier{border-color:var(--c6);background:var(--c1);
-  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c6)}
-.card.t-utility{border-color:var(--cc);background:var(--c1);
-  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--cc)}
-.cidx{position:absolute;top:calc(var(--px)*-2);left:calc(var(--px)*-2);width:2em;height:2em;border-radius:0;
-  background:#151A2E;border:var(--bw) solid #3A4467;display:flex;align-items:center;
-  justify-content:center;font-family:var(--f-mono);font-size:var(--t2);font-weight:700;color:var(--ivory)}
-.card.t-projectile .cidx{border-color:#8E3320;color:#F5A55C}
-.card.t-modifier .cidx{border-color:var(--gold-dim);color:var(--gold)}
-.cname{font-family:var(--f-disp);font-size:var(--t2);letter-spacing:0;line-height:1.05;
-  overflow:hidden;
-  text-align:center;word-break:break-all}
-.cart{width:100%;height:calc(var(--px)*13);flex:0 0 auto;border:var(--bw) solid var(--c2);
-  background:#151A2E;display:flex;align-items:center;justify-content:center;position:relative}
-/* 小さく出す札：名前と絵だけ。枠と色は手札と共通 */
-.card.mini{padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:calc(var(--px)*1)}
-.card.mini .cname{font-size:var(--t2)}
-.card.mini .cart{flex:1 1 auto;height:auto;border:0;background:none}
-.card.mini .cart::after{content:none}
-.card.mini .cicon{width:calc(var(--px)*16);height:calc(var(--px)*16)}
-.cicon{width:var(--sp8);height:var(--sp8);margin:0;shape-rendering:crispEdges}
-.uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:calc(var(--px)*-1)}
-.ctext{font-size:var(--t1);line-height:1.25;color:var(--c4);margin:auto 0;flex:1 1 auto;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-  padding:0 var(--px);text-align:center;word-break:break-word}
-.ckind{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;color:var(--faint);margin-top:calc(var(--px)*1)}
-.cswap{position:absolute;top:calc(var(--px)*-2);right:calc(var(--px)*-2);width:calc(var(--px)*7);height:calc(var(--px)*7);border-radius:0;
-  background:#151A2E;border:var(--bw) solid var(--line2);font-family:var(--f-mono);font-size:var(--t1);
-  display:flex;align-items:center;justify-content:center;color:var(--mute);z-index:4}
-.cswap:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
-.cswap:disabled{display:none}
-.cbind{width:100%;text-align:center;margin-top:calc(var(--px)*1);padding-top:calc(var(--px)*1);
-  border-top:var(--px) solid var(--c6);
-  font-family:var(--f-mono);font-size:var(--t1);letter-spacing:0;color:var(--gold-dim);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card.t-modifier .cbind{color:var(--gold)}
+.log{position:absolute;left:calc(var(--u)*2);bottom:calc(var(--u)*9);z-index:7;
+  color:var(--c4);max-width:calc(var(--u)*60)}
+.l-fire{color:var(--cb)} .l-mod{color:var(--c7)} .l-foe{color:var(--ca)}
+.l-total{color:var(--c5)}
+.fightfoot{position:absolute;right:calc(var(--u)*2);bottom:calc(var(--u)*9);z-index:7;
+  display:flex;gap:calc(var(--px)*3);align-items:center}
 
-.fightfoot{position:absolute;right:calc(var(--px)*6);bottom:calc(var(--px)*6);display:flex;flex-direction:column;
-  gap:calc(var(--px)*2);align-items:flex-end;z-index:5}
-.btn{font-family:var(--f-body);font-weight:700;font-size:var(--t2);letter-spacing:1px;
-  padding:calc(var(--px)*2) calc(var(--px)*6);border-radius:0;border:var(--bw) solid #3A4467;background:#232A44;
-  color:var(--ivory);transition:background .1s,border-color .1s}
-.btn:hover:not(:disabled){background:var(--c3);border-color:var(--c7)}
-.btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
-.btn.go{background:#F5A55C;border-color:#F5A55C;color:#151A2E;box-shadow:var(--sh)}
-.btn small{display:block;font-family:var(--f-mono);font-size:var(--t1);font-weight:400;color:var(--c3);
-  letter-spacing:1px;opacity:.7;margin-top:calc(var(--px)*1)}
-.log{position:absolute;left:calc(var(--px)*6);bottom:calc(var(--px)*6);font-family:var(--f-mono);font-size:var(--t1);
-  line-height:1.6;color:var(--faint);z-index:5;pointer-events:none}
-.log div{white-space:pre}
-.l-mod{color:var(--gold-dim)} .l-fire{color:var(--mute)}
-.l-foe{color:#F5A55C} .l-total{color:var(--gold);font-weight:700}
+/* ═══ 画面3：報酬／焼却炉 ═══ */
+#reward,#trash{background:var(--c1);align-items:center;justify-content:center;
+  background-image:repeating-linear-gradient(90deg,
+    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
+    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
+.rwrap{display:flex;flex-direction:column;align-items:center;
+  gap:calc(var(--px)*4);padding:calc(var(--u)*4)}
+.rwrap h2{margin:0;color:var(--c7)}
+.rwrap p{margin:0;color:var(--c4)}
+.picks3{display:flex;gap:calc(var(--u)*4);align-items:stretch}
+.pk{background:none;border:0;padding:0;display:flex;flex-direction:column;
+  align-items:center;gap:calc(var(--px)*2);text-align:center;width:calc(var(--u)*30);
+  transition:transform .1s steps(2);cursor:pointer}
+.pk .cwrap{width:calc(var(--u)*30);height:calc(var(--u)*42);position:relative}
+.pk .card{position:absolute;left:0;top:0;transform:scale(2);transform-origin:0 0;
+  pointer-events:none;box-shadow:var(--sh);margin:0}
+.pk:hover{transform:translateY(calc(var(--px)*-3))}
+.pk:hover .card{border-color:var(--c7)}
+.pk .pkh{color:var(--c4)}
+.trashgrid{display:flex;flex-wrap:wrap;justify-content:center;
+  gap:calc(var(--px)*4);max-width:calc(var(--u)*160)}
+.tk{background:none;border:0;padding:0;display:flex;flex-direction:column;
+  align-items:center;gap:var(--px);cursor:pointer;transition:transform .1s steps(2)}
+.tk:hover{transform:translateY(calc(var(--px)*-3))}
+.tk:hover .card{border-color:var(--ca)}
+.tk .card{pointer-events:none}
+.tkn{color:var(--c4)}
+
+/* ═══ 図鑑 ═══ */
+#dexv{position:absolute;inset:0;background:var(--c0);z-index:30;
+  overflow:auto;padding:calc(var(--px)*6)}
+#dexv.hidden{display:none}
+#dexv h2{margin:0 0 calc(var(--px)*2);color:var(--c7)}
+#dexv .sub{color:var(--c4);margin-bottom:calc(var(--px)*4)}
+.dexrow{display:flex;flex-wrap:wrap;gap:calc(var(--px)*3);margin-bottom:calc(var(--px)*6)}
+.dexcell{display:flex;flex-direction:column;align-items:center;gap:var(--px)}
+.dexcell .n{color:var(--c4)}
+.dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(20em,1fr));
+  gap:calc(var(--px)*2) calc(var(--px)*4)}
+.dexi{border:var(--bw) solid var(--c2);background:var(--c1);
+  padding:calc(var(--px)*2) calc(var(--px)*3);display:flex;align-items:center;
+  gap:calc(var(--px)*3);border-top-color:var(--c6)}
+.dexi.got{border-color:var(--c7);border-top-color:var(--c8)}
+.dexs{width:var(--sp16);height:var(--sp16);flex:0 0 auto;shape-rendering:crispEdges}
+.dexi .dt2{display:flex;flex-direction:column;gap:var(--px)}
+#dexclose{position:sticky;top:0;float:right}
 
 /* ═══ 幕 ═══ */
-.veil{position:absolute;inset:0;background:#0B0E1A;display:flex;align-items:center;
-  justify-content:center;padding:2em;z-index:20}
-.veil .box{max-width:36em;background:var(--panel);border:var(--bw) solid var(--gold-dim);
-  border-top:calc(var(--px)*2) solid var(--c7);padding:calc(var(--u)*3) calc(var(--u)*4)}
-.veil h2{font-family:var(--f-disp);font-size:var(--t4);margin:0 0 calc(var(--px)*1);letter-spacing:0}
-.veil .sub{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;text-transform:uppercase;
-  color:var(--gold-dim);margin-bottom:1em}
-.veil p{margin:0 0 calc(var(--px)*3);color:var(--mute);font-size:var(--t2);line-height:1.65}
-.veil ul{margin:0 0 calc(var(--px)*4);padding-left:calc(var(--px)*5);color:var(--mute);font-size:var(--t2);line-height:1.65}
-.picks{display:flex;gap:calc(var(--px)*3);margin-top:calc(var(--px)*2)}
-.pick{flex:1;padding:calc(var(--px)*3) calc(var(--px)*3);border:var(--bw) solid #3A4467;border-radius:0;
-  background:#232A44;text-align:left;transition:border-color .12s,background .12s}
-.pick:hover{border-color:var(--gold);background:#151A2E}
-.pick b{display:block;font-family:var(--f-disp);font-size:var(--t2);margin-bottom:calc(var(--px)*1)}
-.pick span{font-family:var(--f-mono);font-size:var(--t1);color:var(--mute);line-height:1.4;display:block}
-.hidden{display:none!important}
+.veil{position:absolute;inset:0;background:var(--c0);display:flex;align-items:center;
+  justify-content:center;z-index:40}
+.veil .box{background:var(--c1);border:var(--bw) solid var(--c3);
+  border-top:calc(var(--px)*2) solid var(--c7);
+  padding:calc(var(--px)*6) calc(var(--px)*8);text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:calc(var(--px)*3)}
 
+.hidden{display:none!important}
 .notes{width:100%;max-width:1280px;display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 26px;
-  font-size:var(--t2);line-height:1.6;color:var(--mute);border-top:var(--px) solid var(--c2);padding-top:12px}
-.notes h3{font-family:var(--f-mono);font-size:var(--t1);letter-spacing:1px;text-transform:uppercase;
-  color:var(--c6);margin:0 0 4px}
-.notes ul{margin:0;padding-left:15px} .notes li{margin-bottom:4px}
-.notes code{font-family:var(--f-mono);font-size:var(--t1);color:#9AA2BC}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 24px;
+  font-size:13px;line-height:1.6;color:var(--c4);
+  border-top:var(--px) solid var(--c2);padding-top:12px}
+.notes h3{font-size:13px;letter-spacing:1px;color:var(--c6);margin:0 0 4px}
+.notes ul{margin:0;padding-left:16px} .notes li{margin-bottom:4px}
+.notes b{color:var(--c5);font-weight:400} .notes code{color:var(--c7)}
 </style>
 
 <div id="stagebox"><div class="stage" id="stage">
 
-  <!-- ══ 画面0：ダンジョン ══ -->
+  <!-- ══ ダンジョン ══ -->
   <div class="screen off" id="dungeon">
     <div class="hud">
-      <div class="l">
-        <span class="chip solid">第<b id="d-floor">1</b>層</span>
-        <span class="chip">札 <b id="d-pool">18</b></span>
-      </div>
-      <div class="r">
-        <span class="chip">体力 <b class="hp" id="d-hp">70</b></span>
-        <span class="chip" id="d-gun">威力 1.0</span>
-      </div>
+      <div class="l"><span class="chip solid" id="d-floor"></span>
+        <span class="chip" id="d-pool"></span></div>
+      <div class="r"><span class="chip" id="d-hp"></span>
+        <span class="chip" id="d-gun"></span></div>
     </div>
     <div class="dside left" id="dsl"></div>
     <div class="dwrap"><div class="dgrid" id="dgrid"><div class="hero" id="hero"></div></div></div>
     <div class="dside right" id="dsr"></div>
     <div class="dtip" id="dtip"></div>
-    <button class="btn dex" id="btn-dex">図鑑</button>
+    <button class="btn dex" id="btn-dex"></button>
   </div>
 
-  <!-- ══ 画面3：報酬 ══ -->
-  <div class="screen off" id="reward">
-    <div class="drape"></div>
-  <div class="rwrap">
-      <h2 id="r-title">報酬</h2>
-      <p id="r-sub"></p>
-      <div class="picks3" id="r-picks"></div>
-      <button class="btn" id="r-reroll">引き直す<small id="r-rr"></small></button>
+  <!-- ══ ルーレット（抽選） ══ -->
+  <div class="screen off" id="roul">
+    <div class="hud">
+      <div class="l"><span class="chip solid" id="r-floor"></span>
+        <span class="chip" id="r-round"></span></div>
+      <div class="r"><span class="chip" id="r-hp"></span>
+        <span class="chip" id="r-block"></span></div>
     </div>
-  </div>
-
-  <!-- ══ 画面4：焼却炉（札を捨てる） ══ -->
-  <div class="screen off" id="trash">
-    <div class="drape"></div>
-    <div class="rwrap">
-      <h2>焼却炉</h2>
-      <p>いらない札を 1 枚くべる。杖は薄めるより締めたほうが強い</p>
-      <div class="trashgrid" id="t-picks"></div>
-      <button class="btn" id="t-skip">くべずに出る</button>
+    <div class="rlwrap">
+      <canvas id="wheel"></canvas>
+      <div class="rlside" id="rl-side"></div>
     </div>
+    <div class="rlwand" id="rl-wand"></div>
+    <div class="rlfoot">
+      <div class="balls" id="rl-balls"></div>
+      <button class="btn go" id="btn-spin"></button>
+      <button class="btn" id="btn-toarr"></button>
+    </div>
+    <div class="dtip" id="rl-tip"></div>
   </div>
 
-  <!-- ══ 画面2：戦闘 ══ -->
+  <!-- ══ 戦闘 ══ -->
   <div class="screen off" id="fight">
     <div class="hud">
-      <div class="l">
-        <span class="chip solid">第<b id="f-floor">1</b>層</span>
-        <span class="chip">ラウンド <b id="f-round">1</b></span>
-      </div>
-      <div class="r">
-        <span class="chip">体力 <b class="hp" id="f-hp">70</b></span>
-        <span class="chip">防御 <b class="bk" id="f-block">0</b></span>
-        <span class="chip" id="f-swap">入れ替え なし</span>
-      </div>
+      <div class="l"><span class="chip solid" id="f-floor"></span>
+        <span class="chip" id="f-round"></span></div>
+      <div class="r"><span class="chip" id="f-hp"></span>
+        <span class="chip" id="f-block"></span></div>
     </div>
-    <div class="drape"></div>
-    <div class="stall">
-      <span class="wire"></span>
-      <span class="lant" style="left:12%"></span><span class="lant" style="left:28%"></span>
-      <span class="lant" style="left:44%"></span><span class="lant" style="left:60%"></span>
-      <span class="lant" style="left:76%"></span><span class="lant" style="left:92%"></span>
-    </div>
+    <canvas class="glow" id="glow"></canvas>
     <div class="arena" id="foes"></div>
     <div class="hand"><div class="handrow" id="hand"></div></div>
     <div class="log" id="log"></div>
     <div id="floats"></div>
     <div class="fightfoot">
-      <button class="btn go" id="btn-cast">詠唱<small>space</small></button>
+      <button class="btn" id="btn-back"></button>
+      <button class="btn go" id="btn-cast"></button>
+    </div>
+  </div>
+
+  <!-- ══ 報酬 ══ -->
+  <div class="screen off" id="reward">
+    <div class="rwrap">
+      <h2 id="r-title"></h2>
+      <p id="r-sub"></p>
+      <div class="picks3" id="r-picks"></div>
+      <button class="btn" id="r-reroll"></button>
+    </div>
+  </div>
+
+  <!-- ══ 焼却炉 ══ -->
+  <div class="screen off" id="trash">
+    <div class="rwrap">
+      <h2 id="t-title"></h2>
+      <p id="t-sub"></p>
+      <div class="trashgrid" id="t-picks"></div>
+      <button class="btn" id="t-skip"></button>
     </div>
   </div>
 
@@ -607,7 +524,7 @@ const CARDS = {
   bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6ダメージ・貫通1"},
   split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製3"},
   pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通+2"},
-  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力1.5倍・波及+1"},
+  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力1.5倍 波及+1"},
   sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"被弾1.5倍"},
   weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃−2"},
   venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒4"},
@@ -640,8 +557,8 @@ function shuffle(a){                      // Fisher-Yates（sort(()=>Math.random
 }
 
 function newRun(){
-  S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, swaps:0,
-       draw:3, swapMax:0, cap:5, dmgUp:0,
+  S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, sift:0,
+       balls:3, cap:5, dmgUp:0, pick:null,
        pool:POOL0.slice(), owned:[], core:[],
        wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
        prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
@@ -653,21 +570,10 @@ function newRun(){
    引いた順がそのまま杖の並びになる、という核だけを残してある。
    ここに別の抽選の仕組みが入る。 */
 function newRound(){
-  S.swaps = S.swapMax;
+  S.pick = null;
   S.mode = "arrange";
-  const bag = shuffle(S.pool.slice());
   S.wand = [];
   S.log = [];
-  for (const id of bag){
-    if (S.wand.length >= Math.min(S.draw, S.cap)) break;
-    const c = mk(id);
-    if (c.type === "utility"){        // その場で効く札は引いた時点で効く
-      S.block += c.block;
-      S.log.push({k:"mod", t:`${c.name} → 防御 +${c.block}`});
-      continue;
-    }
-    S.wand.push(c);
-  }
 }
 
 /* ═══════ ドット絵スプライト（1 文字 = 1 ピクセル） ═══════ */
@@ -796,6 +702,99 @@ function spriteAnim(sp, cls, pal){
   return `<span class="f2 ${cls}">${spriteSVG(sp, "", pal)}`+
          `${spriteSVG({p:sp.p, d:sp.d2}, "", pal)}</span>`;
 }
+/* ═══════ 文字をドットに焼く ═══════
+   Web フォントの有無や環境のアンチエイリアスに関係なく、
+   どこでも同じ 1 ビットの字にする。字は一度焼いたらキャッシュする。
+   12 ドットの高さで焼き、表示は --dp（整数 px）の倍数でしか拡大しない。 */
+const GDOT = 12, GTOP = 2, GBOX = 15;      // 字丈 / 上の余白 / 箱の高さ（ドット）
+const GLYPHS = new Map();
+const gcv = document.createElement("canvas");
+const gcx = gcv.getContext("2d", {willReadFrequently:true});
+const GFONT = `${GDOT}px "DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",` +
+              `"Noto Sans JP","MS Gothic",monospace`;
+function bakeGlyph(ch){
+  let g = GLYPHS.get(ch);
+  if (g) return g;
+  gcx.font = GFONT;
+  const w = Math.max(1, Math.round(gcx.measureText(ch).width));
+  gcv.width = w; gcv.height = GBOX;
+  gcx.font = GFONT;                       // canvas を作り直すと font が戻る
+  gcx.textBaseline = "alphabetic";
+  gcx.clearRect(0, 0, w, GBOX);
+  gcx.fillStyle = "#fff";
+  gcx.fillText(ch, 0, GTOP + GDOT);
+  const d = gcx.getImageData(0, 0, w, GBOX).data;
+  const rows = [];
+  for (let y=0; y<GBOX; y++){
+    let r = "";
+    for (let x=0; x<w; x++) r += d[(y*w + x)*4 + 3] > 108 ? "1" : "0";
+    rows.push(r);
+  }
+  g = {w, rows};
+  GLYPHS.set(ch, g);
+  return g;
+}
+const SPW = Math.round(GDOT*0.34);
+function glyphRuns(str, ox, oy, out){
+  let x = ox;
+  for (const ch of String(str)){
+    if (ch === " "){ x += SPW; continue; }
+    if (ch === "　"){ x += GDOT; continue; }
+    const g = bakeGlyph(ch);
+    g.rows.forEach((row, y)=>{
+      let i = 0;
+      while (i < row.length){
+        if (row[i] === "0"){ i++; continue; }
+        let n = 1; while (row[i+n] === "1") n++;
+        out.push(`<rect x="${x+i}" y="${oy+y}" width="${n}" height="1"/>`);
+        i += n;
+      }
+    });
+    x += g.w;
+  }
+  return x - ox;
+}
+function textWidth(str){
+  let x = 0;
+  for (const ch of String(str)){
+    if (ch === " "){ x += SPW; continue; }
+    if (ch === "　"){ x += GDOT; continue; }
+    x += bakeGlyph(ch).w;
+  }
+  return x;
+}
+/** 1 行。cls は s / m / l / xl で高さを選ぶ */
+function D(str, cls){
+  const out = [];
+  const w = Math.max(1, glyphRuns(str, 0, 0, out));
+  return `<svg class="dt ${cls||"s"}" viewBox="0 0 ${w} ${GBOX}" `+
+         `shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">`+
+         out.join("")+`</svg>`;
+}
+/** 折り返す段落。maxDots はドット単位の幅 */
+function DP(str, maxDots, cls){
+  const lines = [];
+  let cur = "";
+  for (const ch of String(str)){
+    if (ch === "\n"){ lines.push(cur); cur = ""; continue; }
+    const t = cur + ch;
+    if (textWidth(t) > maxDots && cur){ lines.push(cur); cur = ch; }
+    else cur = t;
+  }
+  if (cur) lines.push(cur);
+  const out = [];
+  let w = 1;
+  lines.forEach((ln, i)=>{
+    const lw = glyphRuns(ln, 0, i*(GBOX+1), out);
+    if (lw > w) w = lw;
+  });
+  const h = lines.length*(GBOX+1) - 1;
+  return `<svg class="dt ${cls||"s"}" viewBox="0 0 ${w} ${h}" `+
+         `style="height:calc(var(--dp)*${h})" `+
+         `shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">`+
+         out.join("")+`</svg>`;
+}
+
 function spriteSVG(sp, cls, pal){
   if (!sp) return "";
   let r = "";
@@ -817,24 +816,18 @@ function spriteSVG(sp, cls, pal){
 /* ═══════ カード部品（どの画面でも同じものを使う） ═══════ */
 function cardHTML(c, opt){
   opt = opt || {};
-  // 小さく出す札は説明文が物理的に読めない大きさになる。読めない字を出すと
-  // 情報にならず、密度だけが上がって安っぽく見える。枠・色・絵柄は同じまま、
-  // 名前と絵だけに減らす（＝同じ札だと分かる範囲で、遠くの物として描く）
   if (opt.mini)
     return `<div class="card mini t-${c.type}">`+
-      `<span class="cname">${esc(c.name)}</span>`+
-      `<span class="cart">${c.art ? `<img src="${c.art}" alt="">`
-          : spriteSVG(ICONS[c.id], "cicon")}</span>`+
+      `<span class="cname">${D(c.name)}</span>`+
+      `<span class="cart">${spriteSVG(ICONS[c.id], "cicon")}</span>`+
     `</div>`;
   return `<div class="card t-${c.type}">`+
-    (opt.idx ? `<span class="cidx">${opt.idx}</span>` : ``)+
-    `<span class="cname">${esc(c.name)}</span>`+
-    `<span class="cart">${c.art ? `<img src="${c.art}" alt="">`
-        : spriteSVG(ICONS[c.id], "cicon")}</span>`+
-    `<span class="ckind">${KIND_JA[c.type]}</span>`+
-    `<span class="ctext">${esc(c.text)}</span>`+
-    (opt.bind ? `<span class="cbind">${esc(opt.bind)}</span>` : ``)+
-    (opt.swap ? `<button class="cswap" title="右と入れ替え">${spriteSVG(UI.swap,"uic")}</button>` : ``)+
+    (opt.idx ? `<span class="cidx">${D(String(opt.idx))}</span>` : ``)+
+    `<span class="cname">${D(c.name)}</span>`+
+    `<span class="cart">${spriteSVG(ICONS[c.id], "cicon")}</span>`+
+    `<span class="ckind">${D(KIND_JA[c.type])}</span>`+
+    `<span class="ctext">${DP(c.text, 88)}</span>`+
+    (opt.bind ? `<span class="cbind">${D(opt.bind)}</span>` : ``)+
   `</div>`;
 }
 
@@ -1055,8 +1048,7 @@ function enterRoom(rm){
   S.target = 0; S.block = 0; S.round = 1;
   S.boss = rm.t === "boss";
   newRound();
-  S.phase = "fight";
-  render();
+  startRoulette();
 }
 
 /* ═══════ 報酬 ═══════ */
@@ -1064,10 +1056,10 @@ function enterRoom(rm){
 const REPEATABLE = [
   {id:"hp+",  name:"鍛えた体", note:"最大体力 +15 して全回復する",
    apply:()=>{ S.maxHp += 15; S.hp = S.maxHp; }},
-  {id:"draw+", name:"深い袖", note:"1 ラウンドに引く札が 1 枚増える",
-   apply:()=>{ S.draw++; }},
-  {id:"swap+",name:"器用な指", note:"詠唱前の入れ替え回数 +1",
-   apply:()=>{ S.swapMax++; }},
+  {id:"ball+", name:"重い玉", note:"1 ラウンドに投げる玉が 1 つ増える",
+   apply:()=>{ S.balls++; }},
+  {id:"cap2+",name:"継ぎ手", note:"杖の容量 +1",
+   apply:()=>{ S.cap++; }},
   {id:"dmg2+", name:"磨いた触媒", note:"すべての発射体の威力が +1 される",
    apply:()=>{ S.dmgUp = (S.dmgUp||0) + 1; }},
   {id:"cap+", name:"継ぎ足した杖", note:"1 ラウンドに拾える札が 1 枚増える",
@@ -1076,10 +1068,10 @@ const REPEATABLE = [
    apply:()=>{ S.dmgUp = (S.dmgUp||0) + 2; }}
 ];
 const CORE = [
-  {id:"draw", name:"広い袖", note:"1 ラウンドに引く札が 1 枚増える", apply:()=>{ S.draw++; }},
+  {id:"ball", name:"金の玉", note:"1 ラウンドに投げる玉が 1 つ増える", apply:()=>{ S.balls++; }},
   {id:"cap",  name:"長い杖", note:"1 ラウンドに拾える札が 1 枚増える", apply:()=>{ S.cap++; }},
-  {id:"swap", name:"手直し", note:"詠唱前に隣り合う 2 枚を入れ替えられる回数 +1",
-   apply:()=>{ S.swapMax++; }},
+  {id:"sift", name:"選り分け", note:"玉が止まる区画をひとつ選び直せる（1 ラウンド 1 回）",
+   apply:()=>{ S.sift = (S.sift||0) + 1; }},
   {id:"tough",name:"厚い外套", note:"最大体力 +25 して全回復する", apply:()=>{ S.maxHp += 25; S.hp = S.maxHp; }}
 ];
 function rewardPool(kind){
@@ -1122,11 +1114,7 @@ function nextFloor(){
 
 /* ═══════ 戦闘の進行 ═══════ */
 
-function swapAt(i){
-  if (S.swaps<=0 || i<0 || i+1>=S.wand.length) return;
-  [S.wand[i], S.wand[i+1]] = [S.wand[i+1], S.wand[i]];
-  S.swaps--; render();
-}
+
 function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); } }
 const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, deb:260, psn:340, done:240};
 
@@ -1249,8 +1237,8 @@ function finishCast(){
   S.round++; S.block = 0;
   const keep = S.log.slice();
   newRound();
-  S.log = keep.concat(S.log);
-  render();
+  S.log = keep;
+  startRoulette();
 }
 
 function winBattle(){
@@ -1280,6 +1268,11 @@ window.addEventListener("keydown", ev=>{
   }
   if (ev.key === "f" || ev.key === "F"){ toggleFull(); ev.preventDefault(); return; }
   if (ev.key === "Escape" && PSEUDO){ toggleFull(); ev.preventDefault(); return; }
+  if (S.phase === "roul"){
+    if (ev.key === " "){ spinBalls(); ev.preventDefault(); }
+    if (ev.key === "Enter" && !SPINNING){ S.phase = "fight"; render(); ev.preventDefault(); }
+    return;
+  }
   if (S.phase === "dungeon"){
     const m = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1],
                a:[-1,0], d:[1,0], w:[0,-1], s:[0,1]}[ev.key];
@@ -1303,24 +1296,341 @@ window.addEventListener("keydown", ev=>{
   w.addEventListener("pointercancel", ()=>{ on=false; });
 })();
 
+/* ═══════ ルーレット（抽選） ═══════
+   円盤の区画は、いま持っている札そのもの。同じ札を 4 枚持っていれば区画も 4 つ。
+   玉は本物と同じ理屈で回す。出目は「先に決めて演出で辻褄を合わせる」のではなく、
+   物理の結果そのもの。
+
+   ── 物理 ──
+   極座標で解く。回転盤（ロータ）と玉はそれぞれ独立した角速度を持ち、
+   摩擦で落ちていく。玉は外周のトラックを逆向きに走り、
+   遠心力が足りなくなった時点で内側へ落ち始める。
+   落ちる途中でディフレクタ（菱形の突起）に当たると弾かれ、
+   ロータに入るとフレット（区画の仕切り）で跳ねて、
+   最後に相対速度が小さくなった区画で捕まる。捕まった玉は盤と一緒に回る。
+
+   ── 描画 ──
+   連続値で解いて、描くときだけドットに丸める。円盤はドット解像度の
+   ImageData に 1 ドットずつ書いて、整数倍で引き伸ばす。
+   arc() を使わないので縁がアンチエイリアスされない。 */
+
+const WR   = 46;      // 外周（トラックの外側）
+const WTRK = 42;      // トラックの半径（玉が最初に走る溝）
+const WDEF = 36;      // ディフレクタのある半径
+const WROT = 33;      // ロータの外周（ここから区画）
+const WPKT = 26;      // ポケットの底（玉が収まる半径）
+const WIN  = 17;      // ハブ
+const NDEF = 8;       // ディフレクタの数
+const DROP_G = 62;    // ここまで遠心力が落ちたらトラックから外れる
+const FRIC_B = 0.994; // 玉の摩擦
+const FRIC_W = 0.996; // 盤の摩擦
+const DT_R   = 1/60;
+
+const wcv = document.getElementById("wheel");
+const wcx = wcv.getContext("2d");
+const wbuf = document.createElement("canvas");   // ドット解像度の下絵
+const wbx  = wbuf.getContext("2d");
+const WSZ  = WR*2 + 2;
+wbuf.width = WSZ; wbuf.height = WSZ;
+/* 升目ごとの極座標は毎フレーム変わらないので一度だけ作る */
+const G_R = new Float32Array(WSZ*WSZ), G_A = new Float32Array(WSZ*WSZ);
+(function(){
+  const c = WR + 1;
+  for (let y=0;y<WSZ;y++) for (let x=0;x<WSZ;x++){
+    const dx = x - c + .5, dy = y - c + .5, i = y*WSZ + x;
+    G_R[i] = Math.hypot(dx, dy);
+    G_A[i] = Math.atan2(dy, dx);
+  }
+})();
+const TAU = Math.PI*2;
+const norm = t => ((t % TAU) + TAU) % TAU;
+
+function wheelSectors(){
+  const order = Object.keys(CARDS);
+  const list = [];
+  for (const id of order)
+    for (let k=0, n=S.pool.filter(x=>x===id).length; k<n; k++) list.push(id);
+  return list;
+}
+
+function startRoulette(){
+  const secs = wheelSectors();
+  S.roul = {secs, wa:0, wv:1.15, balls:[], left:S.balls, spin:0};
+  S.phase = "roul";
+  render();
+}
+
+/** 玉を全部投げる。投げ方（初速）だけが揺らぎ、あとは物理が決める */
+function spinBalls(){
+  if (SPINNING || !S.roul || S.roul.left <= 0) return;
+  const R = S.roul, n = R.secs.length;
+  if (!n) return;
+  R.wa = rnd(TAU);                             // 盤の向きも毎回変える
+  R.wv = 1.05 + rnd(0.35);                     // 盤を回し直す
+  R.balls = [];
+  for (let i=0;i<R.left;i++){
+    R.balls.push({
+      a: rnd(TAU), av: -(2.5 + rnd(0.5)),      // 盤と逆向きに投げる
+      r: WTRK, rv: 0, on:"track", sec:-1, rest:0,
+      t: -i*10                                  // 少しずつ時間差で投げる
+    });
+  }
+  R.left = 0;
+  R.spin = 0;
+  SPINNING = true;
+  renderRoul();
+  stepRoul();
+}
+
+function stepRoul(){
+  if (!S.roul){ SPINNING = false; return; }
+  const R = S.roul, n = R.secs.length;
+  for (let k=0;k<2;k++) rouletteStep(R, n);     // 1 フレームに 2 歩
+  drawWheel();
+  R.spin++;
+  const moving = R.balls.some(b=>b.on !== "pocket");
+  if (moving && R.spin < 900) setTimeout(stepRoul, 16);
+  else finishSpin();
+}
+
+function rouletteStep(R, n){
+  R.wa = norm(R.wa + R.wv*DT_R);
+  R.wv *= FRIC_W;
+  if (R.wv < 0.18) R.wv = 0.18;                // 盤は最後までゆっくり回り続ける
+  const sw = TAU / n;                          // 1 区画の角幅
+
+  for (const b of R.balls){
+    if (b.t < 0){ b.t++; continue; }           // まだ投げていない
+    if (b.on === "pocket"){ b.a = norm(R.wa + (b.sec + .5)*sw); continue; }
+
+    // 角運動量：内側へ落ちるほど速く回る
+    const r0 = b.r;
+    b.av *= FRIC_B;
+
+    if (b.on === "track"){
+      // 遠心力 v²/r が足りなくなったらトラックから外れる
+      const v = Math.abs(b.av) * b.r;
+      if (v*v / b.r < DROP_G){ b.on = "fall"; b.rv = -0.22; }
+    } else if (b.on === "fall"){
+      b.rv -= 0.055;                           // 内側へ引かれる
+      b.r  += b.rv;
+      if (r0 > 0.001) b.av *= r0 / Math.max(6, b.r);   // 角運動量の保存
+      // ディフレクタ。菱形の突起に当たると角度と径が乱れる
+      if (b.r < WDEF + 1.4 && b.r > WDEF - 1.4 && !b.hitDef){
+        const da = norm(b.a) / (TAU/NDEF);
+        if (Math.abs(da - Math.round(da)) < 0.16){
+          b.hitDef = 1;
+          b.av *= (0.55 + rnd(0.35)) * (rnd(1) < 0.22 ? -1 : 1);
+          b.rv = 0.10 + rnd(0.16);             // いったん跳ね上がる
+        }
+      }
+      if (b.r <= WROT){ b.on = "rotor"; b.rv = -0.06; }
+    } else if (b.on === "rotor"){
+      b.rv -= 0.028;
+      b.r  += b.rv;
+      if (b.r < WPKT){ b.r = WPKT; b.rv = -b.rv*0.32; }
+      // フレット（仕切り）。盤に対する相対速度で跳ねる
+      const rel = b.av - R.wv;
+      const pa  = norm(b.a - R.wa) / sw;
+      const near = Math.abs(pa - Math.round(pa));
+      if (near < 0.13 && Math.abs(rel) > 0.55){
+        b.av = R.wv - rel*0.42;                // 仕切りに当たって減速・反転
+        b.rv += 0.08;
+      }
+      // 相対速度が十分小さくなったら、その区画で捕まる
+      if (Math.abs(rel) < 0.5 && b.r <= WPKT + 1.2){
+        b.rest++;
+        if (b.rest > 12){
+          b.on = "pocket";
+          b.sec = ((Math.floor(norm(b.a - R.wa)/sw) % n) + n) % n;
+        }
+      } else b.rest = 0;
+    }
+    b.a = norm(b.a + b.av*DT_R);
+  }
+
+  // 玉どうしの衝突。トラック上でもロータ内でも、近づいたら弾き合う
+  for (let i=0;i<R.balls.length;i++) for (let j=i+1;j<R.balls.length;j++){
+    const p = R.balls[i], q = R.balls[j];
+    if (p.t < 0 || q.t < 0) continue;
+    if (Math.abs(p.r - q.r) > 3.2) continue;
+    let d = norm(p.a - q.a); if (d > Math.PI) d -= TAU;
+    const gap = Math.abs(d) * ((p.r + q.r)/2);
+    if (gap > 3.4) continue;
+    if (p.on === "pocket" && q.on === "pocket") continue;
+    const t = p.av; p.av = q.av*0.9; q.av = t*0.9;      // 1 次元の弾性衝突
+    const push = (3.4 - gap) / ((p.r + q.r)/2) * 0.5 * Math.sign(d || 1);
+    p.a = norm(p.a + push); q.a = norm(q.a - push);
+    if (p.on === "pocket"){ p.on = "rotor"; p.rest = 0; p.rv = 0.08; }
+    if (q.on === "pocket"){ q.on = "rotor"; q.rest = 0; q.rv = 0.08; }
+  }
+}
+
+function finishSpin(){
+  const R = S.roul; SPINNING = false;
+  if (!R) return;
+  const n = R.secs.length, sw = TAU / n;
+  for (const b of R.balls){          // 保険。止まりきらなかった玉はその場に収める
+    if (b.on === "pocket" || b.t < 0) continue;
+    b.on = "pocket";
+    b.sec = ((Math.floor(norm(b.a - R.wa)/sw) % n) + n) % n;
+  }
+  // 玉が止まった順ではなく、盤の上での並び順でもなく、
+  // 「投げた玉が収まった区画」を、止まった順に杖へ積む
+  const got = R.balls.filter(b=>b.on === "pocket");
+  for (const b of got){
+    const c = mk(R.secs[b.sec]);
+    if (c.type === "utility"){
+      S.block += c.block;
+      S.log.push({k:"mod", t:`${c.name} → 防御 +${c.block}`});
+    } else if (S.wand.length < S.cap) S.wand.push(c);
+    else S.log.push({k:"foe", t:`${c.name} は溢れた`});
+  }
+  renderRoul();
+}
+
+/** 円盤。連続値で解いて、描くときだけドットに丸める */
+function drawWheel(){
+  if (!S || !S.roul) return;
+  const R = S.roul, n = R.secs.length || 1;
+  const dp = Math.max(2, parseInt(getComputedStyle(document.getElementById("stage"))
+              .getPropertyValue("--px")) || 4);
+  wcv.width = WSZ*dp; wcv.height = WSZ*dp;
+  wcv.style.width = (WSZ*dp)+"px"; wcv.style.height = (WSZ*dp)+"px";
+  const img = wbx.createImageData(WSZ, WSZ);
+  const px = img.data;
+  const put = (i, hex)=>{
+    px[i*4  ] = (hex>>16)&255; px[i*4+1] = (hex>>8)&255;
+    px[i*4+2] = hex&255;       px[i*4+3] = 255;
+  };
+  const C0=0x05070E, C1=0x0C1020, C2=0x161C33, C3=0x28304F, C7=0xD9AE44, C8=0xF6DD92;
+  const PAL = {projectile:[0x7E2A1C,0xD4512A], modifier:[0x7A6320,0xD9AE44],
+               utility:[0x2C5C8C,0x6FB6E8]};
+  const sw = TAU / n;
+  for (let i=0;i<WSZ*WSZ;i++){
+    const r = G_R[i];
+    if (r > WR){ px[i*4+3] = 0; continue; }
+    let col;
+    if (r > WTRK)      col = C2;                       // 外の縁
+    else if (r > WROT) col = C1;                       // トラック（玉が走る溝）
+    else if (r > WIN){
+      const k = Math.floor(norm(G_A[i] - R.wa) / sw) % n;
+      const t = CARDS[R.secs[k]].type;
+      col = PAL[t][k % 2];
+      // フレット（区画の仕切り）を 1 ドットで引く
+      const f = norm(G_A[i] - R.wa) / sw;
+      if (Math.abs(f - Math.round(f)) * (r*sw) < 0.6) col = C0;
+      if (r > WROT - 1) col = C0;
+    }
+    else if (r > WIN-2) col = C3;
+    else col = C1;
+    put(i, col);
+  }
+  // ディフレクタ（菱形の突起）
+  const c = WR + 1;
+  for (let d=0; d<NDEF; d++){
+    const th = d*(TAU/NDEF) + R.wa*0.0;
+    const gx = c + Math.cos(th)*WDEF, gy = c + Math.sin(th)*WDEF;
+    for (let y=-3;y<=3;y++) for (let x=-3;x<=3;x++){
+      if (Math.abs(x)+Math.abs(y) > 3) continue;
+      const ix = Math.round(gx+x), iy = Math.round(gy+y);
+      if (ix<0||iy<0||ix>=WSZ||iy>=WSZ) continue;
+      put(iy*WSZ+ix, Math.abs(x)+Math.abs(y) === 3 ? C0 : C3);
+    }
+  }
+  wbx.putImageData(img, 0, 0);
+  wcx.imageSmoothingEnabled = false;
+  wcx.clearRect(0,0,wcv.width,wcv.height);
+  wcx.drawImage(wbuf, 0, 0, WSZ*dp, WSZ*dp);
+
+  // 区画の絵柄（盤と一緒に回る）
+  if (n <= 26) for (let k=0;k<n;k++){
+    const th = R.wa + (k + .5)*sw, rr = (WROT + WIN)/2;
+    const gx = Math.round(c + Math.cos(th)*rr), gy = Math.round(c + Math.sin(th)*rr);
+    const ic = ICONS[R.secs[k]];
+    if (!ic) continue;
+    ic.d.forEach((row,yy)=>{ for (let xx=0;xx<row.length;xx++){
+      if (row[xx]==="0") continue;
+      wcx.fillStyle = ic.p[+row[xx]];
+      wcx.fillRect((gx-4+xx)*dp, (gy-4+yy)*dp, dp, dp);
+    }});
+  }
+  // 玉
+  for (const b of R.balls){
+    if (b.t < 0) continue;
+    const rr = b.on === "pocket" ? WPKT : b.r;
+    const bx = Math.round(c + Math.cos(b.a)*rr), by = Math.round(c + Math.sin(b.a)*rr);
+    wcx.fillStyle = "#05070E";
+    wcx.fillRect((bx-2)*dp, (by-1)*dp, 4*dp, 3*dp);
+    wcx.fillRect((bx-1)*dp, (by-2)*dp, 3*dp, 5*dp);
+    wcx.fillStyle = b.on === "pocket" ? "#F6DD92" : "#E4E2DA";
+    wcx.fillRect((bx-1)*dp, (by-1)*dp, 3*dp, 3*dp);
+    wcx.fillStyle = "#F6DD92";
+    wcx.fillRect((bx-1)*dp, (by-1)*dp, dp, dp);
+  }
+}
+
+let SPINNING = false;
+
+function renderRoul(){
+  const R = S.roul; if (!R) return;
+  $("r-floor").innerHTML = D(`第 ${S.floor} 層`);
+  $("r-round").innerHTML = D(`ラウンド ${S.round}`);
+  $("r-hp").innerHTML    = D(`体力 ${Math.max(0,S.hp)} / ${S.maxHp}`);
+  $("r-block").innerHTML = D(`防御 ${S.block}`);
+  const cnt = {};
+  for (const id of S.pool) cnt[id] = (cnt[id]||0)+1;
+  $("rl-side").innerHTML =
+    `<div class="rlrow"><span class="nm">${D("盤の中身")}</span>`+
+    `<span class="ct">${D(S.pool.length+" 区画")}</span></div>`+
+    Object.keys(CARDS).filter(id=>cnt[id]).map(id=>
+      `<div class="rlrow">${spriteSVG(ICONS[id],"sw")}`+
+      `<span class="nm">${D(CARDS[id].name)}</span>`+
+      `<span class="ct">${D(String(cnt[id]))}</span></div>`).join("");
+  const thrown = R.balls.filter(b=>b.t >= 0).length;
+  $("rl-balls").innerHTML =
+    Array.from({length:S.balls},(_,i)=>
+      `<span class="ball ${i < R.left ? "" : "used"}"></span>`).join("")+
+    `<span style="color:var(--c4);margin-left:calc(var(--px)*2)">${D("玉 "+R.left)}</span>`;
+  const sp = $("btn-spin");
+  sp.innerHTML = D("投げる","m") + `<small>${D("space")}</small>`;
+  sp.disabled = SPINNING || R.left <= 0;
+  sp.onclick = spinBalls;
+  const tb = $("btn-toarr");
+  tb.innerHTML = D("杖を組む","m") + `<small>${D("enter")}</small>`;
+  tb.disabled = SPINNING;
+  tb.onclick = ()=>{ if (!SPINNING){ S.phase = "fight"; render(); } };
+  $("rl-wand").innerHTML =
+    Array.from({length:S.cap},(_,i)=>{
+      const c = S.wand[i];
+      return c ? `<span class="rlw">${D(String(i+1))}${spriteSVG(ICONS[c.id],"sw")}`+
+                 `<span class="nm">${D(c.name)}</span></span>`
+               : `<span class="rlw empty"></span>`;
+    }).join("");
+  $("rl-tip").innerHTML = D(
+    SPINNING ? "…"
+    : R.left > 0 ? "玉を投げる。止まった区画の札が、止まった順に杖へ積まれる"
+                 : "玉を投げ終えた。杖を組む へ");
+  drawWheel();
+}
+
 /* ═══════ 描画（HTML側） ═══════ */
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $ = id => document.getElementById(id);
 
 function renderHud(){
-  $("f-floor").textContent = S.floor;
-  $("f-round").textContent = S.round;
-  $("f-hp").textContent    = Math.max(0,S.hp) + " / " + S.maxHp;
-  $("f-block").textContent = S.block;
+  $("f-floor").innerHTML = D(`第 ${S.floor} 層`);
+  $("f-round").innerHTML = D(`ラウンド ${S.round}`);
+  $("f-hp").innerHTML    = D(`体力 ${Math.max(0,S.hp)} / ${S.maxHp}`);
+  $("f-block").innerHTML = D(`防御 ${S.block}`);
   if (S.hurt){ $("f-hp").classList.remove("hpflash");
     void $("f-hp").offsetWidth; $("f-hp").classList.add("hpflash"); }
-  $("f-swap").textContent = S.swapMax ? `入れ替え ${S.swaps}/${S.swapMax}` : "入れ替え なし";
 }
 function renderDungeon(){
-  $("d-floor").textContent = S.floor;
-  $("d-pool").textContent  = S.pool.length;
-  $("d-hp").textContent    = Math.max(0,S.hp) + " / " + S.maxHp;
-  $("d-gun").textContent   = `引き ${S.draw} ・容量 ${S.cap}`;
+  $("d-floor").innerHTML = D(`第 ${S.floor} 層`);
+  $("d-pool").innerHTML  = D(`札 ${S.pool.length}`);
+  $("d-hp").innerHTML    = D(`体力 ${Math.max(0,S.hp)} / ${S.maxHp}`);
+  $("d-gun").innerHTML = D(`玉 ${S.balls} ・容量 ${S.cap}`);
 
   const stage = document.getElementById("stage");
   // タイルは 8x8 のスプライトを --px*2 で描く箱。--px の倍数に丸める
@@ -1352,17 +1662,16 @@ function renderDungeon(){
   const rows = Object.keys(CARDS).filter(id=>cnt[id])
     .sort((a,b)=>cnt[b]-cnt[a])
     .map(id=>`<div class="dsrow">${spriteSVG(ICONS[id],"sw")}`+
-             `<span class="nm">${esc(CARDS[id].name)}</span>`+
-             `<span class="ct">${cnt[id]}</span></div>`).join("");
-  $("dsl").innerHTML = `<h3>杖のプール</h3>${rows}`;
+             `<span class="nm">${D(CARDS[id].name)}</span>`+
+             `<span class="ct">${D(String(cnt[id]))}</span></div>`).join("");
+  $("dsl").innerHTML = `<h3>${D("杖のプール","m")}</h3>${rows}`;
   const undone = S.d.rooms.filter(r=>!r.done);
   $("dsr").innerHTML =
-    `<h3>この階</h3>`+
-    `<div class="dsrow"><span class="nm">のこり</span><span class="ct">${undone.length}</span></div>`+
-    `<div class="dsrow"><span class="nm">体力</span><span class="ct">${Math.max(0,S.hp)}/${S.maxHp}</span></div>`+
-    `<div class="dsrow"><span class="nm">杖の容量</span><span class="ct">${S.cap}</span></div>`+
-    `<div class="dsrow"><span class="nm">1 ラウンドの引き</span><span class="ct">${S.draw}</span></div>`+
-    (S.swapMax?`<div class="dsrow"><span class="nm">入れ替え</span><span class="ct">${S.swapMax}</span></div>`:``);
+    `<h3>${D("この階","m")}</h3>`+
+    `<div class="dsrow"><span class="nm">${D("のこり")}</span><span class="ct">${D(String(undone.length))}</span></div>`+
+    `<div class="dsrow"><span class="nm">${D("杖の容量")}</span><span class="ct">${D(String(S.cap))}</span></div>`+
+    `<div class="dsrow"><span class="nm">${D("玉")}</span><span class="ct">${D(String(S.balls))}</span></div>`+
+    (S.sift?`<div class="dsrow"><span class="nm">${D("選り分け")}</span><span class="ct">${D(String(S.sift))}</span></div>`:``);
 
   // 盤面の中に入れ直す（grid.innerHTML で消えるので毎回付け直す）
   let hero = $("hero");
@@ -1374,19 +1683,19 @@ function renderDungeon(){
   hero.innerHTML = spriteSVG(S.d.stepn & 1 ? HERO2 : HERO, "hspr");
 
   const left = S.d.rooms.filter(r=>!r.done && r.t!=="boss").length;
-  $("dtip").textContent = S.note ||
-    (left ? `矢印キー / スワイプで歩く　—　のこり ${left} 部屋、奥にボス`
-          : "矢印キー / スワイプで歩く　—　ボスへ");
+  $("dtip").innerHTML = D(S.note ||
+    (left ? `矢印キー / スワイプで歩く　のこり ${left} 部屋、奥にボス`
+          : "矢印キー / スワイプで歩く　ボスへ"));
   S.note = "";
 }
 
 /** 札と同じ 5:7 の枠で、札以外の報酬も見せる */
 function fakeCard(kind, name, note, tone){
   return `<div class="card t-${tone==="core"?"utility":"modifier"}">`+
-    `<span class="cname">${esc(name)}</span>`+
+    `<span class="cname">${D(name)}</span>`+
     `<span class="cart">${spriteSVG(ROOMSPR[tone==="core"?"boss":"battle"], "cicon")}</span>`+
-    `<span class="ckind">${esc(kind)}</span>`+
-    `<span class="ctext">${esc(note)}</span></div>`;
+    `<span class="ckind">${D(kind)}</span>`+
+    `<span class="ctext">${DP(note, 88)}</span></div>`;
 }
 
 /** 焼却炉。プールの中身をそのまま並べて 1 枚選んで捨てる。 */
@@ -1398,7 +1707,7 @@ function renderTrash(){
     const b = document.createElement("button");
     b.className = "tk";
     b.innerHTML = cardHTML(CARDS[id], {mini:true}) +
-      `<span class="tkn">${cnt[id]} 枚</span>`;
+      `<span class="tkn">${D(cnt[id]+" 枚")}</span>`;
     b.onclick = ()=>{
       const k = S.pool.indexOf(id);
       if (k >= 0) S.pool.splice(k, 1);
@@ -1407,14 +1716,17 @@ function renderTrash(){
     };
     host.appendChild(b);
   });
-  $("t-skip").onclick = ()=>{ S.note = "何もくべなかった"; toDungeon(); };
+  $("t-title").innerHTML = D("焼却炉","l");
+  $("t-sub").innerHTML = D("いらない札を 1 枚くべる。杖は薄めるより締めたほうが強い");
+  const sk = $("t-skip"); sk.innerHTML = D("くべずに出る","m");
+  sk.onclick = ()=>{ S.note = "何もくべなかった"; toDungeon(); };
 }
 
 function renderReward(){
   const boss = S.rkind === "boss", chest = S.rkind === "chest";
-  $("r-title").textContent = boss ? "ボスを退けた" : chest ? "宝箱" : "戦利品";
-  $("r-sub").textContent = boss ? "根本的な強化をひとつ選ぶ"
-    : chest ? "札をひとつ選んで仕入れる" : "札か、杖の強化をひとつ選ぶ";
+  $("r-title").innerHTML = D(boss ? "ボスを退けた" : chest ? "宝箱" : "戦利品", "l");
+  $("r-sub").innerHTML = D(boss ? "根本的な強化をひとつ選ぶ"
+    : chest ? "札をひとつ選んで仕入れる" : "札か、杖の強化をひとつ選ぶ");
   const host = $("r-picks"); host.innerHTML = "";
   S.roffer.forEach((o,k)=>{
     const b = document.createElement("button");
@@ -1424,24 +1736,44 @@ function renderReward(){
       ? fakeCard("根本強化", o.name, o.note, "core")
       : o.kind === "card" ? cardHTML(CARDS[o.id], {})
       : fakeCard("杖の強化", o.u.name, o.u.note, "gun");
-    b.innerHTML = `<span class="pkh">${boss?"根本強化":o.kind==="card"?"札を仕入れる":"杖の強化"}</span>`
+    b.innerHTML = `<span class="pkh">${D(boss?"根本強化":o.kind==="card"?"札を仕入れる":"杖の強化")}</span>`
       + `<span class="cwrap">${face}</span>`;
     b.onclick = ()=>takeReward(k);
     host.appendChild(b);
   });
   const rr = $("r-reroll");
   rr.disabled = S.rerolls <= 0;
-  $("r-rr").textContent = `のこり ${S.rerolls}`;
+  rr.innerHTML = D("引き直す","m") + `<small>${D("のこり "+S.rerolls)}</small>`;
   rr.onclick = ()=>{ if (S.rerolls>0){ S.rerolls--; rollReward(); } };
 }
 
+/* 敵の背後の明かり。市松のディザで散らすので中間色を作らない */
+function drawGlow(){
+  const g = document.getElementById("glow"); if (!g) return;
+  const dp = Math.max(1, parseInt(getComputedStyle(document.getElementById("stage"))
+              .getPropertyValue("--px")) || 4);
+  const W = 90, H = 46;
+  g.width = W*dp; g.height = H*dp;
+  g.style.width = (W*dp)+"px"; g.style.height = (H*dp)+"px";
+  const cx = W/2, cy = H*0.62, cg = g.getContext("2d");
+  const B = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  cg.fillStyle = "#161C33";
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const d = Math.hypot((x-cx)/ (W/2), (y-cy)/(H/1.4));
+    const lv = Math.round(Math.pow(Math.max(0, 1 - Math.min(1,d)), 2.6) * 12);
+    if (lv > B[y&3][x&3]) cg.fillRect(x*dp, y*dp, dp, dp);
+  }
+}
+
 function render(){
-  if (S.phase !== "dungeon" && S.phase !== "reward" && S.phase !== "trash") renderHud();
-  for (const id of ["dungeon","fight","reward","trash"])
+  for (const id of ["dungeon","roul","fight","reward","trash"])
     $(id).classList.toggle("off", S.phase !== id);
   if (S.phase === "dungeon") return renderDungeon();
   if (S.phase === "reward")  return renderReward();
   if (S.phase === "trash")   return renderTrash();
+  if (S.phase === "roul")    return renderRoul();
+  renderHud();
+  drawGlow();
 
   const pv = preview();
 
@@ -1454,16 +1786,23 @@ function render(){
     b.disabled = f.hp<=0;
     const after = pv.hp[i], delta = f.hp - after;
     const wNow = Math.max(0,f.hp/f.maxHp*100), wAfter = Math.max(0,after/f.maxHp*100);
+    const st = [];
+    if (f.vuln) st.push(`破鎧${(1+f.vuln).toFixed(1)}倍`);
+    if (f.weak) st.push(`弱体−${f.weak}`);
+    if (f.psn)  st.push(`毒${f.psn}`);
+    if (f.brn)  st.push(`火傷${f.brn}`);
     b.innerHTML =
       `<span class="tgt"></span>`+
-      (f.hp>0?`<span class="intent">${spriteSVG(UI.atk,"uic")}${f.atk}</span>`:`<span class="intent" style="visibility:hidden">—</span>`)+
-      `<span class="fname">${esc(f.name)}</span>`+
+      (f.hp>0?`<span class="intent">${spriteSVG(UI.atk,"uic")}${D(String(f.atk))}</span>`
+             :`<span class="intent" style="visibility:hidden">—</span>`)+
+      `<span class="fname">${D(f.name)}</span>`+
       `<span class="fbar"><i style="width:${wNow}%"></i>`+
         (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
-        `<span>${f.hp} / ${f.maxHp}</span></span>`+
+        `<span>${D(`${f.hp} / ${f.maxHp}`)}</span></span>`+
+      (st.length?`<span class="fname" style="color:var(--c7)">${D(st.join(" "))}</span>`:``)+
       spriteAnim(SPRITES[f.spr], "glyph",
         f.hp<=0 ? DEADPAL : S.flash.includes(i) ? HITPAL : null)+
-      (delta>0?`<span class="fdelta">−${delta}</span>`:``);
+      (delta>0?`<span class="fdelta">${D("−"+delta,"m")}</span>`:``);
     b.onclick = ()=>selectTarget(i);
     foes.appendChild(b);
   });
@@ -1480,25 +1819,31 @@ function render(){
     }
   }
 
-  // 杖＝手札の扇
+  // 杖。並び替えは自由。1 枚選んで、もう 1 枚を選ぶと入れ替わる
   const hand = $("hand"); hand.innerHTML = "";
   for (let i=0;i<S.cap;i++){
     const c = S.wand[i];
-    if (!c){                                   // 空きスロット。容量が見える
+    if (!c){
       const e = document.createElement("div");
       e.className = "slot";
-      e.style.marginLeft = i ? "calc(var(--px)*2)" : "0";
       hand.appendChild(e);
       continue;
     }
     const w = document.createElement("div");
-    w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i], swap:i+1 < S.wand.length});
+    w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i]});
     const d = w.firstChild;
-    d.style.marginLeft = i ? "calc(var(--px)*2)" : "0";
-    // 扇にしない。ドット絵を任意角で回すと、角度が何であれ再サンプリングされて
-    // 枠が灰色の階段になる。並びは水平一列で、持ち上げは hover に任せる
-    const sw = d.querySelector(".cswap");
-    if (sw){ sw.disabled = S.swaps<=0; sw.onclick = e=>{ e.stopPropagation(); swapAt(i); }; }
+    if (S.pick === i) d.classList.add("picked");
+    d.onclick = ()=>{
+      if (S.anim) return;
+      if (S.pick === null || S.pick === undefined) S.pick = i;
+      else if (S.pick === i) S.pick = null;
+      else {
+        const [x] = S.wand.splice(S.pick, 1);
+        S.wand.splice(i, 0, x);
+        S.pick = null;
+      }
+      render();
+    };
     hand.appendChild(d);
   }
 
@@ -1506,14 +1851,19 @@ function render(){
   const lines = S.log.slice(-5).concat(
     S.wand.length ? [{k:"total",
       t:`合計 ${S.foes.reduce((a,f,i)=>a+Math.max(0,f.hp-pv.hp[i]),0)}`}] : []);
-  $("log").innerHTML = lines.map(l=>`<div class="l-${l.k}">${esc(l.t)}</div>`).join("");
+  $("log").innerHTML = lines.map(l=>`<div class="l-${l.k}">${D(l.t)}</div>`).join("");
 
+  const bk = $("btn-back");
+  bk.innerHTML = D("盤に戻る","m");
+  bk.disabled = !!S.anim || !!S.over || !S.roul || S.roul.left <= 0;
+  bk.onclick = ()=>{ if (S.roul){ S.phase = "roul"; render(); } };
   const cb = $("btn-cast");
   cb.disabled = !!S.over || !!S.anim;
-  cb.innerHTML = S.wand.length ? `詠唱<small>space</small>` : `敵の番へ<small>space</small>`;
+  cb.innerHTML = D(S.wand.length ? "詠唱" : "敵の番へ","m") + `<small>${D("space")}</small>`;
   cb.onclick = cast;
 }
 
+$("btn-dex").innerHTML = D("図鑑");
 $("btn-dex").onclick = openDex;
 $("btn-full").innerHTML = spriteSVG(UI.full, "uic");
 $("btn-full").onclick = toggleFull;
@@ -1551,8 +1901,7 @@ function openDex(){
     `<h2 style="font-size:var(--t2);margin-top:1em">繰り返し取れる強化</h2><div class="dexlist">${reps}</div>`+
     `<h2 style="font-size:var(--t2);margin-top:1em">敵</h2><div class="dexlist">${foes}</div>`+
     `<h2 style="font-size:var(--t2);margin-top:1em">いまの状態</h2><div class="dexlist">`+
-    row(ICONS.split3, "杖", `1 ラウンドの引き ${S.draw} ・容量 ${S.cap}`+
-      ` ・入れ替え ${S.swapMax} ・発射体 +${S.dmgUp||0}`, false)+
+    row(ICONS.split3, "杖", `玉 ${S.balls} ・容量 ${S.cap} ・発射体 +${S.dmgUp||0}`, false)+
     `</div>`;
   v.classList.remove("hidden");
   $("dexclose").onclick = ()=>v.classList.add("hidden");

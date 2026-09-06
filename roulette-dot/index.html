@@ -730,7 +730,7 @@ const cv = $("wheel"), cx = cv.getContext("2d");
 let VW = 1000, VH = 940, CXp = 0, CYp = 0, S = 1;
 
 /** 視線の仰角。90°＝真上。固定。 */
-const ELEV = 68 * Math.PI/180;
+const ELEV = 56 * Math.PI/180;
 const SIN_E = Math.sin(ELEV), COS_E = Math.cos(ELEV);
 
 /** 裏画面の横幅（ドットの数）。ここが粗さを決める */
@@ -746,18 +746,28 @@ let BW = DOTS_W, BH = 280;
 const px = (x, y, z) => [CXp + x*S, CYp + (y*SIN_E - z*COS_E)*S];
 const ringOf = (r, z) => [CXp, CYp - z*COS_E*S, r*S, r*S*SIN_E];
 
+/** 画面の高さは仰角から決める。傾けるほど縦は詰まり、高さのぶん上へ伸びる。
+    手で詰めると ELEV を変えるたびに合わせ直しになるので、幾何から出す。 */
 function sizeWheel(){
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   const cssW = Math.max(300, cv.parentElement.clientWidth - 24);
-  const cssH = Math.round(cssW * 0.94);
+
+  BW = DOTS_W;
+  S  = (BW/2 - 2) / W.rBowl;                  // 裏画面の 1 メートルあたりドット数
+  CXp = BW/2;
+  // いちばん上に来る縁と、いちばん下に来る縁
+  const zTop = Z_TRACK + 0.052, zBot = Z_TRACK + 0.040;
+  const top    = -(zTop*COS_E*S) - (W.rBowl-0.020)*S*SIN_E;
+  const bottom = -(zBot*COS_E*S) + W.rBowl*S*SIN_E;
+  const pad = 4;
+  BH  = Math.ceil(bottom - top) + pad*2;
+  CYp = pad - top;
+
+  const cssH = Math.round(cssW * BH / BW);
   VW = Math.round(cssW*dpr); VH = Math.round(cssH*dpr);
   cv.width = VW; cv.height = VH;
   cv.style.width = cssW+"px"; cv.style.height = cssH+"px";
-  BW = DOTS_W; BH = Math.round(DOTS_W * VH / VW);
   bufCv.width = BW; bufCv.height = BH;
-  S   = (BW/2 - 2) / W.rBowl;                 // 裏画面の 1 メートルあたりドット数
-  CXp = BW/2;
-  CYp = BH/2 + (Z_TRACK + 0.052)*COS_E*S*0.5;
   paintRotorFace();
 }
 

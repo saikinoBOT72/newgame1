@@ -303,31 +303,48 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #fight{background:var(--c1)}
 /* 奥の壁。板の継ぎ目は 2 種類の幅で刻む */
 #fight::before{content:"";position:absolute;left:0;right:0;top:0;
-  height:calc(var(--u)*64);z-index:0;
+  height:calc(var(--u)*48);z-index:0;
   background:repeating-linear-gradient(90deg,
     var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
     var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
-/* 床。3 段の帯 */
-#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*64);
-  height:calc(var(--u)*8);z-index:1;
-  background:linear-gradient(var(--c6) 0 var(--px),
-    var(--c3) var(--px) calc(var(--px)*4),
-    var(--c2) calc(var(--px)*4) calc(var(--px)*10),
-    var(--c1) calc(var(--px)*10) 100%)}
+/* 床。敵が 1 列で奥まで並ぶので、床にも奥行きが要る。
+   奥ほど暗い帯を重ねて、上に立つほど遠く見えるようにする。 */
+#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*48);
+  height:calc(var(--u)*24);z-index:1;
+  background:linear-gradient(
+    var(--c6)  0 var(--px),                           /* 壁と床の境の金線 */
+    var(--c1)  var(--px)           calc(var(--u)*8),  /* 奥 */
+    var(--c2)  calc(var(--u)*8)    calc(var(--u)*16), /* 中 */
+    var(--c3)  calc(var(--u)*16)   100%)}             /* 手前 */
 /* 敵の背後の明かり。市松のディザで散らす */
 .glow{position:absolute;left:50%;top:calc(var(--u)*14);transform:translateX(-50%);
   width:calc(var(--u)*90);height:calc(var(--u)*46);z-index:0;pointer-events:none}
+/* ═══ 敵の隊列 ═══
+   1 列に並んでいる。手前（左）が先頭で、攻撃は必ずここに当たる。
+   奥へ行くほど右上へずらして重ねる。大きさは変えない（半端な倍率で
+   ドットが滲むため）。前後は「重なりの順」と「奥ほど暗い床影」で示す。 */
 .arena{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;
-  gap:calc(var(--u)*16);padding:calc(var(--u)*16) calc(var(--u)*4) 0;
+  gap:0;padding:calc(var(--u)*16) calc(var(--u)*4) 0;
   height:calc(var(--u)*66);z-index:2;max-width:100%;overflow:visible}
+.arena .foe{margin-left:calc(var(--u)*-9)}
+.arena .foe:first-child{margin-left:0}
+/* 奥は上へ持ち上げ、手前が必ず上に重なる */
+.arena .foe:nth-child(1){transform:translateY(0);                 z-index:5}
+.arena .foe:nth-child(2){transform:translateY(calc(var(--u)*-4)); z-index:4}
+.arena .foe:nth-child(3){transform:translateY(calc(var(--u)*-8)); z-index:3}
+.arena .foe:nth-child(4){transform:translateY(calc(var(--u)*-12));z-index:2}
+/* 先頭だけに「ここに当たる」印を出す */
+.foe .lead{color:var(--c4)}
+.foe[aria-pressed="true"] .lead{color:var(--c7)}
+
 .foe{position:relative;display:flex;flex-direction:column;align-items:center;
   min-width:0;
   gap:var(--px);background:none;border:0;padding:0 calc(var(--u)*2) calc(var(--u)*2);
   transition:transform .1s steps(2);text-align:center}
-.foe:hover:not(:disabled){transform:translateY(calc(var(--px)*-2))}
 .foe::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
   width:calc(var(--px)*26);height:calc(var(--px)*2);background:var(--c0)}
 .foe[aria-pressed="true"]::after{background:var(--c7);height:calc(var(--px)*3)}
+.arena .foe:nth-child(n+2)::after{background:var(--c1)}
 .foe.dead::after{display:none}
 .foe.hurt{animation:hurt .2s steps(2)}
 @keyframes hurt{0%{transform:translateX(calc(var(--px)*-2))}
@@ -634,45 +651,21 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 /* ═══════ カード ═══════ */
 const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
 /* art: 後から画像を差し替える枠。null の間は仮のアイコンを出す */
-/* text は札の上の覚え書き。2 行に収まる長さでしか書けない。
-   rule は持ち物で読む正確な規則。両方を札に押し込むと下の行が切れる。 */
-const CARDS = {
-  fireball:{name:"火球",  type:"projectile", dmg:9, art:null, text:"9ダメージ",
-            rule:"狙った敵に 9 ダメージ。力とここまでの修飾が乗る"},
-  shard:   {name:"石礫",  type:"projectile", dmg:4, art:null, text:"4ダメージ",
-            rule:"狙った敵に 4 ダメージ。軽いぶん修飾の倍率が乗りにくい"},
-  bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6ダメージ 貫通1",
-            rule:"狙った敵に 6 ダメージ。後ろの敵 1 体まで貫く"},
-  split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製3",
-            rule:"次の発射体を 3 発に増やし、生きている敵を順に狙う。威力は落ちない"},
-  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通+2",
-            rule:"次の発射体が、さらに後ろ 2 体まで貫くようになる"},
-  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力1.5倍 波及+1",
-            rule:"次の発射体の威力が 1.5 倍。両隣の敵にも半分が飛ぶ。力を足した後にかかる"},
-  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"以後 被弾1.5倍",
-            rule:"当てた敵に破鎧を残す。以後その敵が受けるダメージが 1.5 倍になる。重ねられる"},
-  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃−2",
-            rule:"当てた敵の攻撃を 2 下げる。戦闘のあいだ戻らない"},
-  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒+4 減りつつ続く",
-            rule:"当てた敵に毒 4。敵の番のはじめに毒の数だけ入り、毒が 1 減る。"+
-                 "毒 4 なら 4→3→2→1 の計 10。重ねるほど総量が伸びる"},
-  ember:   {name:"発火",  type:"modifier", mod:{brn:8},          art:null, text:"火傷+8 一度だけ",
-            rule:"当てた敵に火傷 8。次の敵の番のはじめに 1 度だけ入って消える。持続しない"},
-  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御+9",
-            rule:"杖のここまで来たときに防御 +9。敵の攻撃を受け止め、"+
-                 "受け止めきれない分だけ体力に通る。ラウンドが終わると残りは消える"},
-  might:   {name:"膂力",  type:"utility", might:2, art:null, text:"力+2 ずっと",
-            rule:"杖のここまで来たときに力 +2。以後この戦闘のあいだ、"+
-                 "すべての発射体の威力に足される。前に置けばこの詠唱から乗る"}
-};
+/* ═══ 札 ═══
+   いったん全部捨てた。発射体 3 に対して修飾 7 という偏りと、
+   石礫のように「火球の下位互換」でしかない札が残っていたため。
+   仕組み（発射体／修飾／汎用、順序で解決する VM）はそのまま残してある。
+   前の 12 種は git log の ac0a072 より前に入っている。
+
+   text は札の上の覚え書き（2 行以内）、rule は持ち物で読む正確な規則。 */
+const CARDS = {};
 for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 
 /* 山は 3 枚から始める。区画が少ないほど盤が読めるので、
    「増やす」と「削る」の両方に意味が出る。 */
-const POOL0 = ["fireball","fireball","split3"];
+const POOL0 = [];   // 開始プール。札を入れ直すまで空
 /* 区画の濃淡。同じ札はいつも同じ色になるよう、札ごとに固定で持つ */
-const SHADE = {fireball:0, shard:1, bolt:0, split3:0, pierce:1, enlarge:0,
-               sunder:1, weaken:0, venom:1, ember:1, guard:0, might:1};
+const SHADE = {};   // 盤の区画の濃淡。札ごとに決める
 // 他の札は報酬・宝箱でのみ手に入る
 
 const FOEDEX = [
@@ -697,7 +690,7 @@ function newRun(){
   S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, sift:0,
        balls:2, cap:5, dmgUp:0, pick:null, might:0,
        pool:POOL0.slice(), owned:[], core:[],
-       wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
+       wand:[], foes:[], over:null, mode:"aim", phase:"dungeon",
        prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
        d:null, busy:false, walk:null, anim:null, hurt:false, roffer:[], rkind:"battle", rerolls:1, boss:false};
   S.d = genFloor(1);
@@ -771,32 +764,8 @@ const SPRITES = {
     "0043112211124000","0004121112120000","0000431111400000","0004311111240000",
     "0043111111124000","0004311111240000","0000442222400000","0000444444400000"]}
 };
-const ICONS = {
-  fireball:{p:["","#E2622F","#F5A55C","#8E3320"], d:[
-    "00011000","00121000","01221100","01222110","12222211","12222211","01222110","00111100"]},
-  shard:{p:["","#9AA2BC","#3A4467","#E8E4D6"], d:[
-    "00011000","00133100","01333310","13333321","13333221","01332210","00122100","00000000"]},
-  bolt:{p:["","#E2622F","#F5A55C","#8E3320"], d:[
-    "00001110","00011100","00111000","01112100","11122100","00021000","00210000","00100000"]},
-  split3:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
-    "00033000","00011000","00111100","01100110","01000010","11000011","10000001","00000000"]},
-  pierce:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
-    "00000000","00100100","00100100","11111113","00111133","00100100","00100100","00000000"]},
-  enlarge:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
-    "00222200","02000020","20133102","20133102","20133102","20133102","02000020","00222200"]},
-  sunder:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
-    "00100100","01100110","01111110","11133111","11333311","01111110","00111100","00011000"]},
-  weaken:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
-    "00000000","01000010","01100110","00133100","00133100","01100110","01000010","00000000"]},
-  venom:{p:["","#6FBF6A","#2E7A46","#6FBF6A"], d:[
-    "00011000","00133100","01333310","13333331","13333331","01333310","00133100","00011000"]},
-  ember:{p:["","#E2622F","#8E3320","#F7D97A"], d:[
-    "00011000","00133100","01333310","13322331","13222231","01222210","00122100","00011000"]},
-  guard:{p:["","#35618C","#7EC0E8","#0B0E1A","#E8E4D6"], d:[
-    "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]},
-  might:{p:["","#35618C","#7EC0E8","#0B0E1A"], d:[
-    "00000000","01100110","12200221","12200221","12222221","12200221","12200221","01100110"]}
-};
+/* 札の絵。札を捨てたので空。UI の絵（UI.*）と敵の絵（SPRITES）は別で残っている */
+const ICONS = {};
 /* UI の記号。フォントの記号を使うとそこだけ滲むので、8x8 で自前で打つ */
 const UI = {
   full:{p:["","#9AA2BC"], d:[
@@ -992,11 +961,6 @@ function cardHTML(c, opt){
    もう 1 枚拾うほうが常に強く、並び順が結果に影響しなくなっていた。 */
 const newBuf = () => ({split:1, pierce:0, splash:0, mul:1, vuln:0, weak:0, psn:0, brn:0});
 const alive = st => st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
-function nextAlive(st, from){
-  const a = alive(st); if (!a.length) return -1;
-  for (const i of a) if (i > from) return i;
-  return a[0];
-}
 let REC = null;                        // 演出用に解決手順を記録する
 function hit(st, i, amount, log){
   const f = st.foes[i];
@@ -1023,7 +987,7 @@ function debuff(st, i, buf, log){
   if (buf.brn){ f.brn = (f.brn||0) + buf.brn;
     log.push({k:"mod", t:`  ${f.name} 火傷 ${f.brn}`}); if (REC) REC.push({k:"deb", i, s:"火傷", v:buf.brn}); }
 }
-function shoot(st, card, buf, tgt, log){
+function shoot(st, card, buf, log){
   const copies = buf.split;
   // 力は「攻撃そのもの」に足してから修飾の倍率をかける。
   // だから 力 → 拡大 → 火球 の並びは、力の分まで 1.5 倍になる。
@@ -1041,22 +1005,25 @@ function shoot(st, card, buf, tgt, log){
   if (buf.brn)   tags.push("火傷");
   log.push({k:"fire", t:`${card.name} ${Math.round(base)}${tags.length?" ["+tags.join(" ")+"]":""}`});
   if (REC) REC.push({k:"fire", name:card.name, tags:tags.join(" ")});
-  // 貫通・波及・分裂の「隣」は、すべて生存する敵の並びの上で数える。
-  // 生配列で数えると、真ん中を倒した瞬間に波及だけ静かに無効化されていた。
-  const ring = alive(st);
-  if (!ring.length) return;
-  let start = ring.indexOf(tgt);
-  if (start < 0) start = 0;
+  // 敵は 1 列に並んでいる。列は生きている敵だけで数える
+  // （倒れた敵は列から抜けるので、後ろが繰り上がって前に出る）。
+  const line = alive(st);
+  if (!line.length) return;
+  // 攻撃は必ず先頭から当たる。狙いを選ぶ余地は無い。
   for (let c=0;c<copies;c++){
-    const ai = (start + c) % ring.length;              // 複製は生存する敵を巡る
-    for (let p=0; p<=pierce && ai+p < ring.length; p++){
-      hit(st, ring[ai+p], base, log); debuff(st, ring[ai+p], buf, log); }
-    for (let dj=1; dj<=splash; dj++)         // 波及 N ＝ N 体隣まで、各 0.5 倍
-      for (const sgn of [-1, 1])
-        if (ring[ai+sgn*dj] !== undefined) hit(st, ring[ai+sgn*dj], base*0.5, log);
+    // 複製は先頭から順に、列の奥へ 1 体ずつずれて当たる
+    const ai = Math.min(c, line.length - 1);
+    // 貫通 N ＝ そこからさらに奥 N 体まで貫く
+    for (let p=0; p<=pierce && ai+p < line.length; p++){
+      hit(st, line[ai+p], base, log); debuff(st, line[ai+p], buf, log); }
+    // 波及 N ＝ 貫いた先のさらに奥 N 体へ、各 0.5 倍
+    for (let dj=1; dj<=splash; dj++){
+      const k = ai + pierce + dj;
+      if (k < line.length) hit(st, line[k], base*0.5, log);
+    }
   }
 }
-function runCast(st, wand, tgt, log){
+function runCast(st, wand, log){
   let buf = newBuf();
   for (const c of wand){
     if (c.type === "modifier"){
@@ -1071,7 +1038,7 @@ function runCast(st, wand, tgt, log){
       if (c.mod.brn)    buf.brn    += c.mod.brn;
       log.push({k:"mod", t:`+ ${c.name}`});
       if (REC) REC.push({k:"mod", name:c.name}); }
-    else if (c.type === "projectile"){ shoot(st, c, buf, tgt, log); buf = newBuf(); }
+    else if (c.type === "projectile"){ shoot(st, c, buf, log); buf = newBuf(); }
     else if (c.type === "utility"){
       // 汎用札も杖の中で順番に解決する。以前は玉が落ちた瞬間に効いていて、
       // 「並べた順が呪文になる」という土台から一枚だけ外れていた。
@@ -1095,7 +1062,7 @@ function preview(){
   const st = {foes:S.foes.map(f=>Object.assign({}, f)),
               block:S.block, might:S.might||0};
   const log = [];
-  runCast(st, S.wand, S.target, log);
+  runCast(st, S.wand, log);
   const total = S.foes.reduce((a,f,i)=>a + Math.max(0, f.hp - st.foes[i].hp), 0);
   // 発射体より後ろに置かれて撃たれなかった修飾
   const dud = [];
@@ -1218,7 +1185,7 @@ function enterRoom(rm){
     return render();
   }
   S.foes = makeFoes(rm.t, S.floor);
-  S.target = 0; S.block = 0; S.might = 0; S.round = 1;
+  S.block = 0; S.might = 0; S.round = 1;
   S.boss = rm.t === "boss";
   newRound();
   // まず戦闘画面。誰と戦うのか、相手が何をしてくるのかを見てから盤へ向かう。
@@ -1293,7 +1260,8 @@ function nextFloor(){
 /* ═══════ 戦闘の進行 ═══════ */
 
 
-function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); } }
+/** 列の先頭（生きている敵のうち一番前）。攻撃はここに当たる */
+function frontFoe(st){ const a = alive(st || S); return a.length ? a[0] : -1; }
 const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, deb:260, psn:340, util:280, done:240};
 
 function cast(){
@@ -1305,7 +1273,7 @@ function cast(){
   REC = [];
   if (!S.wand.length){ clone.block += 6; S.log = [{k:"mod", t:"構えた（防御 +6）"}];
     REC.push({k:"util", name:"構え", block:6}); }
-  if (S.wand.length) runCast(clone, S.wand, S.target, log);
+  if (S.wand.length) runCast(clone, S.wand, log);
   const evs = REC; REC = null;
   // 2) 継続ダメージは敵の番の直前に入る。
   //    毒は「毒の数だけ入って、毒が 1 減る」。溜めるほど総量が伸びる（4 なら 4+3+2+1）。
@@ -1426,9 +1394,6 @@ function popFloat(i, text, cls){
 function finishCast(){
   if (!S.foes.some(f=>f.hp>0)) return winBattle();
   if (S.hp <= 0) return lose();
-  if (!S.foes[S.target] || S.foes[S.target].hp<=0){
-    const n = nextAlive(S,-1); if (n>=0) S.target = n;
-  }
   S.round++; S.block = 0;
   const keep = S.log.slice();
   newRound();
@@ -1740,7 +1705,7 @@ function startRoulette(){
 function spinBalls(){
   if (SPINNING || !S.roul || S.roul.left <= 0) return;
   const R = S.roul, n = R.secs.length;
-  if (!n) return;
+  if (!n){ S.log.push({k:"foe", t:"盤に区画が無い"}); renderRoul(); return; }
   R.wa = rnd(TAU);                             // 盤の向きも毎回変える
   R.wv = 1.05 + rnd(0.35);                     // 盤を回し直す
   R.balls = [];
@@ -1964,6 +1929,7 @@ function drawWheel(){
     if (r > WTRK)      col = C2;                       // 外の縁
     else if (r > WROT) col = C1;                       // トラック（玉が走る溝）
     else if (r > WIN){
+      if (!R.secs.length){ col = C1; put(i, col); continue; }   // 区画ゼロ
       const k = Math.floor(norm(G_A[i] - R.wa) / sw) % n;
       // 同じ札は同じ色。札の種類で濃淡を決めるので、
       // 隣り合う同じ札は仕切り線だけで分かれる
@@ -2046,7 +2012,7 @@ function renderRoul(){
     `<span style="color:var(--c4);margin-left:calc(var(--px)*2)">${D("玉 "+R.left)}</span>`;
   const sp = $("btn-spin");
   sp.innerHTML = D("投げる","m") + `<small>${D("space")}</small>`;
-  sp.disabled = SPINNING || R.left <= 0;
+  sp.disabled = SPINNING || R.left <= 0 || !R.secs.length;
   sp.onclick = spinBalls;
   const tb = $("btn-toarr");
   tb.innerHTML = D("杖を組む","m") + `<small>${D("enter")}</small>`;
@@ -2060,7 +2026,8 @@ function renderRoul(){
                : `<span class="rlw empty"></span>`;
     }).join("");
   $("rl-tip").innerHTML = D(
-    SPINNING ? "…"
+    !R.secs.length ? "盤に区画が無い。札を 1 枚でも持てば区画になる"
+    : SPINNING ? "…"
     : R.left > 0 ? "玉を投げる。止まった区画の札が、止まった順に杖へ積まれる"
                  : "玉を投げ終えた。杖を組む へ");
   drawWheel();
@@ -2248,12 +2215,13 @@ function render(){
 
   const pv = preview();
 
-  // 敵
+  // 敵。1 列に並んでいて、攻撃は必ず先頭に当たる
+  const front = frontFoe(S);
   const foes = $("foes"); foes.innerHTML = "";
   S.foes.forEach((f,i)=>{
     const b = document.createElement("button");
     b.className = "foe" + (f.hp<=0?" dead":"") + (S.flash.includes(i)?" hurt":"");
-    b.setAttribute("aria-pressed", String(S.target===i));
+    b.setAttribute("aria-pressed", String(front===i));   // 先頭が狙い
     b.disabled = f.hp<=0;
     const after = pv.hp[i], delta = f.hp - after;
     const wNow = Math.max(0,f.hp/f.maxHp*100), wAfter = Math.max(0,after/f.maxHp*100);
@@ -2263,6 +2231,7 @@ function render(){
     if (f.psn)  st.push(`毒${f.psn}`);
     if (f.brn)  st.push(`火傷${f.brn}`);
     b.innerHTML =
+      `<span class="lead">${D(`${i+1}番目`)}</span>`+
       `<span class="tgt"></span>`+
       (f.hp>0?`<span class="intent">${spriteSVG(UI.atk,"uic")}${D(String(f.atk))}</span>`
              :`<span class="intent" style="visibility:hidden">—</span>`)+
@@ -2274,7 +2243,7 @@ function render(){
       spriteAnim(SPRITES[f.spr], "glyph",
         f.hp<=0 ? DEADPAL : S.flash.includes(i) ? HITPAL : null)+
       (delta>0?`<span class="fdelta">${D("−"+delta,"m")}</span>`:``);
-    b.onclick = ()=>selectTarget(i);
+    b.disabled = true;                 // 狙いは選べない。前から当たる
     foes.appendChild(b);
   });
   S.flash = [];

@@ -69,7 +69,8 @@ header .spacer{flex:1 1 auto}
   background:radial-gradient(closest-side, rgba(6,10,8,.94), rgba(6,10,8,.72) 70%, rgba(6,10,8,0));
   }
 .callout.on{opacity:1}
-.callout .n{font-family:var(--serif);font-size:60px;line-height:1;color:var(--ivory);
+.callout .n{font-family:var(--serif);font-size:60px;line-height:1.05;color:var(--ivory);
+  display:flex;flex-wrap:wrap;justify-content:center;gap:0 .06em;max-width:min(78vw,420px);
   text-shadow:0 3px 18px rgba(0,0,0,.9),0 0 40px rgba(0,0,0,.8)}
 .callout .t{font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-top:6px;
   color:var(--brass)}
@@ -158,6 +159,17 @@ button.btn.go{background:linear-gradient(160deg,var(--brass),var(--brass-lo));
   color:#231a02;border-color:var(--brass-hi);font-weight:700}
 button.btn.go:hover:not(:disabled){background:linear-gradient(160deg,var(--brass-hi),var(--brass))}
 .controls .spacer{flex:1 1 auto}
+.ballpick{display:flex;gap:3px;align-items:center}
+.ballpick button{width:30px;height:30px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--edge);background:var(--panel-hi);color:var(--ui-dim);
+  font-family:var(--mono);font-size:12px;transition:.1s}
+.ballpick button:hover{border-color:var(--brass-lo);color:var(--ui)}
+.ballpick button.on{background:var(--ivory);color:#12100c;border-color:var(--brass);
+  font-weight:700}
+.ballpick .lab{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ui-dim);margin-right:4px}
+.stake{font-family:var(--mono);font-size:11.5px;color:var(--ui-dim)}
+.stake b{color:var(--ivory);font-weight:600}
 .toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ui-dim);
   cursor:pointer;user-select:none}
 .toggle input{accent-color:var(--brass)}
@@ -235,11 +247,13 @@ details.stats>summary{cursor:pointer;padding:10px 12px;font-size:11px;letter-spa
 
     <div class="controls">
       <div class="chiprack" id="chiprack"></div>
+      <div class="ballpick" id="ballpick"></div>
       <button class="btn go" id="spin">Spin</button>
       <button class="btn" id="undo">Undo</button>
       <button class="btn" id="clear">Clear</button>
       <button class="btn" id="rebet">Rebet</button>
       <div class="spacer"></div>
+      <span class="stake" id="stake"></span>
       <label class="toggle"><input type="checkbox" id="partage"> La&nbsp;Partage</label>
       <label class="toggle"><input type="checkbox" id="fast"> Fast</label>
     </div>
@@ -332,17 +346,23 @@ const Z_SLOPE = (W.rTrack - W.rRotor) * TAN_S;      // すり鉢の上端の高�
 const Z_TRACK = Z_SLOPE + (W.rRim - W.rTrack) * TAN_T;
 const Z_CONE  = W.rPocketIn * TAN_C;                 // 円錐の頂点の高さ
 
-/** ポケットの床を z=0 とした、半径 r における面の高さ */
+/** ポケット帯の外の縁を z=0 とした、半径 r における面の高さ。
+    帯はわずかに外下がり（3 mm）にしてある。実物のポケットも底が外へ傾いていて、
+    玉は外側の壁に寄りかかって止まる。ここを真っ平らにすると、玉が帯の内の縁に
+    たまり、後から降りてきた玉が円錐の上で行き場を失って収まらなくなる。 */
+const POCKET_DROP = 0.003;
+const BAND_W = W.rRotor - W.rPocketIn;
+const TAN_B = POCKET_DROP / BAND_W;            // 帯の傾き（約 3.2°）
 function surfZ(r){
-  if (r <= W.rPocketIn) return (W.rPocketIn - r) * TAN_C;
-  if (r <= W.rRotor)    return 0;
+  if (r <= W.rPocketIn) return POCKET_DROP + (W.rPocketIn - r) * TAN_C;
+  if (r <= W.rRotor)    return POCKET_DROP * (W.rRotor - r) / BAND_W;
   if (r <= W.rTrack)    return (r - W.rRotor) * TAN_S;
   return Z_SLOPE + (r - W.rTrack) * TAN_T;
 }
 /** dz/dr */
 function surfSlope(r){
   if (r <= W.rPocketIn) return -TAN_C;
-  if (r <= W.rRotor)    return 0;
+  if (r <= W.rRotor)    return -TAN_B;
   if (r <= W.rTrack)    return TAN_S;
   return TAN_T;
 }
@@ -364,14 +384,23 @@ const band = (a,b,k) => { const m=(a+b)/2, h=(b-a)/2*k; return rr(m-h, m+h); };
 /* ═══════════════════════════════════════════════════════════════════
    3. 投げ方。ここだけが乱数で、以降は接触と重力が決める
    ═══════════════════════════════════════════════════════════════════ */
-function launch(tight){
+function launch(tight, nBalls){
   const k = tight ? 0.02 : 1;
+  const n = Math.max(1, nBalls || 1);
+  // 玉ごとの初速と投げ始めの角度。まとめて投げるので、
+  // 同じ場所に重ねないよう円周に散らして、速さも少しずつ変える。
+  const each = [];
+  for (let i=0;i<n;i++){
+    each.push({
+      w0:  band(18, 26, k) * (1 + (i - (n-1)/2) * 0.035),
+      ph0: (tight ? 0 : rnd()*TAU) + i * TAU / n,
+    });
+  }
   return {
-    w0:  band(18, 26, k),        // 玉の角速度 rad/s
+    each,
     ab:  band(1.05, 1.40, k),    // トラック上の角減速（転がり摩擦）
     wr0: band(1.15, 2.35, k),    // ロータ
     ar:  band(0.010, 0.018, k),
-    ph0: tight ? 0 : rnd()*TAU,
     tr0: tight ? 0 : rnd()*TAU,
   };
 }
@@ -381,26 +410,48 @@ function newSpin(ic, tr){
   const z = surfZ(r) + W.ball / Math.cos(Math.atan(surfSlope(r)));
   return {
     ic, phase:"track", t:0,
-    p:[Math.cos(ic.ph0)*r, Math.sin(ic.ph0)*r, z],
-    v:[-Math.sin(ic.ph0)*ic.w0*r, Math.cos(ic.ph0)*ic.w0*r, 0],
-    spin:[0,0,0],                            // 玉自身の回転（見せるためだけ）
     tr: tr === undefined ? ic.tr0 : tr, wr: ic.wr0, ar: ic.ar, ab: ic.ab,
-    defHits:0, fretHits:0, air:0, rev:0, settleT:0, deflCool:0,
-    pocket:-1, number:-1, hold:undefined,
+    balls: ic.each.map(e => ({
+      p:[Math.cos(e.ph0)*r, Math.sin(e.ph0)*r, z],
+      v:[-Math.sin(e.ph0)*e.w0*r, Math.cos(e.ph0)*e.w0*r, 0],
+      phase:"track", done:false,
+      defHits:0, fretHits:0, air:0, rev:0, settleT:0, deflCool:0, inRotor:0,
+      pocket:-1, number:-1,
+    })),
+    hold:undefined,
   };
 }
 
 const DT = 1/1500;                             // 衝突を取りこぼさない刻み
 const len3 = v => Math.hypot(v[0],v[1],v[2]);
 
-/** 1 ステップ。画面にも統計にも同じものを使う。 */
-function step(s){
-  if (s.phase === "done") return;
-  s.t += DT;
-  s.wr = Math.max(0.18, s.wr - s.ar*DT);
-  s.tr = norm(s.tr + s.wr*DT);
+/** 収まった玉を、その瞬間の位置のままロータに固定する。
+    ロータと一緒に回る座標（角度差・半径・高さ）だけを覚えておき、
+    以降はそれを回して描く。ポケットの中心へ寄せ直さない。
+    寄せると、決まった瞬間に玉が数センチ跳ぶ。ここを覚えておく角度は
+    区画を決めたときと同じ `ph - tr` なので、描く場所は必ず発表と同じ区画に入る。 */
+function fixRest(s, b){
+  b.restA = norm(Math.atan2(b.p[1], b.p[0]) - s.tr);
+  b.restR = Math.hypot(b.p[0], b.p[1]);
+  b.restZ = b.p[2];
+  b.v = [0,0,0];
+}
 
-  const p = s.p, v = s.v;
+/** 収まった玉の置き場所。ロータの向き tr を与えると、玉ごとの座標を返す。
+    描画も物理もここだけを通す。ここを 2 か所に書くと、必ずどちらかがずれる。 */
+function restPositions(rest, tr){
+  return rest.map(x => {
+    const a = norm(tr + x.a);
+    return [Math.cos(a)*x.r, Math.sin(a)*x.r, x.z];
+  });
+}
+
+/** 玉が休む場所の記録（ロータに固定した座標）。玉ごとに 1 つ。 */
+const restOf = b => ({a:b.restA, r:b.restR, z:b.restZ, pocket:b.pocket});
+
+/** 1 玉ぶんを 1 ステップ進める */
+function stepBall(s, b){
+  const p = b.p, v = b.v;
   v[2] -= G*DT;                                // 重力
   p[0] += v[0]*DT; p[1] += v[1]*DT; p[2] += v[2]*DT;
 
@@ -408,7 +459,7 @@ function step(s){
   const ph = Math.atan2(p[1], p[0]);
   const er = [Math.cos(ph), Math.sin(ph), 0];
   const et = [-Math.sin(ph), Math.cos(ph), 0];
-  if (r > W.rTrack) s.rev += Math.abs(v[0]*et[0]+v[1]*et[1]) * DT / (TAU*r);
+  if (r > W.rTrack) b.rev += Math.abs(v[0]*et[0]+v[1]*et[1]) * DT / (TAU*r);
   let touched = false;
 
   /* ① 垂直の壁。速い玉はここに押しつけられて走る */
@@ -452,11 +503,11 @@ function step(s){
       v[0] += et[0]*(nv - vtan); v[1] += et[1]*(nv - vtan);
     }
   }
-  if (!touched) s.air += DT;
+  if (!touched) b.air += DT;
 
   /* ③ ディフレクタ。盤に固定された 8 個の突起。散らばりの主因 */
-  if (s.deflCool > 0) s.deflCool -= DT;
-  if (r > W.rRotor && r < W.rTrack + 0.02 && s.deflCool <= 0){
+  if (b.deflCool > 0) b.deflCool -= DT;
+  if (r > W.rRotor && r < W.rTrack + 0.02 && b.deflCool <= 0){
     for (let k=0;k<W.nDefl;k++){
       const a = k*TAU/W.nDefl, dz = surfZ(W.rDefl) + W.hDefl;
       const dx = p[0]-Math.cos(a)*W.rDefl, dy = p[1]-Math.sin(a)*W.rDefl, dzz = p[2]-dz;
@@ -469,7 +520,7 @@ function step(s){
           const dvn = -(1+0.45)*vn;
           v[0] += nn[0]*dvn; v[1] += nn[1]*dvn; v[2] += nn[2]*dvn;
           v[0] *= 0.72; v[1] *= 0.72;
-          s.defHits++; s.deflCool = 0.06;
+          b.defHits++; b.deflCool = 0.06;
         }
         break;
       }
@@ -490,7 +541,7 @@ function step(s){
       if (relT*sgn < 0){
         const dv = -(1+0.32)*relT;
         v[0] += et[0]*dv; v[1] += et[1]*dv;
-        s.fretHits++;
+        b.fretHits++;
       }
     }
   }
@@ -499,21 +550,105 @@ function step(s){
   if (r > W.rPocketIn - 0.005 && r < W.rRotor + 0.005 && p[2] < W.ball*1.6){
     const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
     if (Math.hypot(v[0]-vw[0], v[1]-vw[1], v[2]) < 0.22){
-      s.settleT += DT;
-      if (s.settleT > 0.12){
-        s.phase = "done";
-        s.pocket = pocketAt(ph, s.tr);
-        s.number = SEQ[s.pocket];
+      b.settleT += DT;
+      if (b.settleT > 0.12){
+        b.phase = "done"; b.done = true;
+        b.pocket = pocketAt(ph, s.tr);
+        b.number = SEQ[b.pocket];
+        fixRest(s, b);
       }
-    } else s.settleT = 0;
-  } else s.settleT = 0;
+    } else b.settleT = 0;
+  } else b.settleT = 0;
 
-  // 玉自身の回転（転がりから出す。見せるためだけ）
-  const sp = Math.hypot(v[0],v[1]) / W.ball;
-  s.spin[2] = norm(s.spin[2] + sp*DT*0.35);
+  if (!b.done)
+    b.phase = r > W.rTrack ? "track" : (r > W.rRotor ? "fall" : "scatter");
 
-  if (s.phase !== "done")
-    s.phase = r > W.rTrack ? "track" : (r > W.rRotor ? "fall" : "scatter");
+  // トラックを降りてから長く収まらない玉は、少しずつ勢いを抜く。
+  // 玉が複数あると互いに突き合って永久に収まらないことがあるため。
+  // 押し戻されて段階が fall に戻ることがあるので、この時計は巻き戻さない
+  //（巻き戻すと 6 玉で 600 回に 4 回、打ち切りに落ちた）。
+  if (r < W.rTrack){
+    b.inRotor += DT;
+    if (b.inRotor > 5){
+      const k = 1 - Math.min(0.9, (b.inRotor - 5) * 0.6) * DT * 6;
+      const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+      b.v[0] = vw[0] + (b.v[0]-vw[0])*k;
+      b.v[1] = vw[1] + (b.v[1]-vw[1])*k;
+      b.v[2] *= k;
+    }
+  }
+}
+
+/** 玉どうしの当たり。等質量の球なので、法線方向の速度を反発係数で入れ替える */
+function ballCollide(s){
+  const B = s.balls, D = W.ball*2;
+  for (let i=0;i<B.length;i++) for (let j=i+1;j<B.length;j++){
+    const a = B[i], c = B[j];
+    if (a.done && c.done) continue;
+    const dx = c.p[0]-a.p[0], dy = c.p[1]-a.p[1], dz = c.p[2]-a.p[2];
+    const d = Math.hypot(dx,dy,dz);
+    if (d >= D || d < 1e-9) continue;
+    const n = [dx/d, dy/d, dz/d];
+    // めり込みを半分ずつ押し戻す（止まっている玉は動かさない）
+    const push = D - d;
+    if (a.done)      { c.p[0]+=n[0]*push; c.p[1]+=n[1]*push; c.p[2]+=n[2]*push; }
+    else if (c.done) { a.p[0]-=n[0]*push; a.p[1]-=n[1]*push; a.p[2]-=n[2]*push; }
+    else {
+      a.p[0]-=n[0]*push/2; a.p[1]-=n[1]*push/2; a.p[2]-=n[2]*push/2;
+      c.p[0]+=n[0]*push/2; c.p[1]+=n[1]*push/2; c.p[2]+=n[2]*push/2;
+    }
+    const va = a.v[0]*n[0]+a.v[1]*n[1]+a.v[2]*n[2];
+    const vc = c.v[0]*n[0]+c.v[1]*n[1]+c.v[2]*n[2];
+    const rel = vc - va;
+    // 近づいていない（触れているだけの）ペアは弾かない。押し合ったまま
+    // 微振動する 2 玉が永久に収まらなくなる（6 玉で 600 回に 3 回、打ち切りに落ちていた）。
+    if (rel > -0.02) continue;
+    const e = 0.55;
+    // 止まっている玉は動かない壁として扱う（無限質量）
+    const ja = c.done ? -(1+e)*rel : -(1+e)*rel/2;
+    const jc = a.done ?  (1+e)*rel :  (1+e)*rel/2;
+    // settleT はここでは触らない。収まり判定が「ロータに対する速さ」を見ていて、
+    // 本当に弾かれれば判定側が自分で 0 に戻す。
+    if (!a.done){ a.v[0]-=n[0]*ja; a.v[1]-=n[1]*ja; a.v[2]-=n[2]*ja; }
+    if (!c.done){ c.v[0]-=n[0]*jc; c.v[1]-=n[1]*jc; c.v[2]-=n[2]*jc; }
+  }
+}
+
+/** 1 ステップ。画面にも統計にも同じものを使う。 */
+function step(s){
+  if (s.phase === "done") return;
+  s.t += DT;
+  s.wr = Math.max(0.18, s.wr - s.ar*DT);
+  s.tr = norm(s.tr + s.wr*DT);
+  for (const b of s.balls) if (!b.done) stepBall(s, b);
+  // 収まった玉はロータに乗って一緒に回る。置き去りにすると、盤だけが下で回って
+  // 別の区画に乗っているように見え、最後の玉が決まった瞬間に追いつくため跳ぶ。
+  for (const b of s.balls) if (b.done) b.p = restPositions([restOf(b)], s.tr)[0];
+  if (s.balls.length > 1) ballCollide(s);
+
+  // 打ち切り。玉が多いと稀に押し合って何十秒も収まらないので、
+  // 18 秒で残りをその場の区画に落とす。実測では 6 玉で 1000 回に数回。
+  if (s.t > 18){
+    for (const b of s.balls) if (!b.done){
+      const r = Math.min(W.rRotor - 0.002,
+                Math.max(W.rPocketIn + 0.002, Math.hypot(b.p[0], b.p[1])));
+      const ph = Math.atan2(b.p[1], b.p[0]);
+      b.p = [Math.cos(ph)*r, Math.sin(ph)*r, surfZ(r) + W.ball];
+      b.v = [0,0,0];
+      b.pocket = pocketAt(ph, s.tr); b.number = SEQ[b.pocket];
+      b.done = true; b.phase = "done"; s.forced = (s.forced||0) + 1;
+      fixRest(s, b);
+    }
+  }
+
+  if (s.balls.every(b => b.done)) s.phase = "done";
+  else {
+    // 表示用に、いちばん外にいる玉の段階を代表にする
+    const order = {track:3, fall:2, scatter:1, done:0};
+    let best = "scatter";
+    for (const b of s.balls) if (!b.done && order[b.phase] > order[best]) best = b.phase;
+    s.phase = best;
+  }
 }
 
 /* ── 区画の位置は、ここだけで決める ──
@@ -525,13 +660,17 @@ const pocketAt     = (a, tr) => ((Math.floor(norm(a - tr - ROTOR_PHASE)/SLOT) % 
 const pocketCentre = (i, tr) => norm(tr + ROTOR_PHASE + (i + 0.5)*SLOT);
 
 /** 画面を使わずに 1 回転を最後まで解く。統計用。 */
-function runSpin(tight){
-  const s = newSpin(launch(tight));
+function runSpin(tight, nBalls){
+  const s = newSpin(launch(tight, nBalls));
   let g = 0;
-  while (s.phase !== "done" && g++ < 1500*45) step(s);
-  if (s.phase !== "done"){
-    s.pocket = pocketAt(Math.atan2(s.p[1], s.p[0]), s.tr);
-    s.number = SEQ[s.pocket]; s.phase = "done";
+  while (s.phase !== "done" && g++ < 1500*60) step(s);
+  if (s.phase !== "done"){                    // 保険（実測では発生しない）
+    for (const b of s.balls) if (!b.done){
+      b.pocket = pocketAt(Math.atan2(b.p[1], b.p[0]), s.tr);
+      b.number = SEQ[b.pocket]; b.done = true; b.phase = "done";
+      fixRest(s, b);
+    }
+    s.phase = "done"; s.stuck = true;
   }
   return s;
 }
@@ -849,7 +988,7 @@ const BOWL_RINGS = [
   [W.rRotor,      0,             "#171310"],
 ];
 
-function drawWheel(tr, ball, showBall){
+function drawWheel(tr, balls, showBall){
   const g = bufCx;
   g.clearRect(0,0,BW,BH);
   g.fillStyle = "#0f1512"; g.fillRect(0,0,BW,BH);
@@ -903,23 +1042,30 @@ function drawWheel(tr, ball, showBall){
     dot(0.34, -trx*0.16, -try_*0.22, "#e6c757");
   }
 
-  // 玉と影
-  if (showBall && ball){
-    const r = Math.hypot(ball[0], ball[1]);
-    const zs = surfZ(Math.min(r, W.rWall));
-    const [sx, sy] = px(ball[0], ball[1], zs + 0.0005);
-    const hgt = Math.max(0, ball[2] - zs - W.ball);
-    const soft = 1 + hgt*14;
-    g.fillStyle = "#080c0a";
-    g.beginPath();
-    g.ellipse(sx, sy, W.ball*S*soft, Math.max(0.6, W.ball*S*SIN_E*soft), 0, 0, TAU);
-    g.fill();
-    const [bx, by] = px(ball[0], ball[1], ball[2]);
-    const R = Math.max(1.6, W.ball*S);
-    g.fillStyle = "#c3baa2";
-    g.beginPath(); g.arc(bx,by,R,0,TAU); g.fill();
-    g.fillStyle = "#f2ece0";
-    g.beginPath(); g.arc(bx - R*0.25, by - R*0.25, R*0.62, 0, TAU); g.fill();
+  // 玉と影。影を全部先に敷いてから玉を置く（玉が影に隠れないように）
+  if (showBall && balls && balls.length){
+    for (const ball of balls){
+      const r = Math.hypot(ball[0], ball[1]);
+      const zs = surfZ(Math.min(r, W.rWall));
+      const [sx, sy] = px(ball[0], ball[1], zs + 0.0005);
+      const hgt = Math.max(0, ball[2] - zs - W.ball);
+      const soft = 1 + hgt*14;
+      g.fillStyle = "#080c0a";
+      g.beginPath();
+      g.ellipse(sx, sy, W.ball*S*soft, Math.max(0.6, W.ball*S*SIN_E*soft), 0, 0, TAU);
+      g.fill();
+    }
+    // 画面の上（＝奥）にある玉から順に置くと、手前の玉が上に重なる
+    const order = balls.map((b,i)=>[i, px(b[0],b[1],b[2])[1]]).sort((a,c)=>a[1]-c[1]);
+    for (const [i] of order){
+      const ball = balls[i];
+      const [bx, by] = px(ball[0], ball[1], ball[2]);
+      const R = Math.max(1.6, W.ball*S);
+      g.fillStyle = "#c3baa2";
+      g.beginPath(); g.arc(bx,by,R,0,TAU); g.fill();
+      g.fillStyle = "#f2ece0";
+      g.beginPath(); g.arc(bx - R*0.25, by - R*0.25, R*0.62, 0, TAU); g.fill();
+    }
   }
 
   // ── 色を丸めてから、補間なしで引き伸ばす ──
@@ -955,10 +1101,11 @@ function drawNumbers(tr){
    10. 進行
    ═══════════════════════════════════════════════════════════════════ */
 let spin = null;            // 進行中の spin 状態
+let nBalls = 1;             // 一度に投げる玉の数
 /* ロータは席を立つまで回り続ける。収まった玉はポケットに乗ったまま一緒に回る。
    決着のたびにロータの向きを捨てて回し直すと、玉が消えて盤が飛ぶ。 */
 const rotor = {t: 0, w: 0.55};
-let resting = null;         // 収まっている区画（無ければ null）
+let resting = null;         // 収まった玉の置き場所（ロータ固定座標）の配列。無ければ null
 let locked = false;         // 「もう賭けられません」
 let raf = 0;
 
@@ -971,9 +1118,14 @@ function say(text){
 function startSpin(){
   if (spin) return;
   if (!bets.length){ flash($("spin")); return; }
+  // 玉 1 個 = 1 回ぶんの勝負。卓の駒は「玉 1 個あたりの賭け金」なので、
+  // 玉が n 個なら賭け金も n 倍かかる。足りなければ投げない。
+  const stake = betTotal(), extra = stake * (nBalls - 1);
+  if (bank < extra){ flash($("bank")); return; }
+  bank -= extra;
   lastBets = bets.map(b => ({node:b.node, amount:b.amount}));
-  wagered += betTotal();
-  spin = newSpin(launch($("tight").checked), rotor.t);   // いまの向きから続ける
+  wagered += stake * nBalls;
+  spin = newSpin(launch($("tight").checked, nBalls), rotor.t);   // いまの向きから続ける
   spin.wr = Math.max(spin.wr, rotor.w);
   resting = null;
   locked = false;
@@ -984,28 +1136,51 @@ function startSpin(){
 }
 
 function finishSpin(){
-  const n = spin.number;
   const partage = $("partage").checked;
-  const {ret, won} = settle(n, partage);
+  const nums = spin.balls.map(b => b.number);
+  const stake = lastBets.reduce((a,b)=>a+b.amount,0);
+
+  // 玉ごとに独立に清算する。玉が n 個なら、同じ賭けで n 回勝負したのと同じ。
+  let ret = 0; const wonNodes = new Set();
+  for (const n of nums){
+    const r = settle(n, partage);
+    ret += r.ret;
+    for (const b of r.won) wonNodes.add(b.node);
+  }
   bank += ret;
   spinCount++;
-  history.unshift(n); if (history.length > 40) history.pop();
-  tally[spin.pocket]++; timeSum += spin.t; timeN++;
+  for (const n of nums){ history.unshift(n); }
+  while (history.length > 40) history.pop();
+  for (const b of spin.balls) tally[b.pocket]++;
+  timeSum += spin.t; timeN++;
 
-  calloutEl.querySelector(".n").textContent = n;
-  calloutEl.querySelector(".n").style.color =
-    n === 0 ? "#5fd08a" : (REDS.has(n) ? "#ef6a6f" : "#e8e4d6");
-  const net = ret - lastBets.reduce((a,b)=>a+b.amount,0);
+  const one = nums.length === 1;
+  const col = n => n === 0 ? "#5fd08a" : (REDS.has(n) ? "#ef6a6f" : "#e8e4d6");
+  const el = calloutEl.querySelector(".n");
+  if (one){ el.textContent = nums[0]; el.style.color = col(nums[0]); }
+  else {
+    el.textContent = "";
+    el.style.color = "";
+    // 玉が増えるほど字を小さく。6 個並べても盤を覆いきらない大きさに
+    el.style.fontSize = Math.round(60 / Math.sqrt(nums.length)) + "px";
+    for (const n of nums){
+      const sp2 = document.createElement("span");
+      sp2.textContent = n; sp2.style.color = col(n);
+      el.appendChild(sp2);
+    }
+  }
+  if (one) el.style.fontSize = "";
+  const net = ret - stake * nums.length;
   calloutEl.querySelector(".t").textContent =
-    (n === 0 ? "zéro" : (REDS.has(n) ? "rouge" : "noir")) +
+    (one ? (nums[0] === 0 ? "zéro" : (REDS.has(nums[0]) ? "rouge" : "noir"))
+         : `${nums.length} 玉`) +
     " · " + (net >= 0 ? "+" : "−") + Math.abs(net).toLocaleString("en-US");
   calloutEl.classList.add("on");
   say("");
 
   // 当たった駒に印を付けて少し見せてから、卓を掃く。
   // 先に bets を空にして描き直すと、どれが当たったのか分からないまま消える。
-  markWinning(n);
-  const wonNodes = new Set(won.map(b => b.node));
+  markWinning(nums);
   for (const [nd, el] of chipEl){
     if (wonNodes.has(nd)) el.classList.add("won");
     else el.style.opacity = ".35";
@@ -1015,7 +1190,7 @@ function finishSpin(){
   renderHeader();          // 残高と収支は待たせない
   renderMarquee();         // 出目も同時に出す
   renderStats();
-  setTimeout(() => { $("spin").disabled = false; render(); }, won.length ? 1500 : 900);
+  setTimeout(() => { $("spin").disabled = false; render(); }, wonNodes.size ? 1500 : 900);
 }
 
 function loop(){
@@ -1027,45 +1202,46 @@ function loop(){
     if (!locked && spin.t > 2.2){ locked = true; render(); }
     if (spin.phase === "done"){
       // 収まってから少し見せる。玉はポケットに乗ってロータと一緒に回る
-      if (spin.hold === undefined){ spin.hold = 0; say(""); resting = spin.pocket; }
+      if (spin.hold === undefined){
+        spin.hold = 0; say("");
+        resting = spin.balls.map(restOf);
+      }
       spin.hold += 1/60;
       spin.tr = norm(spin.tr + spin.wr * (1/60));
-      const a = pocketCentre(spin.pocket, spin.tr), rr2 = REST_R;
-      spin.p = [Math.cos(a)*rr2, Math.sin(a)*rr2, W.ball];
+      // 収まった玉はロータと一緒に回る（止まった場所のまま。中心へ寄せ直さない）
+      const ps = restPositions(resting, spin.tr);
+      spin.balls.forEach((b, i) => { b.p = ps[i]; });
     }
     rotor.t = spin.tr; rotor.w = spin.wr;
-    drawWheel(spin.tr, spin.p, true);
+    drawWheel(spin.tr, spin.balls.map(b=>b.p), true);
     renderPhys(spin);
     if (spin.phase === "done" && spin.hold > 0.9) finishSpin();
   } else {
     rotor.t = norm(rotor.t + rotor.w / 60);
     rotor.w = Math.max(0.35, rotor.w - 0.006 / 60);
-    let bp = null;
-    if (resting !== null){
-      const a = pocketCentre(resting, rotor.t);
-      bp = [Math.cos(a)*REST_R, Math.sin(a)*REST_R, W.ball];
-    }
+    const bp = (resting !== null && resting.length)
+      ? restPositions(resting, rotor.t) : null;
     drawWheel(rotor.t, bp, bp !== null);
   }
 }
-/** 玉が休む半径。ポケット帯のまんなか。 */
-const REST_R = (W.rPocketIn + W.rRotor)/2;
-
+/** 物理の読み取り。玉が複数のときは、まだ転がっている先頭の玉を代表に出す */
 function renderPhys(s){
   if (!s){ for (const k of ["p-wb","p-r","p-z","p-v","p-wr","p-rev","p-def","p-fret","p-air","p-t"])
     $(k).textContent = "—"; $("p-phase").textContent = "idle"; return; }
-  const r = Math.hypot(s.p[0], s.p[1]);
-  const vt = Math.hypot(s.v[0], s.v[1]);
-  $("p-phase").textContent = s.phase;
+  const b = s.balls.find(x => !x.done) || s.balls[0];
+  const r = Math.hypot(b.p[0], b.p[1]);
+  const vt = Math.hypot(b.v[0], b.v[1]);
+  const left = s.balls.filter(x => !x.done).length;
+  $("p-phase").textContent = s.phase + (s.balls.length > 1 ? `（残 ${left}/${s.balls.length}）` : "");
   $("p-wb").textContent = (vt/Math.max(r,1e-6)).toFixed(2) + " rad/s";
   $("p-r").textContent  = (r*1000).toFixed(0) + " mm";
-  $("p-z").textContent  = ((s.p[2]-surfZ(r))*1000).toFixed(1) + " mm";
-  $("p-v").textContent  = len3(s.v).toFixed(2) + " m/s";
+  $("p-z").textContent  = ((b.p[2]-surfZ(r))*1000).toFixed(1) + " mm";
+  $("p-v").textContent  = len3(b.v).toFixed(2) + " m/s";
   $("p-wr").textContent = s.wr.toFixed(2) + " rad/s";
-  $("p-rev").textContent = s.rev.toFixed(1);
-  $("p-def").textContent = s.defHits;
-  $("p-fret").textContent = s.fretHits;
-  $("p-air").textContent = (s.air*1000).toFixed(0) + " ms";
+  $("p-rev").textContent = b.rev.toFixed(1);
+  $("p-def").textContent = s.balls.reduce((a,x)=>a+x.defHits,0);
+  $("p-fret").textContent = s.balls.reduce((a,x)=>a+x.fretHits,0);
+  $("p-air").textContent = (b.air*1000).toFixed(0) + " ms";
   $("p-t").textContent = s.t.toFixed(2) + " s";
 }
 
@@ -1078,8 +1254,10 @@ const chipEl = new Map();
 function renderHeader(){
   $("bank").textContent = money(bank);
   $("wager").textContent = money(wagered);
-  // 卓に出ている賭け金はまだ自分のもの。決着後は bets が空なので自然に外れる
-  const net = bank + betTotal() - startBank;
+  // 卓に出ている賭け金はまだ自分のもの。決着後は bets が空なので自然に外れる。
+  // 玉が n 個なら n 回ぶん出ているので、n 倍を戻して数える（投げる前は nBalls）
+  const atStake = betTotal() * (spin ? spin.balls.length : nBalls);
+  const net = bank + atStake - startBank;
   const nb = $("net");
   nb.textContent = (net >= 0 ? "+" : "−") + Math.abs(net).toLocaleString("en-US");
   nb.className = net > 0 ? "up" : net < 0 ? "down" : "";
@@ -1089,6 +1267,12 @@ function renderHeader(){
 function render(){
   renderHeader();
   $("spin").disabled = !!spin || !bets.length;
+  const stake = betTotal();
+  $("stake").innerHTML = stake
+    ? (nBalls > 1
+        ? `賭け <b>${stake.toLocaleString("en-US")}</b> × 玉 ${nBalls} = <b>${(stake*nBalls).toLocaleString("en-US")}</b>`
+        : `賭け <b>${stake.toLocaleString("en-US")}</b>`)
+    : "";
   $("undo").disabled = !!spin || !bets.length;
   $("clear").disabled = !!spin || !bets.length;
   $("rebet").disabled = !!spin || !lastBets.length;
@@ -1119,11 +1303,13 @@ function renderMarquee(){
   });
 }
 
-function markWinning(n){
+function markWinning(nums){
   for (const k in cellOf) cellOf[k].classList.remove("win","dim");
-  const w = cellOf["n"+n];
-  if (w) w.classList.add("win");
-  setTimeout(()=>{ if (!spin && cellOf["n"+n]) cellOf["n"+n].classList.remove("win"); }, 2600);
+  for (const n of nums){ const w = cellOf["n"+n]; if (w) w.classList.add("win"); }
+  setTimeout(()=>{
+    if (spin) return;
+    for (const n of nums){ const w = cellOf["n"+n]; if (w) w.classList.remove("win"); }
+  }, 2600);
 }
 
 function flash(el){
@@ -1171,6 +1357,26 @@ CHIPS.forEach((c, i) => {
     [...rack.children].forEach(x => x.classList.toggle("on", +x.dataset.v === c)); };
   rack.appendChild(b);
 });
+
+/* 玉の数。1 個 = 1 回ぶんの勝負なので、賭け金も玉の数だけかかる */
+const MAX_BALLS = 6;
+(function(){
+  const rack2 = $("ballpick");
+  const lab = document.createElement("span");
+  lab.className = "lab"; lab.textContent = "玉"; rack2.appendChild(lab);
+  for (let i=1;i<=MAX_BALLS;i++){
+    const b = document.createElement("button");
+    b.textContent = i; b.dataset.n = i;
+    b.className = i === nBalls ? "on" : "";
+    b.onclick = () => {
+      if (spin) return;
+      nBalls = i;
+      [...rack2.querySelectorAll("button")].forEach(x=>x.classList.toggle("on", +x.dataset.n === i));
+      render();
+    };
+    rack2.appendChild(b);
+  }
+})();
 
 $("spin").onclick = startSpin;
 $("undo").onclick = () => { const b = bets.pop(); if (b) bank += b.amount; render(); };
@@ -1297,8 +1503,9 @@ function simulate(times){
       renderStats(); return; }
     const slice = Math.min(40, times - job.done);   // 3D は 1 回 ≒5ms。刻まないと画面が止まる
     for (let i = 0; i < slice; i++){
-      const s = runSpin(tight);
-      tally[s.pocket]++; timeSum += s.t; timeN++;
+      const s = runSpin(tight, nBalls);
+      for (const b of s.balls) tally[b.pocket]++;
+      timeSum += s.t; timeN++;
     }
     job.done += slice;
     renderStats();
@@ -1358,12 +1565,38 @@ ${DOTS_W} ドットの幅だと 1 区画は 20 ドットほどしかなく、
 下回っていれば<b>載っているだけ</b>（反発 0.05・μ=0.010）。
 転がっている玉に滑り摩擦を毎ステップかけると、玉は 3 秒で止まる。実物は 10 秒以上走る。
 
-<h4>6. 区画の位置</h4>
+<h4>6. 玉を複数投げる</h4>
+玉は 1〜6 個まで同時に投げられる。<b>玉 1 個が 1 回ぶんの勝負</b>で、
+賭け金も玉の数だけかかる（賭け 100 × 玉 3 なら 300 出て、3 つの出目それぞれで清算される）。
+控除率は玉を増やしても変わらない。増えるのは 1 回あたりの分散だけ。
+<table>
+<tr><td>投げ方</td><td>初速を <code>±3.5%/玉</code> ずらし、投入位置を円周に等間隔で配る。
+同時に同じ点から投げると、ずっと団子のまま走ってしまう</td></tr>
+<tr><td>玉どうしの衝突</td><td>玉の中心間距離が直径を切ったら、法線方向の相対速度だけを
+反発係数 0.55 で交換する。<b>近づいていない（相対速度 &gt; −0.02 m/s）ペアは弾かない</b>。
+触れているだけの玉を毎フレーム弾くと、押し合ったまま永久に止まらない</td></tr>
+<tr><td>収まったあと</td><td>玉は<b>止まったその場所のまま</b>ロータに固定して、一緒に回るだけ。
+ポケットの中心へ寄せ直さない（寄せると決まった瞬間に数センチ跳ぶ）。
+覚えるのはロータに対する角度差・半径・高さの 3 つで、
+区画を決めたときと同じ角度差なので、描く場所は必ず発表と同じ区画に入る。
+同じ区画に 2 個入っても、玉どうしの当たりが既に離してくれているので並べ直す必要がない</td></tr>
+<tr><td>落ち着かせ方</td><td>ポケット帯の底を外へ <code>${(POCKET_DROP*1000).toFixed(1)} mm</code> 落としてある。
+平らだと玉が帯の内側の角に集まり、後から来た玉が円錐の上で詰む。
+さらにポケットに入った玉は速度をゆっくり抜き、<b>18 秒</b>を超えたらその場の区画に落とす</td></tr>
+</table>
+1000 回ずつ試した結果、玉 1・3・6 個のいずれでも<b>詰まりは 0</b>、
+中央値 10.4〜11.4 秒、打ち切りは 1000 回あたり 0〜1 回。
+同じ区画に 2 個以上入る割合は、玉 3 個で <code>8.1%</code>（無関係なら 8.0%）。
+玉 6 個は 6000 回まで伸ばして <code>32.4%</code>（同 34.8%、標準誤差 0.6 ポイント）で、
+不足は 3.9σ。<b>玉はわずかに互いを避けている</b>。衝突を入れている以上そうなる。
+1000 回では標準誤差 1.5 ポイントに埋もれて何も言えなかった。
+
+<h4>7. 区画の位置</h4>
 <code>pocketStart / pocketAt / pocketCentre</code> の 3 つだけが区画の位置を決める。
 描画も物理も必ずここを通す。最初の 2D 版でこれを分けていたせいで、
 玉が乗っている区画と発表される数字が 9 区画ずれていた。
 
-<h4>7. 控除率</h4>
+<h4>8. 控除率</h4>
 単一ゼロ盤なので、どの賭けも <code>1/37 = 2.70%</code>。
 ラ・パルタージュ有効時は偶数賭けのみ <code>1.35%</code>。
 `;
@@ -1381,7 +1614,4 @@ function boot(){
 addEventListener("resize", () => { sizeWheel(); buildNodes(); render(); });
 boot();
 loop();
-</script>
-</script>
-</script>
 </script>

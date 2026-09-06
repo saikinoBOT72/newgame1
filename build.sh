@@ -11,3 +11,11 @@ cd "$(dirname "$0")"
   printf '\n</body>\n</html>\n'
 } > index.html
 echo "index.html を生成しました"
+
+# ルーレット（単体・ローグライクとは無関係）も同じやり方で包む
+{
+  cat roulette/head.html
+  cat roulette/app.html
+  printf '\n</body>\n</html>\n'
+} > roulette/index.html
+echo "roulette/index.html を生成しました"

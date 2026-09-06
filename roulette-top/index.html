@@ -487,9 +487,14 @@ function step(s){
     }
   }
 
-  /* ④ フレット。ロータと一緒に回る仕切り壁 */
+  /* ④ フレット。ロータと一緒に回る仕切り壁。
+     仕切りの位置は pocketStart と同じ位相（ROTOR_PHASE 込み）で取る。
+     ここを norm(ph - s.tr) だけで取ると、玉がぶつかる壁と、絵に描いてある
+     仕切りが SLOT の端数ぶんずれる。37 区画では 1/4 区画ぶん離れた
+     見えない壁に玉が寄りかかって止まっていた（出目は判定が一貫していたので
+     合っていたが、絵として嘘）。 */
   if (r > W.rPocketIn - 0.01 && r < W.rRotor + 0.01 && p[2] < W.hFret + W.ball){
-    const rel = norm(ph - s.tr);
+    const rel = norm(ph - s.tr - ROTOR_PHASE);
     const k = Math.round(rel/SLOT);
     const dist = (rel - k*SLOT) * r;
     if (Math.abs(dist) < W.ball){

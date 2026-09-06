@@ -36,6 +36,14 @@ echo "roulette3d/index.html を生成しました"
 } > roulette-top/index.html
 echo "roulette-top/index.html を生成しました"
 
+# 差し替え版（区画の数・中身・色を変えられる。賭けなし）
+{
+  cat wheel/head.html
+  cat wheel/app.html
+  printf '\n</body>\n</html>\n'
+} > wheel/index.html
+echo "wheel/index.html を生成しました"
+
 # ドット版（物理は 3D、絵は低解像度＋色数を絞る）
 {
   cat roulette-dot/head.html

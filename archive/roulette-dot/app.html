@@ -1,0 +1,1648 @@
+<title>Roulette — ドット</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   本物のカジノルーレット — 単体・自己完結
+   ローグライク側とは一切共有しない。寸法・配列・物理・配当は実物準拠。
+   配色はカジノの実物（緑のフェルト、マホガニー、真鍮）に寄せた一択。
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --felt:      #0d5132;   --felt-lo:  #093a24;   --felt-hi: #12653f;
+  --wood:      #4a2a18;   --wood-hi:  #6d3f24;   --wood-lo: #2c180d;
+  --brass:     #c9a227;   --brass-hi: #f0d878;   --brass-lo:#8a6d15;
+  --red:       #c1272d;   --red-lo:   #8c1a1f;
+  --black:     #1a1a1c;   --black-hi: #2e2e33;
+  --green:     #1e7d4f;
+  --ivory:     #f4f1e8;   --ink:      #0b0f0d;
+  --line:      #e8e4d6;
+  --chip-a:#e8e4d6; --chip-b:#c1272d; --chip-c:#1f6fb2; --chip-d:#2e2e33; --chip-e:#7a3ea8;
+  --ui:        #cfd6d1;   --ui-dim:   #8a958e;
+  --panel:     #101613;   --panel-hi: #182019;   --edge: #2a3a31;
+  --win:       #f0d878;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  --serif: "Hoefler Text", "Times New Roman", Georgia, serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:
+   radial-gradient(120% 90% at 50% 0%, #14312a 0%, #0a1712 55%, #060d0a 100%);
+  color:var(--ui);font-family:var(--sans);min-height:100vh;
+  -webkit-font-smoothing:antialiased}
+
+/* ── 版面 ── */
+.wrap{max-width:1600px;margin:0 auto;padding:16px 16px 40px;
+  display:grid;grid-template-columns:minmax(360px,560px) minmax(0,1fr);
+  gap:18px;align-items:start}
+@media (max-width:1060px){
+  /* 縦積みのときは「盤 → 出目 → 卓 → 操作」の順にする。
+     物理の読み取りは参考なので最後へ回す。 */
+  .wrap{grid-template-columns:1fr}
+  .left,.right{display:contents}
+  .wheelbox{order:1} .marquee{order:2} .tablewrap{order:3}
+  .controls{order:4} .hint{order:5} .phys{order:6} details.stats{order:7}
+}
+
+header{grid-column:1/-1;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  border-bottom:1px solid var(--edge);padding-bottom:10px;margin-bottom:2px}
+header h1{margin:0;font-family:var(--serif);font-size:24px;letter-spacing:.5px;
+  color:var(--ivory);font-weight:400}
+header h1 em{font-style:normal;color:var(--brass)}
+header .sub{color:var(--ui-dim);font-size:12.5px;letter-spacing:.3px}
+header .spacer{flex:1 1 auto}
+
+.bank{display:flex;gap:16px;align-items:baseline;font-family:var(--mono)}
+.bank div{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
+.bank span{font-size:10px;letter-spacing:1.2px;color:var(--ui-dim);text-transform:uppercase}
+.bank b{font-size:19px;font-weight:600;color:var(--ivory)}
+.bank b.up{color:#5fd08a} .bank b.down{color:#e2727a}
+
+/* ── 左：ホイール ── */
+.left{display:flex;flex-direction:column;gap:12px;position:sticky;top:16px}
+@media (max-width:1060px){ .left{position:static} }
+.wheelbox{position:relative;background:var(--panel);border:1px solid var(--edge);
+  border-radius:10px;padding:12px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+#wheel{display:block;width:100%;height:auto;border-radius:8px;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  background:#0a1310}
+.callout{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  pointer-events:none;text-align:center;opacity:0;transition:opacity .25s;
+  padding:14px 26px 12px;border-radius:10px;
+  background:radial-gradient(closest-side, rgba(6,10,8,.94), rgba(6,10,8,.72) 70%, rgba(6,10,8,0));
+  }
+.callout.on{opacity:1}
+.callout .n{font-family:var(--serif);font-size:60px;line-height:1.05;color:var(--ivory);
+  display:flex;flex-wrap:wrap;justify-content:center;gap:0 .06em;max-width:min(78vw,420px);
+  text-shadow:0 3px 18px rgba(0,0,0,.9),0 0 40px rgba(0,0,0,.8)}
+.callout .t{font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-top:6px;
+  color:var(--brass)}
+.status{position:absolute;left:0;right:0;top:14px;text-align:center;pointer-events:none;
+  font-size:11px;letter-spacing:2.6px;text-transform:uppercase;color:var(--brass);
+  text-shadow:0 2px 10px #000;opacity:0;transition:opacity .2s}
+.status.on{opacity:1}
+
+/* 物理の読み取り */
+.phys{background:var(--panel);border:1px solid var(--edge);border-radius:10px;
+  padding:10px 12px;font-family:var(--mono);font-size:11.5px}
+.phys h3{margin:0 0 8px;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--brass);font-weight:600;font-family:var(--sans)}
+.phys table{width:100%;border-collapse:collapse}
+.phys td{padding:2px 0;color:var(--ui-dim)}
+.phys td:last-child{text-align:right;color:var(--ivory);font-variant-numeric:tabular-nums}
+.phys .ph{color:var(--brass)}
+
+/* ── 右 ── */
+.right{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* 出目の履歴 */
+.marquee{display:flex;gap:4px;align-items:center;overflow-x:auto;padding:8px 10px;
+  background:var(--panel);border:1px solid var(--edge);border-radius:10px;min-height:44px;
+  scrollbar-width:thin}
+.marquee .lab{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--ui-dim);flex:0 0 auto;margin-right:6px}
+.mk{flex:0 0 auto;width:26px;height:26px;border-radius:3px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:var(--ivory)}
+.mk.r{background:var(--red)} .mk.b{background:var(--black)} .mk.g{background:var(--green)}
+.mk.last{outline:2px solid var(--brass);outline-offset:1px}
+
+/* 卓 */
+.tablewrap{background:var(--felt-lo);border:1px solid var(--edge);border-radius:10px;
+  padding:10px;overflow-x:auto;box-shadow:inset 0 0 60px rgba(0,0,0,.45)}
+.table{position:relative;display:grid;gap:2px;min-width:620px;
+  grid-template-columns:44px repeat(12,1fr) 52px;
+  grid-template-rows:repeat(3,42px) 30px 30px;
+  background:var(--felt);padding:3px;border-radius:6px;
+  background-image:radial-gradient(120% 140% at 50% -20%, var(--felt-hi), var(--felt) 45%, var(--felt-lo))}
+.cell{position:relative;display:grid;place-items:center;cursor:pointer;
+  border:1px solid rgba(232,228,214,.45);border-radius:2px;
+  font-family:var(--serif);font-size:16px;color:var(--ivory);user-select:none;
+  transition:filter .1s, box-shadow .1s}
+.cell:hover{filter:brightness(1.35)}
+.cell.num.r{background:linear-gradient(160deg,var(--red),var(--red-lo))}
+.cell.num.b{background:linear-gradient(160deg,var(--black-hi),var(--black))}
+.cell.zero{background:linear-gradient(160deg,#28905c,#155f3a);grid-row:1/4;
+  writing-mode:vertical-rl;transform:rotate(180deg);font-size:19px}
+.cell.out{background:transparent;font-family:var(--sans);font-size:11.5px;
+  letter-spacing:1.1px;text-transform:uppercase}
+.cell.out.red{background:linear-gradient(160deg,var(--red),var(--red-lo))}
+.cell.out.black{background:linear-gradient(160deg,var(--black-hi),var(--black))}
+.cell.col{font-family:var(--sans);font-size:12px;letter-spacing:.6px}
+.cell.win{box-shadow:0 0 0 3px var(--win), 0 0 22px rgba(240,216,120,.55);z-index:3}
+.cell.dim{opacity:.32}
+
+/* 賭け金の駒 */
+#chips{position:absolute;inset:0;pointer-events:none;z-index:5}
+.chip{position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;
+  border-radius:50%;display:grid;place-items:center;font-family:var(--mono);
+  font-size:9.5px;font-weight:700;color:#12100c;
+  box-shadow:0 2px 5px rgba(0,0,0,.6), inset 0 0 0 3px rgba(255,255,255,.25),
+             inset 0 0 0 4px rgba(0,0,0,.18);
+  border:2px dashed rgba(255,255,255,.75)}
+.chip.won{animation:pulse .6s ease-out 3}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(240,216,120,.9)}
+  100%{box-shadow:0 0 0 14px rgba(240,216,120,0)}}
+
+/* 操作 */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:10px}
+.chiprack{display:flex;gap:6px}
+.chipbtn{width:42px;height:42px;border-radius:50%;border:2px dashed rgba(255,255,255,.7);
+  cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:700;color:#12100c;
+  box-shadow:0 2px 6px rgba(0,0,0,.5), inset 0 0 0 4px rgba(255,255,255,.22);
+  transition:transform .1s}
+.chipbtn:hover{transform:translateY(-3px)}
+.chipbtn.on{transform:translateY(-5px);outline:2px solid var(--brass);outline-offset:2px}
+button.btn{font:inherit;font-size:12.5px;letter-spacing:1.2px;text-transform:uppercase;
+  padding:10px 16px;border-radius:6px;border:1px solid var(--edge);
+  background:var(--panel-hi);color:var(--ui);cursor:pointer;transition:.12s}
+button.btn:hover:not(:disabled){background:#233029;color:var(--ivory);border-color:var(--brass-lo)}
+button.btn:disabled{opacity:.38;cursor:default}
+button.btn.go{background:linear-gradient(160deg,var(--brass),var(--brass-lo));
+  color:#231a02;border-color:var(--brass-hi);font-weight:700}
+button.btn.go:hover:not(:disabled){background:linear-gradient(160deg,var(--brass-hi),var(--brass))}
+.controls .spacer{flex:1 1 auto}
+.ballpick{display:flex;gap:3px;align-items:center}
+.ballpick button{width:30px;height:30px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--edge);background:var(--panel-hi);color:var(--ui-dim);
+  font-family:var(--mono);font-size:12px;transition:.1s}
+.ballpick button:hover{border-color:var(--brass-lo);color:var(--ui)}
+.ballpick button.on{background:var(--ivory);color:#12100c;border-color:var(--brass);
+  font-weight:700}
+.ballpick .lab{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ui-dim);margin-right:4px}
+.stake{font-family:var(--mono);font-size:11.5px;color:var(--ui-dim)}
+.stake b{color:var(--ivory);font-weight:600}
+.toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ui-dim);
+  cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--brass)}
+.hint{font-size:11.5px;color:var(--ui-dim);line-height:1.5}
+.hint b{color:var(--ui);font-weight:600}
+.hint kbd{font-family:var(--mono);font-size:10.5px;background:var(--panel-hi);
+  border:1px solid var(--edge);border-radius:3px;padding:1px 5px}
+
+/* 統計 */
+details.stats{background:var(--panel);border:1px solid var(--edge);border-radius:10px}
+details.stats>summary{cursor:pointer;padding:10px 12px;font-size:11px;letter-spacing:1.6px;
+  text-transform:uppercase;color:var(--brass);user-select:none}
+.statbody{padding:0 12px 12px;display:grid;gap:14px}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--panel-hi);border:1px solid var(--edge);border-radius:6px;padding:8px 10px}
+.stat span{display:block;font-size:9.5px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ui-dim)}
+.stat b{font-family:var(--mono);font-size:16px;color:var(--ivory);font-weight:600}
+.stat small{display:block;font-size:10.5px;color:var(--ui-dim);margin-top:2px}
+#dist{width:100%;height:120px;display:block;background:var(--panel-hi);
+  border:1px solid var(--edge);border-radius:6px}
+.note{font-size:11.5px;color:var(--ui-dim);line-height:1.6}
+.note code{font-family:var(--mono);color:var(--brass);font-size:11px}
+.note h4{margin:10px 0 4px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--ui);font-weight:600}
+.note table{border-collapse:collapse;font-size:11.5px;margin-top:4px}
+.note td,.note th{padding:2px 12px 2px 0;text-align:left;color:var(--ui-dim);font-weight:400}
+.note th{color:var(--ui)}
+.note td:first-child{color:var(--ui)}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Roulette <em>ドット</em></h1>
+    <div class="sub">単一ゼロ・37 区画 &nbsp;/&nbsp; 物理は 3 次元、絵は低解像度に落として色を絞ったドット</div>
+    <div class="spacer"></div>
+    <div class="bank">
+      <div><span>Bankroll</span><b id="bank">—</b></div>
+      <div><span>Wagered</span><b id="wager">—</b></div>
+      <div><span>Net</span><b id="net">—</b></div>
+      <div><span>Spins</span><b id="spins">0</b></div>
+    </div>
+  </header>
+
+  <div class="left">
+    <div class="wheelbox">
+      <canvas id="wheel" width="1000" height="940"></canvas>
+      <div class="status" id="status"></div>
+      <div class="callout" id="callout"><div class="n"></div><div class="t"></div></div>
+    </div>
+    <div class="phys">
+      <h3>Physics — live state</h3>
+      <table>
+        <tr><td>phase</td><td class="ph" id="p-phase">idle</td></tr>
+        <tr><td>ball ω</td><td id="p-wb">—</td></tr>
+        <tr><td>ball radius</td><td id="p-r">—</td></tr>
+        <tr><td>ball height</td><td id="p-z">—</td></tr>
+        <tr><td>speed</td><td id="p-v">—</td></tr>
+        <tr><td>rotor ω</td><td id="p-wr">—</td></tr>
+                <tr><td>rim revs</td><td id="p-rev">—</td></tr>
+        <tr><td>deflector hits</td><td id="p-def">—</td></tr>
+        <tr><td>fret hits</td><td id="p-fret">—</td></tr>
+        <tr><td>airborne</td><td id="p-air">—</td></tr>
+        <tr><td>elapsed</td><td id="p-t">—</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="marquee" id="marquee"><span class="lab">Last</span></div>
+
+    <div class="tablewrap">
+      <div class="table" id="table"><div id="chips"></div></div>
+    </div>
+
+    <div class="controls">
+      <div class="chiprack" id="chiprack"></div>
+      <div class="ballpick" id="ballpick"></div>
+      <button class="btn go" id="spin">Spin</button>
+      <button class="btn" id="undo">Undo</button>
+      <button class="btn" id="clear">Clear</button>
+      <button class="btn" id="rebet">Rebet</button>
+      <div class="spacer"></div>
+      <span class="stake" id="stake"></span>
+      <label class="toggle"><input type="checkbox" id="partage"> La&nbsp;Partage</label>
+      <label class="toggle"><input type="checkbox" id="fast"> Fast</label>
+    </div>
+
+    <div class="hint">
+      <b>置き方</b> — 数字の中央＝ストレート、2 つの境目＝スプリット、4 つの角＝コーナー、
+      列の下端＝ストリート、2 列の境の下端＝シックスライン、ゼロとの角＝トリオ。
+      いちばん近い賭け位置に吸い付く。<b>右クリック</b>で 1 枚戻す。<br>
+      <kbd>Space</kbd> 回す &nbsp; <kbd>Z</kbd> 取り消し &nbsp; <kbd>C</kbd> 全消し &nbsp;
+      <kbd>R</kbd> 同じ賭け &nbsp; <kbd>1</kbd>–<kbd>5</kbd> チップ
+    </div>
+
+    <details class="stats" id="statsbox">
+      <summary>Statistics &amp; verification</summary>
+      <div class="statbody">
+        <div class="statgrid">
+          <div class="stat"><span>Outcomes sampled</span><b id="s-n">0</b><small>回した分＋まとめて解いた分</small></div>
+          <div class="stat"><span>House edge (actual)</span><b id="s-edge">—</b>
+            <small>theoretical −2.70%</small></div>
+          <div class="stat"><span>χ² uniformity</span><b id="s-chi">—</b>
+            <small id="s-chinote">36 d.o.f., 95% ≤ 50.998</small></div>
+          <div class="stat"><span>Mean spin time</span><b id="s-time">—</b>
+            <small>実機は 9〜14 秒</small></div>
+        </div>
+        <canvas id="dist" width="1200" height="240"></canvas>
+        <div class="controls" style="padding:0;border:0;background:none">
+          <button class="btn" id="sim1k">Simulate 500</button>
+          <button class="btn" id="sim100k">Simulate 20 000</button>
+          <button class="btn" id="simreset">Reset stats</button>
+          <div class="spacer"></div>
+          <label class="toggle"><input type="checkbox" id="tight">
+            Tight launch (Small&nbsp;&amp;&nbsp;Tse)</label>
+        </div>
+        <div class="note" id="simnote"></div>
+      </div>
+    </details>
+
+    <details class="stats">
+      <summary>How this is modelled</summary>
+      <div class="statbody">
+        <div class="note" id="modelnote"></div>
+      </div>
+    </details>
+  </div>
+</div>
+
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════
+   1. 盤の事実（2D 版と同じ。実物のヨーロピアン盤）
+   ═══════════════════════════════════════════════════════════════════ */
+const SEQ = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,
+             10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+const N = SEQ.length;
+const REDS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const colourOf = n => n === 0 ? "g" : (REDS.has(n) ? "r" : "b");
+
+const TAU = Math.PI * 2, G = 9.81;
+const SLOT = TAU / N;
+const norm = a => ((a % TAU) + TAU) % TAU;
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. 盤の断面（SI・メートル）
+   2D 版は (角度, 半径) しか持たず、離脱条件を式で書いていた。
+   こちらは玉を 3 次元の質点として扱い、面との接触だけを解く。
+   「いつトラックを離れるか」は条件文ではなく、接触が切れた結果として出る。
+   ═══════════════════════════════════════════════════════════════════ */
+const W = {
+  rTurret:  0.038,   // 中央の真鍮ハンドル
+  rCone:    0.098,   // 円錐の外縁
+  rPocketIn:0.196,   // ポケット帯の内側
+  rRotor:   0.250,   // ロータ外縁
+  rTrack:   0.300,   // すり鉢とトラックの境
+  rRim:     0.330,   // トラックの上端
+  rWall:    0.340,   // 垂直の壁。速い玉はここに押しつけられて走る
+  rBowl:    0.4065,  // 32 インチ盤の外周
+  rDefl:    0.290,   // ディフレクタの輪
+  nDefl:    8,
+  aCone:    18*Math.PI/180,
+  aSlope:   19*Math.PI/180,
+  aTrack:   32*Math.PI/180,
+  ball:     0.0105,  // 玉の半径（直径 21mm）
+  hFret:    0.008,   // フレット（仕切り）の高さ
+  rDeflR:   0.014,   // ディフレクタを球で近似した半径
+  hDefl:    0.009,   // 面からの出っぱり
+};
+const TAN_C = Math.tan(W.aCone), TAN_S = Math.tan(W.aSlope), TAN_T = Math.tan(W.aTrack);
+const Z_SLOPE = (W.rTrack - W.rRotor) * TAN_S;      // すり鉢の上端の高さ
+const Z_TRACK = Z_SLOPE + (W.rRim - W.rTrack) * TAN_T;
+const Z_CONE  = W.rPocketIn * TAN_C;                 // 円錐の頂点の高さ
+
+/** ポケット帯の外の縁を z=0 とした、半径 r における面の高さ。
+    帯はわずかに外下がり（3 mm）にしてある。実物のポケットも底が外へ傾いていて、
+    玉は外側の壁に寄りかかって止まる。ここを真っ平らにすると、玉が帯の内の縁に
+    たまり、後から降りてきた玉が円錐の上で行き場を失って収まらなくなる。 */
+const POCKET_DROP = 0.003;
+const BAND_W = W.rRotor - W.rPocketIn;
+const TAN_B = POCKET_DROP / BAND_W;            // 帯の傾き（約 3.2°）
+function surfZ(r){
+  if (r <= W.rPocketIn) return POCKET_DROP + (W.rPocketIn - r) * TAN_C;
+  if (r <= W.rRotor)    return POCKET_DROP * (W.rRotor - r) / BAND_W;
+  if (r <= W.rTrack)    return (r - W.rRotor) * TAN_S;
+  return Z_SLOPE + (r - W.rTrack) * TAN_T;
+}
+/** dz/dr */
+function surfSlope(r){
+  if (r <= W.rPocketIn) return -TAN_C;
+  if (r <= W.rRotor)    return -TAN_B;
+  if (r <= W.rTrack)    return TAN_S;
+  return TAN_T;
+}
+/** 参考値：点として滑る玉がトラックを離れる角速度（Small & Tse の式）。
+    この実装では条件として使っていない。接触が切れれば勝手に落ちる。 */
+const OMEGA_REF = Math.sqrt(G * TAN_T / W.rRim);
+
+/* 乱数 */
+let rngState = (Math.random()*4294967296)>>>0;
+function rnd(){
+  rngState |= 0; rngState = (rngState + 0x6D2B79F5) | 0;
+  let t = Math.imul(rngState ^ (rngState >>> 15), 1 | rngState);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const rr = (a,b) => a + rnd()*(b-a);
+const band = (a,b,k) => { const m=(a+b)/2, h=(b-a)/2*k; return rr(m-h, m+h); };
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. 投げ方。ここだけが乱数で、以降は接触と重力が決める
+   ═══════════════════════════════════════════════════════════════════ */
+function launch(tight, nBalls){
+  const k = tight ? 0.02 : 1;
+  const n = Math.max(1, nBalls || 1);
+  // 玉ごとの初速と投げ始めの角度。まとめて投げるので、
+  // 同じ場所に重ねないよう円周に散らして、速さも少しずつ変える。
+  const each = [];
+  for (let i=0;i<n;i++){
+    each.push({
+      w0:  band(18, 26, k) * (1 + (i - (n-1)/2) * 0.035),
+      ph0: (tight ? 0 : rnd()*TAU) + i * TAU / n,
+    });
+  }
+  return {
+    each,
+    ab:  band(1.05, 1.40, k),    // トラック上の角減速（転がり摩擦）
+    wr0: band(1.15, 2.35, k),    // ロータ
+    ar:  band(0.010, 0.018, k),
+    tr0: tight ? 0 : rnd()*TAU,
+  };
+}
+
+function newSpin(ic, tr){
+  const r = W.rWall - W.ball;
+  const z = surfZ(r) + W.ball / Math.cos(Math.atan(surfSlope(r)));
+  return {
+    ic, phase:"track", t:0,
+    tr: tr === undefined ? ic.tr0 : tr, wr: ic.wr0, ar: ic.ar, ab: ic.ab,
+    balls: ic.each.map(e => ({
+      p:[Math.cos(e.ph0)*r, Math.sin(e.ph0)*r, z],
+      v:[-Math.sin(e.ph0)*e.w0*r, Math.cos(e.ph0)*e.w0*r, 0],
+      phase:"track", done:false,
+      defHits:0, fretHits:0, air:0, rev:0, settleT:0, deflCool:0, inRotor:0,
+      pocket:-1, number:-1,
+    })),
+    hold:undefined,
+  };
+}
+
+const DT = 1/1500;                             // 衝突を取りこぼさない刻み
+const len3 = v => Math.hypot(v[0],v[1],v[2]);
+
+/** 収まった玉を、その瞬間の位置のままロータに固定する。
+    ロータと一緒に回る座標（角度差・半径・高さ）だけを覚えておき、
+    以降はそれを回して描く。ポケットの中心へ寄せ直さない。
+    寄せると、決まった瞬間に玉が数センチ跳ぶ。ここを覚えておく角度は
+    区画を決めたときと同じ `ph - tr` なので、描く場所は必ず発表と同じ区画に入る。 */
+function fixRest(s, b){
+  b.restA = norm(Math.atan2(b.p[1], b.p[0]) - s.tr);
+  b.restR = Math.hypot(b.p[0], b.p[1]);
+  b.restZ = b.p[2];
+  b.v = [0,0,0];
+}
+
+/** 収まった玉の置き場所。ロータの向き tr を与えると、玉ごとの座標を返す。
+    描画も物理もここだけを通す。ここを 2 か所に書くと、必ずどちらかがずれる。 */
+function restPositions(rest, tr){
+  return rest.map(x => {
+    const a = norm(tr + x.a);
+    return [Math.cos(a)*x.r, Math.sin(a)*x.r, x.z];
+  });
+}
+
+/** 玉が休む場所の記録（ロータに固定した座標）。玉ごとに 1 つ。 */
+const restOf = b => ({a:b.restA, r:b.restR, z:b.restZ, pocket:b.pocket});
+
+/** 1 玉ぶんを 1 ステップ進める */
+function stepBall(s, b){
+  const p = b.p, v = b.v;
+  v[2] -= G*DT;                                // 重力
+  p[0] += v[0]*DT; p[1] += v[1]*DT; p[2] += v[2]*DT;
+
+  let r = Math.hypot(p[0], p[1]);
+  const ph = Math.atan2(p[1], p[0]);
+  const er = [Math.cos(ph), Math.sin(ph), 0];
+  const et = [-Math.sin(ph), Math.cos(ph), 0];
+  if (r > W.rTrack) b.rev += Math.abs(v[0]*et[0]+v[1]*et[1]) * DT / (TAU*r);
+  let touched = false;
+
+  /* ① 垂直の壁。速い玉はここに押しつけられて走る */
+  const rMax = W.rWall - W.ball;
+  if (r > rMax){
+    const vr = v[0]*er[0] + v[1]*er[1];
+    p[0] = er[0]*rMax; p[1] = er[1]*rMax;
+    if (vr > 0){ v[0] -= er[0]*vr*1.35; v[1] -= er[1]*vr*1.35; }
+    r = rMax; touched = true;
+  }
+
+  /* ② 回転面（トラック・すり鉢・ポケットの床・円錐） */
+  const sl = surfSlope(r), inv = 1/Math.sqrt(1+sl*sl);
+  const n = [-sl*er[0]*inv, -sl*er[1]*inv, inv];
+  const gap = (p[2] - surfZ(r))*inv - W.ball;
+  if (gap < 0){
+    p[0] -= n[0]*gap; p[1] -= n[1]*gap; p[2] -= n[2]*gap;
+    const vn = v[0]*n[0] + v[1]*n[1] + v[2]*n[2];
+    const hard = Math.abs(vn) > 0.25;          // 叩きつけか、載っているだけか
+    if (vn < 0){
+      const e = hard ? 0.42 : 0.05;
+      const dvn = -(1+e)*vn;
+      v[0] += n[0]*dvn; v[1] += n[1]*dvn; v[2] += n[2]*dvn;
+      // 叩きつけ（滑る）はクーロン摩擦、載っているだけ（転がる）はほぼ効かない。
+      // 転がっている玉に滑り摩擦を毎ステップかけると 3 秒で止まる。実物は 10 秒以上走る。
+      const mu = hard ? 0.25 : 0.010;
+      const vd = v[0]*n[0]+v[1]*n[1]+v[2]*n[2];
+      const vt = [v[0]-n[0]*vd, v[1]-n[1]*vd, v[2]-n[2]*vd];
+      const vtl = len3(vt);
+      if (vtl > 1e-9){
+        const drop = Math.min(vtl, mu*dvn);
+        v[0] -= vt[0]/vtl*drop; v[1] -= vt[1]/vtl*drop; v[2] -= vt[2]/vtl*drop;
+      }
+    }
+    touched = true;
+    // 転がり抵抗。角減速が ab 一定になるよう接線方向に効かせる
+    if (r > 1e-6){
+      const vtan = v[0]*et[0] + v[1]*et[1];
+      const dec = (r > W.rTrack ? s.ab : 2.6) * r * DT;
+      const nv = Math.abs(vtan) <= dec ? 0 : vtan - Math.sign(vtan)*dec;
+      v[0] += et[0]*(nv - vtan); v[1] += et[1]*(nv - vtan);
+    }
+  }
+  if (!touched) b.air += DT;
+
+  /* ③ ディフレクタ。盤に固定された 8 個の突起。散らばりの主因 */
+  if (b.deflCool > 0) b.deflCool -= DT;
+  if (r > W.rRotor && r < W.rTrack + 0.02 && b.deflCool <= 0){
+    for (let k=0;k<W.nDefl;k++){
+      const a = k*TAU/W.nDefl, dz = surfZ(W.rDefl) + W.hDefl;
+      const dx = p[0]-Math.cos(a)*W.rDefl, dy = p[1]-Math.sin(a)*W.rDefl, dzz = p[2]-dz;
+      const d = Math.hypot(dx,dy,dzz), R = W.rDeflR + W.ball;
+      if (d < R && d > 1e-9){
+        const nn = [dx/d, dy/d, dzz/d], push = R - d;
+        p[0] += nn[0]*push; p[1] += nn[1]*push; p[2] += nn[2]*push;
+        const vn = v[0]*nn[0]+v[1]*nn[1]+v[2]*nn[2];
+        if (vn < 0){
+          const dvn = -(1+0.45)*vn;
+          v[0] += nn[0]*dvn; v[1] += nn[1]*dvn; v[2] += nn[2]*dvn;
+          v[0] *= 0.72; v[1] *= 0.72;
+          b.defHits++; b.deflCool = 0.06;
+        }
+        break;
+      }
+    }
+  }
+
+  /* ④ フレット。ロータと一緒に回る仕切り壁。
+     仕切りの位置は pocketStart と同じ位相（ROTOR_PHASE 込み）で取る。
+     ここを norm(ph - s.tr) だけで取ると、玉がぶつかる壁と、絵に描いてある
+     仕切りが SLOT の端数ぶんずれる。37 区画では 1/4 区画ぶん離れた
+     見えない壁に玉が寄りかかって止まっていた（出目は判定が一貫していたので
+     合っていたが、絵として嘘）。 */
+  if (r > W.rPocketIn - 0.01 && r < W.rRotor + 0.01 && p[2] < W.hFret + W.ball){
+    const rel = norm(ph - s.tr - ROTOR_PHASE);
+    const k = Math.round(rel/SLOT);
+    const dist = (rel - k*SLOT) * r;
+    if (Math.abs(dist) < W.ball){
+      const sgn = Math.sign(dist) || 1;
+      const push = (W.ball - Math.abs(dist)) * sgn;
+      p[0] += et[0]*push; p[1] += et[1]*push;
+      const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+      const relT = (v[0]-vw[0])*et[0] + (v[1]-vw[1])*et[1];
+      if (relT*sgn < 0){
+        const dv = -(1+0.32)*relT;
+        v[0] += et[0]*dv; v[1] += et[1]*dv;
+        b.fretHits++;
+      }
+    }
+  }
+
+  /* ⑤ 収まり判定。ロータに対して止まったら、その区画 */
+  if (r > W.rPocketIn - 0.005 && r < W.rRotor + 0.005 && p[2] < W.ball*1.6){
+    const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+    if (Math.hypot(v[0]-vw[0], v[1]-vw[1], v[2]) < 0.22){
+      b.settleT += DT;
+      if (b.settleT > 0.12){
+        b.phase = "done"; b.done = true;
+        b.pocket = pocketAt(ph, s.tr);
+        b.number = SEQ[b.pocket];
+        fixRest(s, b);
+      }
+    } else b.settleT = 0;
+  } else b.settleT = 0;
+
+  if (!b.done)
+    b.phase = r > W.rTrack ? "track" : (r > W.rRotor ? "fall" : "scatter");
+
+  // トラックを降りてから長く収まらない玉は、少しずつ勢いを抜く。
+  // 玉が複数あると互いに突き合って永久に収まらないことがあるため。
+  // 押し戻されて段階が fall に戻ることがあるので、この時計は巻き戻さない
+  //（巻き戻すと 6 玉で 600 回に 4 回、打ち切りに落ちた）。
+  if (r < W.rTrack){
+    b.inRotor += DT;
+    if (b.inRotor > 5){
+      const k = 1 - Math.min(0.9, (b.inRotor - 5) * 0.6) * DT * 6;
+      const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+      b.v[0] = vw[0] + (b.v[0]-vw[0])*k;
+      b.v[1] = vw[1] + (b.v[1]-vw[1])*k;
+      b.v[2] *= k;
+    }
+  }
+}
+
+/** 玉どうしの当たり。等質量の球なので、法線方向の速度を反発係数で入れ替える */
+function ballCollide(s){
+  const B = s.balls, D = W.ball*2;
+  for (let i=0;i<B.length;i++) for (let j=i+1;j<B.length;j++){
+    const a = B[i], c = B[j];
+    if (a.done && c.done) continue;
+    const dx = c.p[0]-a.p[0], dy = c.p[1]-a.p[1], dz = c.p[2]-a.p[2];
+    const d = Math.hypot(dx,dy,dz);
+    if (d >= D || d < 1e-9) continue;
+    // 収まった玉に転がっている玉が重なったら、収まったほうを起こす。
+    // 収まった玉を「動かない壁」のままにすると、そこへ押しつけられた玉が
+    // 円錐の上（帯のすぐ内側）で釣り合ってしまい、永久に収まらない。
+    // 実測：30 秒たっても決まらない回が 6 玉 400 回中 29 → 5 に減る。
+    // 同じ場所に 2 つは居られない、というだけのことなので物理としても素直。
+    if (a.done !== c.done){
+      const st = a.done ? a : c, rl = a.done ? c : a;
+      // 転がっているほうが円錐（帯より内側）へ押し込まれているときだけ起こす。
+      // 触れたら必ず起こすことにすると、区画が少なくて 1 区画に何個も入る盤で、
+      // 並んで止まっている玉を延々と起こし続けて決まらなくなる
+      //（6 玉・2 区画で 250 回中 111 回が 30 秒たっても未決）。
+      if (Math.hypot(rl.p[0], rl.p[1]) < W.rPocketIn){
+        st.done = false; st.phase = "fall"; st.settleT = 0;
+      }
+    }
+    const n = [dx/d, dy/d, dz/d];
+    // めり込みを半分ずつ押し戻す（止まっている玉は動かさない）
+    const push = D - d;
+    if (a.done)      { c.p[0]+=n[0]*push; c.p[1]+=n[1]*push; c.p[2]+=n[2]*push; }
+    else if (c.done) { a.p[0]-=n[0]*push; a.p[1]-=n[1]*push; a.p[2]-=n[2]*push; }
+    else {
+      a.p[0]-=n[0]*push/2; a.p[1]-=n[1]*push/2; a.p[2]-=n[2]*push/2;
+      c.p[0]+=n[0]*push/2; c.p[1]+=n[1]*push/2; c.p[2]+=n[2]*push/2;
+    }
+    const va = a.v[0]*n[0]+a.v[1]*n[1]+a.v[2]*n[2];
+    const vc = c.v[0]*n[0]+c.v[1]*n[1]+c.v[2]*n[2];
+    const rel = vc - va;
+    // 近づいていない（触れているだけの）ペアは弾かない。押し合ったまま
+    // 微振動する 2 玉が永久に収まらなくなる（6 玉で 600 回に 3 回、打ち切りに落ちていた）。
+    if (rel > -0.02) continue;
+    const e = 0.55;
+    // 止まっている玉は動かない壁として扱う（無限質量）
+    const ja = c.done ? -(1+e)*rel : -(1+e)*rel/2;
+    const jc = a.done ?  (1+e)*rel :  (1+e)*rel/2;
+    // settleT はここでは触らない。収まり判定が「ロータに対する速さ」を見ていて、
+    // 本当に弾かれれば判定側が自分で 0 に戻す。
+    if (!a.done){ a.v[0]-=n[0]*ja; a.v[1]-=n[1]*ja; a.v[2]-=n[2]*ja; }
+    if (!c.done){ c.v[0]-=n[0]*jc; c.v[1]-=n[1]*jc; c.v[2]-=n[2]*jc; }
+  }
+}
+
+/** 1 ステップ。画面にも統計にも同じものを使う。 */
+function step(s){
+  if (s.phase === "done") return;
+  s.t += DT;
+  s.wr = Math.max(0.18, s.wr - s.ar*DT);
+  s.tr = norm(s.tr + s.wr*DT);
+  for (const b of s.balls) if (!b.done) stepBall(s, b);
+  // 収まった玉はロータに乗って一緒に回る。置き去りにすると、盤だけが下で回って
+  // 別の区画に乗っているように見え、最後の玉が決まった瞬間に追いつくため跳ぶ。
+  // 速度もロータのぶんを持たせる。位置だけ動かして速度を 0 にしておくと、
+  // 玉どうしの当たりが「止まっている壁」として計算され、ロータと一緒に流れている
+  // だけの転がり玉にも毎回はじき返しが入る。6 玉の 8.5% が永久に収まらなかった。
+  for (const b of s.balls) if (b.done){
+    b.p = restPositions([restOf(b)], s.tr)[0];
+    const a = Math.atan2(b.p[1], b.p[0]);
+    b.v = [-Math.sin(a)*s.wr*b.restR, Math.cos(a)*s.wr*b.restR, 0];
+  }
+  if (s.balls.length > 1) ballCollide(s);
+
+  // 打ち切り。玉が多いと稀に押し合って何十秒も収まらないので、
+  // 18 秒で残りをその場の区画に落とす。実測では 6 玉で 1000 回に数回。
+  if (s.t > 18){
+    for (const b of s.balls) if (!b.done){
+      const r = Math.min(W.rRotor - 0.002,
+                Math.max(W.rPocketIn + 0.002, Math.hypot(b.p[0], b.p[1])));
+      const ph = Math.atan2(b.p[1], b.p[0]);
+      b.p = [Math.cos(ph)*r, Math.sin(ph)*r, surfZ(r) + W.ball];
+      b.v = [0,0,0];
+      b.pocket = pocketAt(ph, s.tr); b.number = SEQ[b.pocket];
+      b.done = true; b.phase = "done"; s.forced = (s.forced||0) + 1;
+      fixRest(s, b);
+    }
+  }
+
+  if (s.balls.every(b => b.done)) s.phase = "done";
+  else {
+    // 表示用に、いちばん外にいる玉の段階を代表にする
+    const order = {track:3, fall:2, scatter:1, done:0};
+    let best = "scatter";
+    for (const b of s.balls) if (!b.done && order[b.phase] > order[best]) best = b.phase;
+    s.phase = best;
+  }
+}
+
+/* ── 区画の位置は、ここだけで決める ──
+   描画と物理がそれぞれ計算すると必ず食い違う。2D 版で実際にそれをやって
+   9 区画ずれた。角度→区画 と 区画→角度 を 1 組にして両方から通す。 */
+const ROTOR_PHASE = -Math.PI/2;                 // 区画 0 を真上に置く
+const pocketStart  = i => i*SLOT + ROTOR_PHASE;
+const pocketAt     = (a, tr) => ((Math.floor(norm(a - tr - ROTOR_PHASE)/SLOT) % N) + N) % N;
+const pocketCentre = (i, tr) => norm(tr + ROTOR_PHASE + (i + 0.5)*SLOT);
+
+/** 画面を使わずに 1 回転を最後まで解く。統計用。 */
+function runSpin(tight, nBalls){
+  const s = newSpin(launch(tight, nBalls));
+  let g = 0;
+  while (s.phase !== "done" && g++ < 1500*60) step(s);
+  if (s.phase !== "done"){                    // 保険（実測では発生しない）
+    for (const b of s.balls) if (!b.done){
+      b.pocket = pocketAt(Math.atan2(b.p[1], b.p[0]), s.tr);
+      b.number = SEQ[b.pocket]; b.done = true; b.phase = "done";
+      fixRest(s, b);
+    }
+    s.phase = "done"; s.stuck = true;
+  }
+  return s;
+}
+/* ═══════════════════════════════════════════════════════════════════
+   5. 賭けと配当（ヨーロピアンの実物）
+   単一ゼロ盤では、どの賭けも控除率が等しく 1/37 = 2.70% になる。
+   例：ストレートは 35 倍  →  (1/37)(35) + (36/37)(−1) = −1/37
+   ═══════════════════════════════════════════════════════════════════ */
+const PAYOUT = { straight:35, split:17, street:11, trio:11, corner:8, six:5,
+                 column:2, dozen:2, even:1 };
+
+/** 卓の升目。0 と 1〜36。列は下から 1,2,3 / 4,5,6 …（実物と同じ並び） */
+const COLS = 12, ROWS = 3;
+const numAt = (col, row) => 3 * col + (3 - row);      // row 0=上(3,6..) 2=下(1,4..)
+
+/* ═══════════════════════════════════════════════════════════════════
+   6. 卓を組み立てる
+   ═══════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const tableEl = $("table"), chipsEl = $("chips");
+const cellOf = {};                       // key -> element
+
+function buildTable(){
+  const add = (cls, text, gc, gr, key) => {
+    const e = document.createElement("div");
+    e.className = "cell " + cls;
+    e.textContent = text;
+    e.style.gridColumn = gc; e.style.gridRow = gr;
+    if (key) cellOf[key] = e;
+    tableEl.appendChild(e);
+    return e;
+  };
+  add("zero", "0", "1", "1 / 4", "n0");
+  for (let c = 0; c < COLS; c++)
+    for (let r = 0; r < ROWS; r++){
+      const n = numAt(c, r);
+      add("num " + colourOf(n), String(n), String(c + 2), String(r + 1), "n" + n);
+    }
+  for (let r = 0; r < ROWS; r++)
+    add("col", "2 to 1", "14", String(r + 1), "col" + r);
+  ["1st 12", "2nd 12", "3rd 12"].forEach((t, i) =>
+    add("out", t, `${2 + i * 4} / span 4`, "4", "doz" + i));
+  const outs = [["1–18","low"],["Even","even"],["Red","red"],
+                ["Black","black"],["Odd","odd"],["19–36","high"]];
+  outs.forEach(([t, k], i) => add("out " + k, t, `${2 + i * 2} / span 2`, "5", k));
+  tableEl.appendChild(chipsEl);          // 駒は最前面
+}
+buildTable();
+
+/* ═══════════════════════════════════════════════════════════════════
+   7. 賭け位置
+   升目の実寸から「置ける点」を全部作る。中央＝ストレート、辺の中点＝
+   スプリット、頂点＝コーナー、といった実物の置き方をそのまま座標にする。
+   押した点にいちばん近い位置へ吸い付く。
+   ═══════════════════════════════════════════════════════════════════ */
+let NODES = [];
+
+function buildNodes(){
+  NODES = [];
+  const box = tableEl.getBoundingClientRect();
+  const R = k => { const r = cellOf[k].getBoundingClientRect();
+    return {l:r.left-box.left, t:r.top-box.top, r:r.right-box.left, b:r.bottom-box.top,
+            cx:(r.left+r.right)/2-box.left, cy:(r.top+r.bottom)/2-box.top}; };
+  const push = (x, y, type, nums, label) =>
+    NODES.push({x, y, type, nums, label, pay:PAYOUT[type]});
+
+  // ── ストレート（37 通り） ──
+  for (let n = 0; n <= 36; n++){ const q = R("n"+n); push(q.cx, q.cy, "straight", [n], String(n)); }
+
+  // ── 1〜36 のスプリットとコーナー ──
+  for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++){
+    const n = numAt(c, r), q = R("n"+n);
+    if (r < ROWS-1){                                   // 縦の隣（上下）
+      const m = numAt(c, r+1);
+      push(q.cx, q.b, "split", [n, m], `${Math.min(n,m)}/${Math.max(n,m)}`);
+    }
+    if (c < COLS-1){                                   // 横の隣（次の列）
+      const m = numAt(c+1, r);
+      push(q.r, q.cy, "split", [n, m], `${n}/${m}`);
+      if (r < ROWS-1){                                 // 4 つの角
+        const four = [n, m, numAt(c, r+1), numAt(c+1, r+1)].sort((a,b)=>a-b);
+        push(q.r, q.b, "corner", four, four.join("/"));
+      }
+    }
+  }
+  // ── ストリート（列の 3 つ）とシックスライン ──
+  for (let c = 0; c < COLS; c++){
+    const bottom = R("n"+numAt(c, ROWS-1));
+    const three = [numAt(c,0), numAt(c,1), numAt(c,2)].sort((a,b)=>a-b);
+    push(bottom.cx, bottom.b, "street", three, three.join("–"));
+    if (c < COLS-1){
+      const six = three.concat([numAt(c+1,0), numAt(c+1,1), numAt(c+1,2)]).sort((a,b)=>a-b);
+      push(bottom.r, bottom.b, "six", six, `${six[0]}–${six[5]}`);
+    }
+  }
+  // ── ゼロ絡み。実物と同じ位置に置く ──
+  const z = R("n0"), c1 = R("n1"), c2 = R("n2"), c3 = R("n3");
+  push(z.r, c3.cy, "split", [0,3], "0/3");
+  push(z.r, c2.cy, "split", [0,2], "0/2");
+  push(z.r, c1.cy, "split", [0,1], "0/1");
+  push(z.r, c3.b,  "trio",  [0,2,3], "0/2/3");
+  push(z.r, c2.b,  "trio",  [0,1,2], "0/1/2");
+  // ── 外側 ──
+  for (let r = 0; r < ROWS; r++){
+    const q = R("col"+r);
+    const nums = []; for (let c = 0; c < COLS; c++) nums.push(numAt(c, r));
+    push(q.cx, q.cy, "column", nums.sort((a,b)=>a-b), ["3rd","2nd","1st"][r]+" column");
+  }
+  for (let i = 0; i < 3; i++){
+    const q = R("doz"+i);
+    const nums = []; for (let n = i*12+1; n <= i*12+12; n++) nums.push(n);
+    push(q.cx, q.cy, "dozen", nums, ["1st","2nd","3rd"][i]+" 12");
+  }
+  const evens = {
+    low:   Array.from({length:18},(_,i)=>i+1),
+    high:  Array.from({length:18},(_,i)=>i+19),
+    even:  Array.from({length:18},(_,i)=>(i+1)*2),
+    odd:   Array.from({length:18},(_,i)=>i*2+1),
+    red:   [...REDS].sort((a,b)=>a-b),
+    black: Array.from({length:36},(_,i)=>i+1).filter(n=>!REDS.has(n)),
+  };
+  for (const k of ["low","even","red","black","odd","high"]){
+    const q = R(k);
+    push(q.cx, q.cy, "even", evens[k], cellOf[k].textContent);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   8. 財布と賭け金。すべて整数で持つ（小数だと誤差が積もる）
+   ═══════════════════════════════════════════════════════════════════ */
+const CHIPS = [1, 5, 25, 100, 500];
+const CHIPCOL = ["var(--chip-a)","var(--chip-b)","var(--chip-c)","var(--chip-d)","var(--chip-e)"];
+let chip = 5;
+let bank = 1000, wagered = 0, spinCount = 0, startBank = 1000;
+let bets = [];                    // {node, amount}
+let lastBets = [];
+let history = [];                 // 出目
+const tally = new Array(N).fill(0);
+let timeSum = 0, timeN = 0;
+
+const money = v => (v < 0 ? "−" : "") + Math.abs(v).toLocaleString("en-US");
+const betTotal = () => bets.reduce((a, b) => a + b.amount, 0);
+
+function placeBet(node, amount){
+  if (amount <= 0 || bank < amount) return false;
+  const hit = bets.find(b => b.node === node);
+  if (hit) hit.amount += amount; else bets.push({node, amount});
+  bank -= amount;
+  return true;
+}
+function removeBet(node){
+  const i = bets.findIndex(b => b.node === node);
+  if (i < 0) return;
+  const b = bets[i];
+  const back = Math.min(b.amount, chip);
+  b.amount -= back; bank += back;
+  if (b.amount <= 0) bets.splice(i, 1);
+}
+
+/** 出目に対する払い戻し。賭け金は既に引かれているので、
+    「戻ってくる総額」を返す（当たり＝賭け金＋配当、外れ＝0）。 */
+function settle(number, partage){
+  let ret = 0, won = [];
+  for (const b of bets){
+    if (b.node.nums.includes(number)){
+      ret += b.amount * (1 + b.node.pay);
+      won.push(b);
+    } else if (partage && number === 0 && b.node.type === "even"){
+      ret += Math.floor(b.amount / 2);          // ラ・パルタージュ：半分返る
+    }
+  }
+  return {ret, won};
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   9. 描画 — 物理は 3 次元、絵は低解像度に落として色を絞ったドット
+   仕組みは俯瞰版と同じ斜投影。違うのは仕上げの 2 手。
+     ① 小さい裏画面に描いてから、補間なしで引き伸ばす（＝画素が四角く出る）
+     ② 引き伸ばす前に、決めた色数に丸める（＝階調が段になる）
+   数字だけは丸めた後に等倍で書く。ドットにすると読めないので。
+   ═══════════════════════════════════════════════════════════════════ */
+const cv = $("wheel"), cx = cv.getContext("2d");
+let VW = 1000, VH = 940, CXp = 0, CYp = 0, S = 1;
+
+/** 視線の仰角。90°＝真上。固定。 */
+const ELEV = 56 * Math.PI/180;
+const SIN_E = Math.sin(ELEV), COS_E = Math.cos(ELEV);
+
+/** 裏画面の横幅（ドットの数）。ここが粗さを決める */
+const DOTS_W = 300;
+
+/* 裏画面。ここに描いてから引き伸ばす */
+const bufCv = document.createElement("canvas"), bufCx = bufCv.getContext("2d", {willReadFrequently:true});
+let BW = DOTS_W, BH = 280;
+
+/** 世界座標 → 裏画面の座標。
+    水平成分は canvas の向きに合わせる（+y が画面下）。反転させると区画の並びが
+    左回りになり、回して貼るポケット帯と玉も逆向きに回ってずれる。 */
+const px = (x, y, z) => [CXp + x*S, CYp + (y*SIN_E - z*COS_E)*S];
+const ringOf = (r, z) => [CXp, CYp - z*COS_E*S, r*S, r*S*SIN_E];
+
+/** 画面の高さは仰角から決める。傾けるほど縦は詰まり、高さのぶん上へ伸びる。
+    手で詰めると ELEV を変えるたびに合わせ直しになるので、幾何から出す。 */
+function sizeWheel(){
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cssW = Math.max(300, cv.parentElement.clientWidth - 24);
+
+  BW = DOTS_W;
+  S  = (BW/2 - 2) / W.rBowl;                  // 裏画面の 1 メートルあたりドット数
+  CXp = BW/2;
+  // いちばん上に来る縁と、いちばん下に来る縁
+  const zTop = Z_TRACK + 0.052, zBot = Z_TRACK + 0.040;
+  const top    = -(zTop*COS_E*S) - (W.rBowl-0.020)*S*SIN_E;
+  const bottom = -(zBot*COS_E*S) + W.rBowl*S*SIN_E;
+  const pad = 4;
+  BH  = Math.ceil(bottom - top) + pad*2;
+  CYp = pad - top;
+
+  const cssH = Math.round(cssW * BH / BW);
+  VW = Math.round(cssW*dpr); VH = Math.round(cssH*dpr);
+  cv.width = VW; cv.height = VH;
+  cv.style.width = cssW+"px"; cv.style.height = cssH+"px";
+  bufCv.width = BW; bufCv.height = BH;
+  paintRotorFace();
+}
+
+/* ═══ 色。ゲーム本体とは別物として、この画面のためだけに選んだ 34 色 ═══
+   丸め先をこの表に固定すると、階調が段になってドットらしく見える。 */
+const PAL = [
+  "#080c0a","#0f1512","#161d19","#1e2622",                  // 地
+  "#2a1710","#3d2216","#55311c","#6d3f24","#8a5530",        // 木（暗→明）
+  "#a86b3e","#c8874f","#dda06a","#efbe8b",
+  "#171310","#22262c","#31363e","#434952","#585f69","#6f7681", // 鉢の底・円錐
+  "#5e0f13","#8a1a20","#b8262c","#d94a4a",                  // 赤
+  "#050506","#101013","#1c1c22",                            // 黒の区画
+  "#0b3a24","#1a7048","#2fa066",                            // 緑
+  "#6d5410","#a5851d","#c9a227","#e6c757","#f8ecb8",        // 真鍮
+  "#6a707a","#98a0aa","#c6ccd4","#eef2f6",                  // 金具
+  "#8e8674","#c3baa2","#f2ece0","#ffffff",                  // 象牙（玉）
+];
+const PAL_RGB = PAL.map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+/** 32×32×32 の引き当て表。毎フレーム全画素で最近色を探すと重いので一度だけ作る */
+const LUT = new Uint8Array(32*32*32);
+(function(){
+  for (let r=0;r<32;r++) for (let g=0;g<32;g++) for (let b=0;b<32;b++){
+    const R=r*8+4, G=g*8+4, B=b*8+4;
+    let best=0, bd=1e9;
+    for (let i=0;i<PAL_RGB.length;i++){
+      const p=PAL_RGB[i];
+      // 人の目は緑に敏感なので重みを付ける
+      const d=(R-p[0])*(R-p[0])*0.30 + (G-p[1])*(G-p[1])*0.59 + (B-p[2])*(B-p[2])*0.11;
+      if (d<bd){bd=d;best=i;}
+    }
+    LUT[(r<<10)|(g<<5)|b] = best;
+  }
+})();
+
+/** 裏画面の色を、決めた表の色に丸める */
+function posterise(){
+  const img = bufCx.getImageData(0,0,BW,BH), d = img.data;
+  for (let i=0;i<d.length;i+=4){
+    if (d[i+3] < 8) continue;
+    const k = LUT[((d[i]>>3)<<10) | ((d[i+1]>>3)<<5) | (d[i+2]>>3)];
+    const p = PAL_RGB[k];
+    d[i]=p[0]; d[i+1]=p[1]; d[i+2]=p[2]; d[i+3]=255;
+  }
+  bufCx.putImageData(img,0,0);
+}
+
+/* ── ポケット帯。z=0 の水平面なので、真上から焼いて潰して回して貼る ──
+   数字はここには入れない（丸めた後に等倍で書く） ── */
+const faceCv = document.createElement("canvas"), faceCx = faceCv.getContext("2d");
+
+function paintRotorFace(){
+  const size = Math.max(8, Math.ceil(W.rRotor*S*2) + 4);
+  faceCv.width = faceCv.height = size;
+  const fs = (size/2 - 2) / W.rRotor, g = faceCx, C = size/2, m = v => v*fs;
+  g.clearRect(0,0,size,size);
+  for (let i=0;i<N;i++){
+    const n = SEQ[i], a0 = pocketStart(i), a1 = a0 + SLOT;
+    g.beginPath();
+    g.arc(C,C,m(W.rRotor),a0,a1);
+    g.arc(C,C,m(W.rPocketIn),a1,a0,true);
+    g.closePath();
+    g.fillStyle = n===0 ? "#1a7048" : (REDS.has(n) ? "#b8262c" : "#101013");
+    g.fill();
+  }
+  for (let i=0;i<N;i++){
+    const a = pocketStart(i);
+    g.save(); g.translate(C,C); g.rotate(a);
+    g.strokeStyle = "#c6ccd4"; g.lineWidth = Math.max(1.6, m(0.006));
+    g.beginPath(); g.moveTo(m(W.rPocketIn-0.003),0); g.lineTo(m(W.rRotor),0); g.stroke();
+    g.restore();
+  }
+  g.strokeStyle = "#050506"; g.lineWidth = Math.max(1, m(0.004));
+  g.beginPath(); g.arc(C,C,m(W.rPocketIn),0,TAU); g.stroke();
+}
+
+function ell(g, r, z, fill, stroke, lw){
+  const [ex, ey, rx, ry] = ringOf(r, z);
+  g.beginPath(); g.ellipse(ex, ey, rx, ry, 0, 0, TAU);
+  if (fill){ g.fillStyle = fill; g.fill(); }
+  if (stroke){ g.strokeStyle = stroke; g.lineWidth = lw||1; g.stroke(); }
+}
+
+/** 高さ違いの輪を外から内へ。段差がそのままドットの階調になる */
+const BOWL_RINGS = [
+  [W.rBowl,       Z_TRACK+0.040, "#3d2216"],
+  [W.rBowl-0.020, Z_TRACK+0.052, "#8a5530"],
+  [W.rWall+0.014, Z_TRACK+0.040, "#55311c"],
+  [W.rWall,       Z_TRACK+0.014, "#a86b3e"],
+  [W.rRim,        Z_TRACK,       "#dda06a"],   // ボールトラック
+  [W.rTrack,      Z_SLOPE,       "#3d2216"],   // すり鉢
+  [W.rRotor,      0,             "#171310"],
+];
+
+function drawWheel(tr, balls, showBall){
+  const g = bufCx;
+  g.clearRect(0,0,BW,BH);
+  g.fillStyle = "#0f1512"; g.fillRect(0,0,BW,BH);
+
+  for (const [r,z,c] of BOWL_RINGS) ell(g, r, z, c);
+  ell(g, W.rTrack, Z_SLOPE, null, "#2a1710", Math.max(1, 0.004*S));
+  ell(g, W.rRim,   Z_TRACK, null, "#efbe8b", Math.max(1, 0.002*S));
+
+  // ディフレクタ 8 個
+  for (let k=0;k<W.nDefl;k++){
+    const a = k*TAU/W.nDefl;
+    const [dx,dy] = px(Math.cos(a)*W.rDefl, Math.sin(a)*W.rDefl, surfZ(W.rDefl)+W.hDefl);
+    const long = (k%2 ? 0.030 : 0.021)*S, wide = (k%2 ? 0.012 : 0.016)*S;
+    g.save(); g.translate(dx, dy); g.scale(1, SIN_E); g.rotate(a + (k%2 ? 0 : Math.PI/2));
+    g.fillStyle = "#c6ccd4";
+    g.beginPath(); g.moveTo(-long,0); g.lineTo(0,-wide);
+    g.lineTo(long,0); g.lineTo(0,wide); g.closePath(); g.fill();
+    g.fillStyle = "#6a707a";
+    g.beginPath(); g.moveTo(0,0); g.lineTo(0,wide); g.lineTo(long,0); g.closePath(); g.fill();
+    g.restore();
+  }
+
+  // ポケット帯
+  const [fx, fy] = px(0,0,0);
+  g.save(); g.translate(fx, fy); g.scale(1, SIN_E); g.rotate(tr);
+  g.drawImage(faceCv, -faceCv.width/2, -faceCv.height/2);
+  g.restore();
+
+  // 円錐とタレット
+  // 円錐。同心に塗ると的に見えるので、内側の輪ほど左上へずらして光の向きを出す
+  const CN = 5;
+  const CONE = ["#585f69","#434952","#31363e","#22262c","#171310"];
+  for (let i=1;i<=CN;i++){
+    const t = i/CN;
+    const r = W.rPocketIn + (W.rTurret - W.rPocketIn)*t;
+    const [ex,ey,rx,ry] = ringOf(r, (W.rPocketIn - r)*TAN_C);
+    const off = t * 0.055 * W.rPocketIn * S;
+    g.beginPath(); g.ellipse(ex - off*0.7, ey - off, rx, ry, 0, 0, TAU);
+    g.fillStyle = CONE[CN-i]; g.fill();
+  }
+  {
+    const zt = (W.rPocketIn - W.rTurret)*TAN_C;
+    const [tx,ty,trx,try_] = ringOf(W.rTurret, zt);
+    const o = 0.055 * W.rPocketIn * S;
+    const dot = (rf, dx, dy, col) => {
+      g.beginPath(); g.ellipse(tx - o*0.7 + dx, ty - o + dy, trx*rf, try_*rf, 0, 0, TAU);
+      g.fillStyle = col; g.fill();
+    };
+    dot(1,    0, 0, "#a5851d");
+    dot(0.68, -trx*0.10, -try_*0.14, "#c9a227");
+    dot(0.34, -trx*0.16, -try_*0.22, "#e6c757");
+  }
+
+  // 玉と影。影を全部先に敷いてから玉を置く（玉が影に隠れないように）
+  if (showBall && balls && balls.length){
+    for (const ball of balls){
+      const r = Math.hypot(ball[0], ball[1]);
+      const zs = surfZ(Math.min(r, W.rWall));
+      const [sx, sy] = px(ball[0], ball[1], zs + 0.0005);
+      const hgt = Math.max(0, ball[2] - zs - W.ball);
+      const soft = 1 + hgt*14;
+      g.fillStyle = "#080c0a";
+      g.beginPath();
+      g.ellipse(sx, sy, W.ball*S*soft, Math.max(0.6, W.ball*S*SIN_E*soft), 0, 0, TAU);
+      g.fill();
+    }
+    // 画面の上（＝奥）にある玉から順に置くと、手前の玉が上に重なる
+    const order = balls.map((b,i)=>[i, px(b[0],b[1],b[2])[1]]).sort((a,c)=>a[1]-c[1]);
+    for (const [i] of order){
+      const ball = balls[i];
+      const [bx, by] = px(ball[0], ball[1], ball[2]);
+      const R = Math.max(1.6, W.ball*S);
+      g.fillStyle = "#c3baa2";
+      g.beginPath(); g.arc(bx,by,R,0,TAU); g.fill();
+      g.fillStyle = "#f2ece0";
+      g.beginPath(); g.arc(bx - R*0.25, by - R*0.25, R*0.62, 0, TAU); g.fill();
+    }
+  }
+
+  // ── 色を丸めてから、補間なしで引き伸ばす ──
+  posterise();
+  cx.imageSmoothingEnabled = false;
+  cx.clearRect(0,0,VW,VH);
+  cx.drawImage(bufCv, 0, 0, BW, BH, 0, 0, VW, VH);
+
+  // ── 数字だけは等倍で。ドットにすると読めない ──
+  drawNumbers(tr);
+}
+
+/** 区画の数字。ドットに丸めた絵の上に、そのまま書く */
+function drawNumbers(tr){
+  const k = VW / BW;                            // 裏画面 → 本画面の倍率
+  cx.textAlign = "center"; cx.textBaseline = "middle";
+  cx.fillStyle = "#f2ece0";
+  const size = Math.max(7, 0.020*S*k);
+  cx.font = `700 ${size.toFixed(1)}px ui-monospace, Menlo, Consolas, monospace`;
+  cx.shadowColor = "rgba(0,0,0,.85)"; cx.shadowBlur = Math.max(2, k*0.9);
+  for (let i=0;i<N;i++){
+    const a = norm(tr + pocketStart(i) + SLOT/2);
+    const rr2 = (W.rPocketIn + W.rRotor)/2 + 0.012;
+    const [qx, qy] = px(Math.cos(a)*rr2, Math.sin(a)*rr2, 0);
+    cx.save(); cx.translate(qx*k, qy*k); cx.rotate(a + Math.PI/2);
+    cx.fillText(String(SEQ[i]), 0, 0);
+    cx.restore();
+  }
+  cx.shadowBlur = 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   10. 進行
+   ═══════════════════════════════════════════════════════════════════ */
+let spin = null;            // 進行中の spin 状態
+let nBalls = 1;             // 一度に投げる玉の数
+/* ロータは席を立つまで回り続ける。収まった玉はポケットに乗ったまま一緒に回る。
+   決着のたびにロータの向きを捨てて回し直すと、玉が消えて盤が飛ぶ。 */
+const rotor = {t: 0, w: 0.55};
+let resting = null;         // 収まった玉の置き場所（ロータ固定座標）の配列。無ければ null
+let locked = false;         // 「もう賭けられません」
+let raf = 0;
+
+const statusEl = $("status"), calloutEl = $("callout");
+function say(text){
+  if (!text){ statusEl.classList.remove("on"); return; }
+  statusEl.textContent = text; statusEl.classList.add("on");
+}
+
+function startSpin(){
+  if (spin) return;
+  if (!bets.length){ flash($("spin")); return; }
+  // 玉 1 個 = 1 回ぶんの勝負。卓の駒は「玉 1 個あたりの賭け金」なので、
+  // 玉が n 個なら賭け金も n 倍かかる。足りなければ投げない。
+  const stake = betTotal(), extra = stake * (nBalls - 1);
+  if (bank < extra){ flash($("bank")); return; }
+  bank -= extra;
+  lastBets = bets.map(b => ({node:b.node, amount:b.amount}));
+  wagered += stake * nBalls;
+  spin = newSpin(launch($("tight").checked, nBalls), rotor.t);   // いまの向きから続ける
+  spin.wr = Math.max(spin.wr, rotor.w);
+  resting = null;
+  locked = false;
+  calloutEl.classList.remove("on");
+  say("Rien ne va plus — no more bets");
+  $("spin").disabled = true;
+  render();
+}
+
+function finishSpin(){
+  const partage = $("partage").checked;
+  const nums = spin.balls.map(b => b.number);
+  const stake = lastBets.reduce((a,b)=>a+b.amount,0);
+
+  // 玉ごとに独立に清算する。玉が n 個なら、同じ賭けで n 回勝負したのと同じ。
+  let ret = 0; const wonNodes = new Set();
+  for (const n of nums){
+    const r = settle(n, partage);
+    ret += r.ret;
+    for (const b of r.won) wonNodes.add(b.node);
+  }
+  bank += ret;
+  spinCount++;
+  for (const n of nums){ history.unshift(n); }
+  while (history.length > 40) history.pop();
+  for (const b of spin.balls) tally[b.pocket]++;
+  timeSum += spin.t; timeN++;
+
+  const one = nums.length === 1;
+  const col = n => n === 0 ? "#5fd08a" : (REDS.has(n) ? "#ef6a6f" : "#e8e4d6");
+  const el = calloutEl.querySelector(".n");
+  if (one){ el.textContent = nums[0]; el.style.color = col(nums[0]); }
+  else {
+    el.textContent = "";
+    el.style.color = "";
+    // 玉が増えるほど字を小さく。6 個並べても盤を覆いきらない大きさに
+    el.style.fontSize = Math.round(60 / Math.sqrt(nums.length)) + "px";
+    for (const n of nums){
+      const sp2 = document.createElement("span");
+      sp2.textContent = n; sp2.style.color = col(n);
+      el.appendChild(sp2);
+    }
+  }
+  if (one) el.style.fontSize = "";
+  const net = ret - stake * nums.length;
+  calloutEl.querySelector(".t").textContent =
+    (one ? (nums[0] === 0 ? "zéro" : (REDS.has(nums[0]) ? "rouge" : "noir"))
+         : `${nums.length} 玉`) +
+    " · " + (net >= 0 ? "+" : "−") + Math.abs(net).toLocaleString("en-US");
+  calloutEl.classList.add("on");
+  say("");
+
+  // 当たった駒に印を付けて少し見せてから、卓を掃く。
+  // 先に bets を空にして描き直すと、どれが当たったのか分からないまま消える。
+  markWinning(nums);
+  for (const [nd, el] of chipEl){
+    if (wonNodes.has(nd)) el.classList.add("won");
+    else el.style.opacity = ".35";
+  }
+  bets = [];               // 会計はここで決着。駒の絵だけ残す
+  spin = null;
+  renderHeader();          // 残高と収支は待たせない
+  renderMarquee();         // 出目も同時に出す
+  renderStats();
+  setTimeout(() => { $("spin").disabled = false; render(); }, wonNodes.size ? 1500 : 900);
+}
+
+function loop(){
+  raf = requestAnimationFrame(loop);
+  const fast = $("fast").checked;
+  if (spin){
+    const sub = Math.round((1/60) / DT) * (fast ? 4 : 1);
+    for (let i = 0; i < sub && spin.phase !== "done"; i++) step(spin);
+    if (!locked && spin.t > 2.2){ locked = true; render(); }
+    if (spin.phase === "done"){
+      // 収まってから少し見せる。玉はポケットに乗ってロータと一緒に回る
+      if (spin.hold === undefined){
+        spin.hold = 0; say("");
+        resting = spin.balls.map(restOf);
+      }
+      spin.hold += 1/60;
+      spin.tr = norm(spin.tr + spin.wr * (1/60));
+      // 収まった玉はロータと一緒に回る（止まった場所のまま。中心へ寄せ直さない）
+      const ps = restPositions(resting, spin.tr);
+      spin.balls.forEach((b, i) => { b.p = ps[i]; });
+    }
+    rotor.t = spin.tr; rotor.w = spin.wr;
+    drawWheel(spin.tr, spin.balls.map(b=>b.p), true);
+    renderPhys(spin);
+    if (spin.phase === "done" && spin.hold > 0.9) finishSpin();
+  } else {
+    rotor.t = norm(rotor.t + rotor.w / 60);
+    rotor.w = Math.max(0.35, rotor.w - 0.006 / 60);
+    const bp = (resting !== null && resting.length)
+      ? restPositions(resting, rotor.t) : null;
+    drawWheel(rotor.t, bp, bp !== null);
+  }
+}
+/** 物理の読み取り。玉が複数のときは、まだ転がっている先頭の玉を代表に出す */
+function renderPhys(s){
+  if (!s){ for (const k of ["p-wb","p-r","p-z","p-v","p-wr","p-rev","p-def","p-fret","p-air","p-t"])
+    $(k).textContent = "—"; $("p-phase").textContent = "idle"; return; }
+  const b = s.balls.find(x => !x.done) || s.balls[0];
+  const r = Math.hypot(b.p[0], b.p[1]);
+  const vt = Math.hypot(b.v[0], b.v[1]);
+  const left = s.balls.filter(x => !x.done).length;
+  $("p-phase").textContent = s.phase + (s.balls.length > 1 ? `（残 ${left}/${s.balls.length}）` : "");
+  $("p-wb").textContent = (vt/Math.max(r,1e-6)).toFixed(2) + " rad/s";
+  $("p-r").textContent  = (r*1000).toFixed(0) + " mm";
+  $("p-z").textContent  = ((b.p[2]-surfZ(r))*1000).toFixed(1) + " mm";
+  $("p-v").textContent  = len3(b.v).toFixed(2) + " m/s";
+  $("p-wr").textContent = s.wr.toFixed(2) + " rad/s";
+  $("p-rev").textContent = b.rev.toFixed(1);
+  $("p-def").textContent = s.balls.reduce((a,x)=>a+x.defHits,0);
+  $("p-fret").textContent = s.balls.reduce((a,x)=>a+x.fretHits,0);
+  $("p-air").textContent = (b.air*1000).toFixed(0) + " ms";
+  $("p-t").textContent = s.t.toFixed(2) + " s";
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   11. 画面の更新
+   ═══════════════════════════════════════════════════════════════════ */
+const chipEl = new Map();
+
+/** 上の数字だけ。決着の直後は駒をまだ残したいので、ここだけ先に更新する。 */
+function renderHeader(){
+  $("bank").textContent = money(bank);
+  $("wager").textContent = money(wagered);
+  // 卓に出ている賭け金はまだ自分のもの。決着後は bets が空なので自然に外れる。
+  // 玉が n 個なら n 回ぶん出ているので、n 倍を戻して数える（投げる前は nBalls）
+  const atStake = betTotal() * (spin ? spin.balls.length : nBalls);
+  const net = bank + atStake - startBank;
+  const nb = $("net");
+  nb.textContent = (net >= 0 ? "+" : "−") + Math.abs(net).toLocaleString("en-US");
+  nb.className = net > 0 ? "up" : net < 0 ? "down" : "";
+  $("spins").textContent = spinCount;
+}
+
+function render(){
+  renderHeader();
+  $("spin").disabled = !!spin || !bets.length;
+  const stake = betTotal();
+  $("stake").innerHTML = stake
+    ? (nBalls > 1
+        ? `賭け <b>${stake.toLocaleString("en-US")}</b> × 玉 ${nBalls} = <b>${(stake*nBalls).toLocaleString("en-US")}</b>`
+        : `賭け <b>${stake.toLocaleString("en-US")}</b>`)
+    : "";
+  $("undo").disabled = !!spin || !bets.length;
+  $("clear").disabled = !!spin || !bets.length;
+  $("rebet").disabled = !!spin || !lastBets.length;
+
+  // 駒
+  chipsEl.innerHTML = ""; chipEl.clear();
+  for (const b of bets){
+    const e = document.createElement("div");
+    e.className = "chip";
+    e.style.left = b.node.x + "px"; e.style.top = b.node.y + "px";
+    e.style.background = CHIPCOL[Math.max(0, CHIPS.findIndex(c => c >= Math.min(b.amount,500)))];
+    e.textContent = b.amount >= 1000 ? (b.amount/1000).toFixed(0)+"k" : b.amount;
+    e.title = `${b.node.label} — ${b.node.type} ${b.node.pay}:1`;
+    chipsEl.appendChild(e);
+    chipEl.set(b.node, e);
+  }
+  renderMarquee();
+}
+
+/** 出目の履歴。読み上げと同時に出す（卓の掃除を待たせない） */
+function renderMarquee(){
+  const mq = $("marquee");
+  mq.innerHTML = '<span class="lab">Last</span>';
+  history.forEach((n, i) => {
+    const e = document.createElement("div");
+    e.className = "mk " + colourOf(n) + (i === 0 ? " last" : "");
+    e.textContent = n; mq.appendChild(e);
+  });
+}
+
+function markWinning(nums){
+  for (const k in cellOf) cellOf[k].classList.remove("win","dim");
+  for (const n of nums){ const w = cellOf["n"+n]; if (w) w.classList.add("win"); }
+  setTimeout(()=>{
+    if (spin) return;
+    for (const n of nums){ const w = cellOf["n"+n]; if (w) w.classList.remove("win"); }
+  }, 2600);
+}
+
+function flash(el){
+  el.animate([{transform:"translateX(-4px)"},{transform:"translateX(4px)"},
+              {transform:"translateX(0)"}], {duration:180, iterations:2});
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   12. 入力
+   ═══════════════════════════════════════════════════════════════════ */
+function nearestNode(px, py){
+  let best = null, bd = 1e9;
+  for (const nd of NODES){
+    const d = (nd.x-px)**2 + (nd.y-py)**2;
+    if (d < bd){ bd = d; best = nd; }
+  }
+  return Math.sqrt(bd) <= 34 ? best : null;
+}
+function tableXY(ev){
+  const r = tableEl.getBoundingClientRect();
+  return [ev.clientX - r.left, ev.clientY - r.top];
+}
+tableEl.addEventListener("click", ev => {
+  if (spin && locked) return;
+  const nd = nearestNode(...tableXY(ev));
+  if (!nd) return;
+  if (!placeBet(nd, chip)) flash($("bank"));
+  render();
+});
+tableEl.addEventListener("contextmenu", ev => {
+  ev.preventDefault();
+  if (spin && locked) return;
+  const nd = nearestNode(...tableXY(ev));
+  if (nd) { removeBet(nd); render(); }
+});
+
+// チップ
+const rack = $("chiprack");
+CHIPS.forEach((c, i) => {
+  const b = document.createElement("button");
+  b.className = "chipbtn" + (c === chip ? " on" : "");
+  b.style.background = CHIPCOL[i];
+  b.textContent = c; b.dataset.v = c;
+  b.onclick = () => { chip = c;
+    [...rack.children].forEach(x => x.classList.toggle("on", +x.dataset.v === c)); };
+  rack.appendChild(b);
+});
+
+/* 玉の数。1 個 = 1 回ぶんの勝負なので、賭け金も玉の数だけかかる */
+const MAX_BALLS = 6;
+(function(){
+  const rack2 = $("ballpick");
+  const lab = document.createElement("span");
+  lab.className = "lab"; lab.textContent = "玉"; rack2.appendChild(lab);
+  for (let i=1;i<=MAX_BALLS;i++){
+    const b = document.createElement("button");
+    b.textContent = i; b.dataset.n = i;
+    b.className = i === nBalls ? "on" : "";
+    b.onclick = () => {
+      if (spin) return;
+      nBalls = i;
+      [...rack2.querySelectorAll("button")].forEach(x=>x.classList.toggle("on", +x.dataset.n === i));
+      render();
+    };
+    rack2.appendChild(b);
+  }
+})();
+
+$("spin").onclick = startSpin;
+$("undo").onclick = () => { const b = bets.pop(); if (b) bank += b.amount; render(); };
+$("clear").onclick = () => { bank += betTotal(); bets = []; render(); };
+$("rebet").onclick = () => {
+  if (spin) return;
+  bank += betTotal(); bets = [];
+  for (const b of lastBets) placeBet(b.node, b.amount);
+  render();
+};
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  const k = e.key.toLowerCase();
+  if (k === " "){ e.preventDefault(); if (!spin && bets.length) startSpin(); }
+  else if (k === "z"){ $("undo").click(); }
+  else if (k === "c"){ $("clear").click(); }
+  else if (k === "r"){ $("rebet").click(); }
+  else if (k >= "1" && k <= "5"){ rack.children[+k-1].click(); }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   13. 統計と検証
+   ═══════════════════════════════════════════════════════════════════ */
+const distCv = $("dist"), distCx = distCv.getContext("2d");
+
+function chiSquare(counts){
+  const n = counts.reduce((a,b)=>a+b,0);
+  if (!n) return 0;
+  const e = n / N;
+  return counts.reduce((a,c)=>a + (c-e)*(c-e)/e, 0);
+}
+
+function renderStats(){
+  const n = tally.reduce((a,b)=>a+b,0);
+  $("s-n").textContent = n.toLocaleString("en-US");
+  $("s-chi").textContent = n ? chiSquare(tally).toFixed(1) : "—";
+  $("s-time").textContent = timeN ? (timeSum/timeN).toFixed(2) + " s" : "—";
+  const edge = wagered ? (bank + betTotal() - startBank) / wagered : 0;
+  $("s-edge").textContent = wagered ? (edge*100).toFixed(2) + "%" : "—";
+  $("s-edge").nextElementSibling.textContent = wagered
+    ? `理論 −2.70%（賭け ${wagered.toLocaleString("en-US")}）`
+    : "まだ賭けていない（理論 −2.70%）";
+  // 判定は χ² だけで言う。「いちばん当たった数字の実効控除率」のような
+  // 派手な数字は、試行が少ないうちは揺らぎがそのまま出て嘘になる。
+  if (n){
+    const c = chiSquare(tally);
+    const verdict = c > 67.985 ? "偏っている（99.9% 水準）"
+                  : c > 50.998 ? "やや外れている（95% 水準）"
+                  : "一様と矛盾しない";
+    $("s-chinote").textContent = n < 3700
+      ? `36 d.o.f. ／ ${n} 回では判定力が足りない（1 区画あたり ${(n/N).toFixed(0)} 回）`
+      : `36 d.o.f., 95% ≤ 50.998 ／ ${verdict}`;
+  }
+
+  // 分布。盤の並び順ではなく 0〜36 の数字順で見せる（読みやすさ優先）
+  const g = distCx, Wd = distCv.width, Hd = distCv.height;
+  g.clearRect(0,0,Wd,Hd);
+  const byNum = new Array(N).fill(0);
+  for (let i = 0; i < N; i++) byNum[SEQ[i]] = tally[i];
+  const exp = n / N;
+  // 縦軸は 0 から。期待値の線が上のほうに来すぎないよう、少しだけ余白を取る
+  const max = Math.max(exp*1.25, Math.max(...byNum)*1.08, 1);
+  const bw = Wd / N;
+  for (let i = 0; i < N; i++){
+    const h = (byNum[i] / max) * (Hd - 26);
+    g.fillStyle = i === 0 ? "#1e7d4f" : (REDS.has(i) ? "#c1272d" : "#3a3a40");
+    g.fillRect(i*bw + 1, Hd - 20 - h, bw - 2, h);
+  }
+  if (n){                                   // 期待値の線
+    const y = Hd - 20 - (exp/max)*(Hd-26);
+    g.strokeStyle = "#c9a227"; g.setLineDash([5,4]); g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(0,y); g.lineTo(Wd,y); g.stroke(); g.setLineDash([]);
+  }
+  g.fillStyle = "#8a958e"; g.font = "11px ui-monospace, monospace"; g.textAlign = "center";
+  for (let i = 0; i < N; i += 3) g.fillText(String(i), i*bw + bw/2, Hd - 6);
+}
+
+/** まとめて解く。10 万回はそのまま回すと 20 秒画面が固まるので、
+    小分けにして間にフレームを挟む。刻み DT は画面と同じまま変えない
+    （速くするために粗くすると、統計が画面の挙動と違うものになる）。 */
+let simJob = null;
+
+function simReport(times, ms){
+  const n = tally.reduce((a,b)=>a+b,0);
+  const chi = chiSquare(tally);
+  let best = 0, at = 0;
+  for (let s0 = 0; s0 < N; s0++){
+    let sum = 0; for (let k = 0; k < 9; k++) sum += tally[(s0+k)%N];
+    if (sum > best){ best = sum; at = s0; }
+  }
+  const seq9 = Array.from({length:9},(_,k)=>SEQ[(at+k)%N]).join(" ");
+  $("simnote").innerHTML =
+    `<b>${times.toLocaleString("en-US")} 回</b>を ${(ms/1000).toFixed(1)} 秒で解いた`+
+    `（画面と同じ <code>step()</code> を、同じ刻みでそのまま回している）。<br>`+
+    `χ² = <code>${chi.toFixed(1)}</code> / 自由度 36。`+
+    `一様なら 95% の確率で 50.998 以下、99.9% で 67.985 以下。<br>`+
+    `盤上で連続する 9 区画に <code>${(best/n*100).toFixed(1)}%</code> が集中`+
+    `（完全に一様なら 9/37 = 24.3%）→ <code>${seq9}</code><br><br>`+
+    ($("tight").checked
+      ? `<b>機械投擲</b>：初期条件をほぼ固定すると、出目は盤の一部に固まる。`+
+        `これが Small &amp; Tse (Chaos 2012) の指摘した予測可能性で、`+
+        `残った散らばりはディフレクタとフレットの跳ね返りだけによる。`
+      : `<b>ディーラーのばらつきあり</b>：投げる強さが数 rad/s 揺れるだけで、`+
+        `トラックを 17 周する間に離脱位置が何周ぶんもずれ、出目は一様になる。`+
+        `盤が偏っているのではなく、投げ方の揺れが偏りを消している。`);
+}
+
+function setSimBusy(on, label){
+  $("sim1k").disabled = on; $("simreset").disabled = on;
+  $("sim100k").textContent = on ? (label || "Stop") : "Simulate 20 000";
+  $("sim100k").classList.toggle("go", on);
+}
+
+function simulate(times){
+  if (simJob){ simJob.cancel = true; return; }
+  const tight = $("tight").checked;
+  const t0 = performance.now();
+  const job = {cancel:false, done:0};
+  simJob = job;
+  setSimBusy(true);
+  const chunk = () => {
+    if (job.cancel){ simJob = null; setSimBusy(false);
+      $("simnote").innerHTML = `途中で止めた（${job.done.toLocaleString("en-US")} 回）。`;
+      renderStats(); return; }
+    const slice = Math.min(40, times - job.done);   // 3D は 1 回 ≒5ms。刻まないと画面が止まる
+    for (let i = 0; i < slice; i++){
+      const s = runSpin(tight, nBalls);
+      for (const b of s.balls) tally[b.pocket]++;
+      timeSum += s.t; timeN++;
+    }
+    job.done += slice;
+    renderStats();
+    if (job.done < times){
+      $("simnote").innerHTML =
+        `解いている… <code>${job.done.toLocaleString("en-US")}</code> / ${times.toLocaleString("en-US")}`;
+      setTimeout(chunk, 0);
+    } else {
+      simJob = null; setSimBusy(false);
+      simReport(times, performance.now() - t0);
+    }
+  };
+  chunk();
+}
+$("sim1k").onclick   = () => simulate(500);
+$("sim100k").onclick = () => simulate(20000);
+$("simreset").onclick = () => { tally.fill(0); timeSum = 0; timeN = 0;
+  $("simnote").innerHTML = ""; renderStats(); };
+
+/* ═══════════════════════════════════════════════════════════════════
+   14. 解説
+   ═══════════════════════════════════════════════════════════════════ */
+$("modelnote").innerHTML = `
+<h4>1. この版の位置づけ</h4>
+<b>物理は 3D 版・俯瞰版とまったく同じ</b>（玉を 3 次元の質点として、盤の面との接触だけを解く）。
+絵の落とし方も俯瞰版と同じ斜投影で、視線の仰角は <code>${(ELEV*180/Math.PI).toFixed(0)}°</code> 固定。
+違うのは仕上げの 2 手だけ。
+
+<h4>2. ドットにする 2 手</h4>
+<table>
+<tr><td>① 低解像度に描く</td><td>横 <code>${DOTS_W}</code> ドットの裏画面に描いてから、
+<code>imageSmoothingEnabled = false</code> で引き伸ばす。画素が四角いまま拡大される</td></tr>
+<tr><td>② 色を丸める</td><td>引き伸ばす前に、この画面のために選んだ <code>${PAL.length}</code> 色へ丸める。
+階調が段になる</td></tr>
+</table>
+色の丸めは、毎フレーム全画素で最近色を探すと重い。
+<code>32×32×32</code> の引き当て表を起動時に一度だけ作り、
+以降は <code>LUT[(r&gt;&gt;3)&lt;&lt;10 | (g&gt;&gt;3)&lt;&lt;5 | b&gt;&gt;3]</code> の 1 回で引く。
+距離は人の目に合わせて緑に重みを置いた（0.30 / 0.59 / 0.11）。
+
+<h4>3. 数字だけドットにしない</h4>
+${DOTS_W} ドットの幅だと 1 区画は 20 ドットほどしかなく、
+2 桁の数字をドットで焼くと読めない。数字は<b>丸めた後に等倍で</b>書いている。
+盤はドット、文字は普通、という混ぜ方。
+
+<h4>4. 盤の断面（3 版とも共通）</h4>
+<table>
+<tr><td>円錐（〜196 mm）</td><td><code>(196−r)·tan18°</code></td></tr>
+<tr><td>ポケット帯（196〜250 mm）</td><td><code>0</code></td></tr>
+<tr><td>すり鉢（250〜300 mm）</td><td><code>(r−250)·tan19°</code></td></tr>
+<tr><td>トラック（300〜330 mm）</td><td><code>${(Z_SLOPE*1000).toFixed(1)} + (r−300)·tan32°</code></td></tr>
+<tr><td>垂直の壁</td><td><code>r = 340 mm</code></td></tr>
+</table>
+
+<h4>5. 摩擦の使い分け</h4>
+法線速度が <code>0.25 m/s</code> を超えていれば<b>叩きつけ</b>（反発 0.42・μ=0.25）、
+下回っていれば<b>載っているだけ</b>（反発 0.05・μ=0.010）。
+転がっている玉に滑り摩擦を毎ステップかけると、玉は 3 秒で止まる。実物は 10 秒以上走る。
+
+<h4>6. 玉を複数投げる</h4>
+玉は 1〜6 個まで同時に投げられる。<b>玉 1 個が 1 回ぶんの勝負</b>で、
+賭け金も玉の数だけかかる（賭け 100 × 玉 3 なら 300 出て、3 つの出目それぞれで清算される）。
+控除率は玉を増やしても変わらない。増えるのは 1 回あたりの分散だけ。
+<table>
+<tr><td>投げ方</td><td>初速を <code>±3.5%/玉</code> ずらし、投入位置を円周に等間隔で配る。
+同時に同じ点から投げると、ずっと団子のまま走ってしまう</td></tr>
+<tr><td>玉どうしの衝突</td><td>玉の中心間距離が直径を切ったら、法線方向の相対速度だけを
+反発係数 0.55 で交換する。<b>近づいていない（相対速度 &gt; −0.02 m/s）ペアは弾かない</b>。
+触れているだけの玉を毎フレーム弾くと、押し合ったまま永久に止まらない</td></tr>
+<tr><td>収まったあと</td><td>玉は<b>止まったその場所のまま</b>ロータに固定して、一緒に回るだけ。
+ポケットの中心へ寄せ直さない（寄せると決まった瞬間に数センチ跳ぶ）。
+覚えるのはロータに対する角度差・半径・高さの 3 つで、
+区画を決めたときと同じ角度差なので、描く場所は必ず発表と同じ区画に入る</td></tr>
+<tr><td>収まった玉の速度</td><td>ロータのぶんを持たせる。位置だけ動かして速度を 0 にしておくと、
+玉どうしの当たりが「止まっている壁」として計算され、
+ロータと一緒に流れているだけの玉にも毎回はじき返しが入る</td></tr>
+<tr><td>押し込まれた玉</td><td>転がっている玉が、収まった玉に押されて<b>円錐（帯の内側）へ
+入り込んだら、収まったほうを起こす</b>。同じ場所に 2 つは居られない、というだけのこと</td></tr>
+<tr><td>落ち着かせ方</td><td>ポケット帯の底を外へ <code>${(POCKET_DROP*1000).toFixed(1)} mm</code> 落としてある。
+平らだと玉が帯の内側の角に集まり、後から来た玉が円錐の上で詰む。
+さらにポケットに入った玉は速度をゆっくり抜き、<b>18 秒</b>を超えたらその場の区画に落とす</td></tr>
+</table>
+1000 回ずつ試した結果、玉 1・3・6 個のいずれでも<b>詰まりは 0</b>、
+中央値 10.4〜10.9 秒、打ち切りは 1000 回あたり 0・2・7 回。
+直す前は 6 玉で 800 回中 50 回（6.3%）が打ち切りだった。<br>
+6 玉を 6000 回まわすと、同じ区画に 2 個以上入る割合は <code>31.9%</code>
+（互いに無関係なら 34.8%、標準誤差 0.62 ポイント）で、不足は 4.7σ。
+<b>玉はわずかに互いを避けている</b>。1000 回では標準誤差に埋もれて言えなかった。
+
+<h4>7. 区画の位置</h4><h4>7. 区画の位置</h4>
+<code>pocketStart / pocketAt / pocketCentre</code> の 3 つだけが区画の位置を決める。
+描画も物理も必ずここを通す。最初の 2D 版でこれを分けていたせいで、
+玉が乗っている区画と発表される数字が 9 区画ずれていた。
+
+<h4>8. 控除率</h4>
+単一ゼロ盤なので、どの賭けも <code>1/37 = 2.70%</code>。
+ラ・パルタージュ有効時は偶数賭けのみ <code>1.35%</code>。
+`;
+
+/* ═══════════════════════════════════════════════════════════════════
+   15. 起動
+   ═══════════════════════════════════════════════════════════════════ */
+function boot(){
+  sizeWheel();
+  buildNodes();
+  render();
+  renderStats();
+  renderPhys(null);
+}
+addEventListener("resize", () => { sizeWheel(); buildNodes(); render(); });
+boot();
+loop();
+</script>

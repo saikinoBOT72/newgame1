@@ -119,6 +119,23 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .chip.solid{background:var(--c2);color:var(--c5)}
 .chip b{color:var(--c5);font-weight:400}
 .chip .hp{color:var(--cb)} .chip .bk{color:var(--cd)}
+/* 自分の体力帯。敵の帯と同じ形にして、色だけ変える（敵＝朱、自分＝緑）。
+   高さは中の字から決める。--px から決めると小さい画面で数字の下が切れる。 */
+.hpb{display:inline-flex;align-items:center;flex:0 0 auto}
+.hpb .bar{position:relative;width:calc(var(--u)*22);
+  height:calc(var(--dp)*19 + var(--bw)*2);
+  background:var(--c0);border:var(--bw) solid var(--c3);overflow:hidden}
+/* 濃い緑を地にして字は生成り。明るい緑だと字が読めない（敵の帯も同じ理由で中間色） */
+.hpb .bar i{position:absolute;inset:0;right:auto;background:var(--ce);
+  transition:width .18s steps(6)}
+.hpb .bar i::after{content:"";position:absolute;left:0;right:0;top:0;
+  height:var(--px);background:var(--cf)}
+.hpb.low .bar i{background:var(--c9)}
+.hpb.low .bar i::after{background:var(--ca)}
+.hpb .bar .n{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;color:var(--c5)}
+.hpb.hpflash .bar{animation:hpf .4s steps(4)}
+.chip.mig{color:var(--c7)}
 .full{padding:var(--px) calc(var(--px)*2);border:var(--bw) solid var(--c2);
   background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto;
   position:absolute;top:calc(var(--u)*2);z-index:20}
@@ -229,10 +246,16 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 #roul{background:var(--c0);align-items:center;justify-content:center;
   gap:calc(var(--u)*2);padding:calc(var(--u)*7) 0 calc(var(--u)*8)}
 .rlwrap{display:flex;align-items:center;gap:calc(var(--u)*6);
-  max-width:100%;padding:0 calc(var(--u)*2)}
+  max-width:100%;min-height:0;flex:0 1 auto;padding:0 calc(var(--u)*2)}
 #wheel{image-rendering:pixelated;display:block}
+/* 区画の一覧。プールが増えると際限なく縦に伸び、上は HUD、下は
+   画面下端の一言に食い込んでいた。盤の高さで頭打ちにして、超えたら送る。 */
 .rlside{display:flex;flex-direction:column;gap:calc(var(--px)*3);
-  width:calc(var(--u)*40);flex:0 1 auto;min-width:0;overflow:hidden}
+  width:calc(var(--u)*40);flex:0 1 auto;min-width:0;min-height:0;
+  max-height:calc(var(--u)*72);overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;-ms-overflow-style:none}
+.rlside::-webkit-scrollbar{display:none}
+.rlrow{flex:0 0 auto}
 .rlrow{display:flex;align-items:center;gap:calc(var(--px)*2);color:var(--c4)}
 .rlrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
 .rlrow .nm{flex:1 1 auto}
@@ -320,7 +343,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   20%{transform:translate(-50%,calc(var(--px)*-1))}
   100%{transform:translate(-50%,calc(var(--px)*-9));visibility:hidden}}
 .hpflash{animation:hpf .4s steps(4)}
-@keyframes hpf{0%{color:var(--c5);background:var(--c9)}100%{}}
+@keyframes hpf{0%{border-color:var(--c5);background:var(--c9)}100%{}}
 .fdelta{position:absolute;top:calc(var(--dp)*-24);left:50%;transform:translateX(-50%);color:var(--c7)}
 
 /* 手前の帯：杖 */
@@ -404,10 +427,15 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
   overflow:auto;padding:calc(var(--px)*6)}
 #invv.hidden{display:none}
 #invv h2{margin:calc(var(--px)*2) 0 calc(var(--px)*2);color:var(--c7)}
-.invrow{display:flex;flex-wrap:wrap;gap:calc(var(--px)*3);
-  margin-bottom:calc(var(--px)*5)}
+.invrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(var(--u)*80),1fr));
+  gap:calc(var(--px)*5);margin-bottom:calc(var(--px)*5)}
 .invcell{display:flex;flex-direction:column;align-items:center;gap:var(--px)}
 .invcell .n{color:var(--c7)}
+/* 札 1 枚につき 1 行。左に絵、右に正確な規則。 */
+.invitem{display:flex;gap:calc(var(--px)*3);align-items:flex-start;min-width:0}
+.invitem .card{flex:0 0 auto}
+.invtxt{display:flex;flex-direction:column;gap:calc(var(--px)*2);min-width:0;color:var(--c4)}
+.invtxt b{color:var(--c7);font-weight:400}
 #invclose{position:sticky;top:0;float:right}
 #dexv.hidden{display:none}
 #dexv h2{margin:0 0 calc(var(--px)*2);color:var(--c7)}
@@ -451,7 +479,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
     <div class="hud">
       <div class="l"><span class="chip solid" id="d-floor"></span>
         <span class="chip" id="d-pool"></span></div>
-      <div class="r"><span class="chip" id="d-hp"></span>
+      <div class="r"><span class="hpb" id="d-hp"></span>
         <span class="chip" id="d-gun"></span></div>
     </div>
     <div class="dside left" id="dsl"></div>
@@ -466,8 +494,9 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
     <div class="hud">
       <div class="l"><span class="chip solid" id="r-floor"></span>
         <span class="chip" id="r-round"></span></div>
-      <div class="r"><span class="chip" id="r-hp"></span>
-        <span class="chip" id="r-block"></span></div>
+      <div class="r"><span class="hpb" id="r-hp"></span>
+        <span class="chip" id="r-block"></span>
+        <span class="chip" id="r-might"></span></div>
     </div>
     <div class="rlwrap">
       <canvas id="wheel"></canvas>
@@ -487,8 +516,9 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
     <div class="hud">
       <div class="l"><span class="chip solid" id="f-floor"></span>
         <span class="chip" id="f-round"></span></div>
-      <div class="r"><span class="chip" id="f-hp"></span>
-        <span class="chip" id="f-block"></span></div>
+      <div class="r"><span class="hpb" id="f-hp"></span>
+        <span class="chip" id="f-block"></span>
+        <span class="chip" id="f-might"></span></div>
     </div>
     <canvas class="glow" id="glow"></canvas>
     <div class="arena" id="foes"></div>
@@ -575,18 +605,36 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 /* ═══════ カード ═══════ */
 const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
 /* art: 後から画像を差し替える枠。null の間は仮のアイコンを出す */
+/* text は札の上の覚え書き。2 行に収まる長さでしか書けない。
+   rule は持ち物で読む正確な規則。両方を札に押し込むと下の行が切れる。 */
 const CARDS = {
-  fireball:{name:"火球",  type:"projectile", dmg:9, art:null, text:"9ダメージ"},
-  shard:   {name:"石礫",  type:"projectile", dmg:4, art:null, text:"4ダメージ"},
-  bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6ダメージ・貫通1"},
-  split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製3"},
-  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通+2"},
-  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力1.5倍 波及+1"},
-  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"被弾1.5倍"},
-  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃−2"},
-  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒4"},
-  ember:   {name:"発火",  type:"modifier", mod:{brn:8},          art:null, text:"火傷8"},
-  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御+9"}
+  fireball:{name:"火球",  type:"projectile", dmg:9, art:null, text:"9ダメージ",
+            rule:"狙った敵に 9 ダメージ。力とここまでの修飾が乗る"},
+  shard:   {name:"石礫",  type:"projectile", dmg:4, art:null, text:"4ダメージ",
+            rule:"狙った敵に 4 ダメージ。軽いぶん修飾の倍率が乗りにくい"},
+  bolt:    {name:"雷矢",  type:"projectile", dmg:6, pierce:1, art:null, text:"6ダメージ 貫通1",
+            rule:"狙った敵に 6 ダメージ。後ろの敵 1 体まで貫く"},
+  split3:  {name:"三分裂",type:"modifier", mod:{split:3},        art:null, text:"複製3",
+            rule:"次の発射体を 3 発に増やし、生きている敵を順に狙う。威力は落ちない"},
+  pierce:  {name:"貫通",  type:"modifier", mod:{pierce:2},       art:null, text:"貫通+2",
+            rule:"次の発射体が、さらに後ろ 2 体まで貫くようになる"},
+  enlarge: {name:"拡大",  type:"modifier", mod:{splash:1,mul:1.5},art:null, text:"威力1.5倍 波及+1",
+            rule:"次の発射体の威力が 1.5 倍。両隣の敵にも半分が飛ぶ。力を足した後にかかる"},
+  sunder:  {name:"破鎧",  type:"modifier", mod:{vuln:0.5},       art:null, text:"以後 被弾1.5倍",
+            rule:"当てた敵に破鎧を残す。以後その敵が受けるダメージが 1.5 倍になる。重ねられる"},
+  weaken:  {name:"弱体",  type:"modifier", mod:{weak:2},         art:null, text:"敵の攻撃−2",
+            rule:"当てた敵の攻撃を 2 下げる。戦闘のあいだ戻らない"},
+  venom:   {name:"猛毒",  type:"modifier", mod:{psn:4},          art:null, text:"毒+4 減りつつ続く",
+            rule:"当てた敵に毒 4。敵の番のはじめに毒の数だけ入り、毒が 1 減る。"+
+                 "毒 4 なら 4→3→2→1 の計 10。重ねるほど総量が伸びる"},
+  ember:   {name:"発火",  type:"modifier", mod:{brn:8},          art:null, text:"火傷+8 一度だけ",
+            rule:"当てた敵に火傷 8。次の敵の番のはじめに 1 度だけ入って消える。持続しない"},
+  guard:   {name:"防御",  type:"utility", block:9, art:null, text:"防御+9",
+            rule:"杖のここまで来たときに防御 +9。敵の攻撃を受け止め、"+
+                 "受け止めきれない分だけ体力に通る。ラウンドが終わると残りは消える"},
+  might:   {name:"膂力",  type:"utility", might:2, art:null, text:"力+2 ずっと",
+            rule:"杖のここまで来たときに力 +2。以後この戦闘のあいだ、"+
+                 "すべての発射体の威力に足される。前に置けばこの詠唱から乗る"}
 };
 for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 
@@ -595,7 +643,7 @@ for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
 const POOL0 = ["fireball","fireball","split3"];
 /* 区画の濃淡。同じ札はいつも同じ色になるよう、札ごとに固定で持つ */
 const SHADE = {fireball:0, shard:1, bolt:0, split3:0, pierce:1, enlarge:0,
-               sunder:1, weaken:0, venom:1, ember:1, guard:0};
+               sunder:1, weaken:0, venom:1, ember:1, guard:0, might:1};
 // 他の札は報酬・宝箱でのみ手に入る
 
 const FOEDEX = [
@@ -618,7 +666,7 @@ function shuffle(a){                      // Fisher-Yates（sort(()=>Math.random
 
 function newRun(){
   S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, sift:0,
-       balls:2, cap:5, dmgUp:0, pick:null,
+       balls:2, cap:5, dmgUp:0, pick:null, might:0,
        pool:POOL0.slice(), owned:[], core:[],
        wand:[], foes:[], target:0, over:null, mode:"aim", phase:"dungeon",
        prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
@@ -717,7 +765,9 @@ const ICONS = {
   ember:{p:["","#E2622F","#8E3320","#F7D97A"], d:[
     "00011000","00133100","01333310","13322331","13222231","01222210","00122100","00011000"]},
   guard:{p:["","#35618C","#7EC0E8","#0B0E1A","#E8E4D6"], d:[
-    "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]}
+    "01111110","12222221","12244221","12244221","12222221","01222210","00122100","00011000"]},
+  might:{p:["","#35618C","#7EC0E8","#0B0E1A"], d:[
+    "00000000","01100110","12200221","12200221","12222221","12200221","12200221","01100110"]}
 };
 /* UI の記号。フォントの記号を使うとそこだけ滲むので、8x8 で自前で打つ */
 const UI = {
@@ -832,13 +882,30 @@ function D(str, cls){
          out.join("")+`</svg>`;
 }
 /** 折り返す段落。maxDots はドット単位の幅 */
+/* 禁則処理。行頭に置けない字（句読点・閉じ括弧・拗促音など）と、
+   行末に置けない字（開き括弧）。無いと「。威力は落ちない」のように
+   行頭が句点で始まって、日本語として読めない見た目になる。 */
+const NO_HEAD = "、。，．・：；？！ゝゞーぁぃぅぇぉっゃゅょゎヵヶァィゥェォッャュョヮ）］｝」』〉》”’%）";
+const NO_TAIL = "（［｛「『〈《“‘";
 function DP(str, maxDots, cls){
   const lines = [];
   let cur = "";
-  for (const ch of String(str)){
+  const chars = [...String(str)];
+  for (let i=0;i<chars.length;i++){
+    const ch = chars[i];
     if (ch === "\n"){ lines.push(cur); cur = ""; continue; }
     const t = cur + ch;
-    if (textWidth(t) > maxDots && cur){ lines.push(cur); cur = ch; }
+    if (textWidth(t) > maxDots && cur){
+      // この字が行頭に来られないなら、前の行に押し込む（ぶら下げ）
+      if (NO_HEAD.includes(ch)){ lines.push(t); cur = ""; continue; }
+      // 直前が開き括弧なら、それごと次の行へ送る
+      let carry = "";
+      while (cur && NO_TAIL.includes(cur[cur.length-1])){
+        carry = cur[cur.length-1] + carry; cur = cur.slice(0, -1);
+      }
+      if (!cur){ cur = carry + ch; continue; }   // 全部括弧なら諦めて切る
+      lines.push(cur); cur = carry + ch;
+    }
     else cur = t;
   }
   if (cur) lines.push(cur);
@@ -918,18 +985,21 @@ function hit(st, i, amount, log){
 function debuff(st, i, buf, log){
   const f = st.foes[i];
   if (!f || f.hp<=0) return;
+  // 量はイベントに載せる。演出側で書き直すと、札の数値を変えたときに片方だけ古くなる
   if (buf.vuln){ f.vuln = (f.vuln||0) + buf.vuln;
-    log.push({k:"mod", t:`  ${f.name} 破鎧`}); if (REC) REC.push({k:"deb", i, s:"破鎧"}); }
+    log.push({k:"mod", t:`  ${f.name} 破鎧`}); if (REC) REC.push({k:"deb", i, s:"破鎧", v:buf.vuln}); }
   if (buf.weak){ f.weak = (f.weak||0) + buf.weak; f.atk = Math.max(1, f.atk - buf.weak);
-    log.push({k:"mod", t:`  ${f.name} 攻撃 −${buf.weak}`}); if (REC) REC.push({k:"deb", i, s:"弱体"}); }
+    log.push({k:"mod", t:`  ${f.name} 攻撃 −${buf.weak}`}); if (REC) REC.push({k:"deb", i, s:"弱体", v:buf.weak}); }
   if (buf.psn){ f.psn = (f.psn||0) + buf.psn;
-    log.push({k:"mod", t:`  ${f.name} 毒 ${f.psn}`}); if (REC) REC.push({k:"deb", i, s:"毒"}); }
+    log.push({k:"mod", t:`  ${f.name} 毒 ${f.psn}`}); if (REC) REC.push({k:"deb", i, s:"毒", v:buf.psn}); }
   if (buf.brn){ f.brn = (f.brn||0) + buf.brn;
-    log.push({k:"mod", t:`  ${f.name} 火傷 ${f.brn}`}); if (REC) REC.push({k:"deb", i, s:"火傷"}); }
+    log.push({k:"mod", t:`  ${f.name} 火傷 ${f.brn}`}); if (REC) REC.push({k:"deb", i, s:"火傷", v:buf.brn}); }
 }
 function shoot(st, card, buf, tgt, log){
   const copies = buf.split;
-  const base   = (card.dmg + (S.dmgUp||0)) * buf.mul;   // 修飾は倍率。下げることはしない
+  // 力は「攻撃そのもの」に足してから修飾の倍率をかける。
+  // だから 力 → 拡大 → 火球 の並びは、力の分まで 1.5 倍になる。
+  const base   = (card.dmg + (S.dmgUp||0) + (st.might||0)) * buf.mul;
   const pierce = (card.pierce||0) + buf.pierce;
   const splash = buf.splash;
   const tags = [];
@@ -974,21 +1044,35 @@ function runCast(st, wand, tgt, log){
       log.push({k:"mod", t:`+ ${c.name}`});
       if (REC) REC.push({k:"mod", name:c.name}); }
     else if (c.type === "projectile"){ shoot(st, c, buf, tgt, log); buf = newBuf(); }
+    else if (c.type === "utility"){
+      // 汎用札も杖の中で順番に解決する。以前は玉が落ちた瞬間に効いていて、
+      // 「並べた順が呪文になる」という土台から一枚だけ外れていた。
+      // 力を前に置けばこの詠唱から乗り、後ろに置けば次の詠唱から乗る。
+      if (c.block){ st.block = (st.block||0) + c.block;
+        log.push({k:"mod", t:`${c.name} 防御 +${c.block}`});
+        if (REC) REC.push({k:"util", name:c.name, block:c.block}); }
+      if (c.might){ st.might = (st.might||0) + c.might;
+        log.push({k:"mod", t:`${c.name} 力 +${c.might}（計 ${st.might}）`});
+        if (REC) REC.push({k:"util", name:c.name, might:c.might}); }
+    }
   }
   const tail = [];
   for (let j=wand.length-1; j>=0 && wand[j].type==="modifier"; j--) tail.unshift(wand[j].name);
   if (tail.length) log.push({k:"foe", t:`不発：${tail.join("・")}`});
 }
 function preview(){
-  if (!S.wand.length) return {log:[], hp:S.foes.map(f=>f.hp), total:0, dud:[]};
-  const st = {foes:S.foes.map(f=>Object.assign({}, f))};
+  if (!S.wand.length)
+    return {log:[], hp:S.foes.map(f=>f.hp), total:0, dud:[],
+            block:S.block, might:S.might||0};
+  const st = {foes:S.foes.map(f=>Object.assign({}, f)),
+              block:S.block, might:S.might||0};
   const log = [];
   runCast(st, S.wand, S.target, log);
   const total = S.foes.reduce((a,f,i)=>a + Math.max(0, f.hp - st.foes[i].hp), 0);
   // 発射体より後ろに置かれて撃たれなかった修飾
   const dud = [];
   for (let j=S.wand.length-1; j>=0 && S.wand[j].type==="modifier"; j--) dud.unshift(S.wand[j].name);
-  return {log, hp:st.foes.map(f=>f.hp), total, dud};
+  return {log, hp:st.foes.map(f=>f.hp), total, dud, block:st.block, might:st.might};
 }
 
 /* ═══════ ダンジョン ═══════ */
@@ -1106,10 +1190,14 @@ function enterRoom(rm){
     return render();
   }
   S.foes = makeFoes(rm.t, S.floor);
-  S.target = 0; S.block = 0; S.round = 1;
+  S.target = 0; S.block = 0; S.might = 0; S.round = 1;
   S.boss = rm.t === "boss";
   newRound();
-  startRoulette();
+  // まず戦闘画面。誰と戦うのか、相手が何をしてくるのかを見てから盤へ向かう。
+  // いきなり抽選に飛ばすと、何を狙って引くのかが決められない。
+  S.roul = null;
+  S.phase = "fight";
+  render();
 }
 
 /* ═══════ 報酬 ═══════ */
@@ -1178,33 +1266,38 @@ function nextFloor(){
 
 
 function selectTarget(i){ if (S.foes[i] && S.foes[i].hp>0){ S.target = i; render(); } }
-const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, deb:260, psn:340, done:240};
+const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, deb:260, psn:340, util:280, done:240};
 
 function cast(){
   if (S.over || S.phase !== "fight" || S.anim) return;
   // 1) 複製した盤面で解決手順だけを記録する
-  const clone = {foes:S.foes.map(f=>Object.assign({}, f)), flash:[]};
+  const clone = {foes:S.foes.map(f=>Object.assign({}, f)), flash:[],
+                 block:S.block, might:S.might||0};
   const log = [];
   REC = [];
-  if (!S.wand.length){ S.block += 6; S.log = [{k:"mod", t:"構えた（防御 +6）"}]; }
+  if (!S.wand.length){ clone.block += 6; S.log = [{k:"mod", t:"構えた（防御 +6）"}];
+    REC.push({k:"util", name:"構え", block:6}); }
   if (S.wand.length) runCast(clone, S.wand, S.target, log);
   const evs = REC; REC = null;
-  // 2) 毒は敵の番の直前に入る
+  // 2) 継続ダメージは敵の番の直前に入る。
+  //    毒は「毒の数だけ入って、毒が 1 減る」。溜めるほど総量が伸びる（4 なら 4+3+2+1）。
+  //    火傷は敵の番のはじめに 1 度だけ入って消える。持続しない。
   clone.foes.forEach((f,i)=>{
     if (f.hp<=0) return;
     if (f.psn){ f.hp = Math.max(0, f.hp - f.psn);
-      evs.push({k:"psn", i, dmg:f.psn, s:"毒"}); }
-    if (f.brn && f.hp>0){                    // 火傷は最初が大きく、半分ずつ減る
+      f.psn = Math.max(0, f.psn - 1);
+      evs.push({k:"psn", i, dmg:f.psn+1, s:"毒", psn:f.psn}); }
+    if (f.brn && f.hp>0){
       const d = f.brn;
       f.hp = Math.max(0, f.hp - d);
-      f.brn = Math.floor(f.brn/2);
-      evs.push({k:"psn", i, dmg:d, s:"火傷", brn:f.brn});
+      f.brn = 0;
+      evs.push({k:"psn", i, dmg:d, s:"火傷", brn:0});
     }
     if (f.hp<=0) evs.push({k:"kill", i});
   });
   // 3) 生き残った敵の反撃を予定に加える
   if (clone.foes.some(f=>f.hp>0)){
-    let blk = S.block;
+    let blk = clone.block;
     for (const f of clone.foes){
       if (f.hp<=0) continue;
       const abs = Math.min(blk, f.atk);
@@ -1240,13 +1333,20 @@ function playStepOnce(schedule){
     if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i); }
     S.log.push({k:"fire", t:`  ${f?f.name:""} −${e.dmg}`});
   }
+  if (e.k === "util"){
+    sfx("block");
+    if (e.block){ S.block += e.block;
+      S.log.push({k:"mod", t:`${e.name} 防御 +${e.block}`}); }
+    if (e.might){ S.might = (S.might||0) + e.might;
+      S.log.push({k:"mod", t:`${e.name} 力 +${e.might}（計 ${S.might}）`}); }
+  }
   if (e.k === "deb"){
     const f = S.foes[e.i];
     if (f){
-      if (e.s === "破鎧") f.vuln = (f.vuln||0) + 0.5;
-      if (e.s === "弱体"){ f.weak = (f.weak||0) + 2; f.atk = Math.max(1, f.atk - 2); }
-      if (e.s === "毒")   f.psn  = (f.psn||0) + 4;
-      if (e.s === "火傷") f.brn  = (f.brn||0) + 8;
+      if (e.s === "破鎧") f.vuln = (f.vuln||0) + e.v;
+      if (e.s === "弱体"){ f.weak = (f.weak||0) + e.v; f.atk = Math.max(1, f.atk - e.v); }
+      if (e.s === "毒")   f.psn  = (f.psn||0) + e.v;
+      if (e.s === "火傷") f.brn  = (f.brn||0) + e.v;
       S.log.push({k:"mod", t:`  ${f.name} ${e.s}`});
     }
   }
@@ -1254,6 +1354,7 @@ function playStepOnce(schedule){
     sfx("burn");
     const f = S.foes[e.i];
     if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i);
+      if (e.psn !== undefined) f.psn = e.psn;
       if (e.brn !== undefined) f.brn = e.brn; }
     S.log.push({k:"foe", t:`  ${f?f.name:""} ${e.s} −${e.dmg}`});
   }
@@ -1347,6 +1448,11 @@ window.addEventListener("keydown", ev=>{
                a:[-1,0], d:[1,0], w:[0,-1], s:[0,1]}[ev.key];
     if (m){ step(m[0], m[1]); ev.preventDefault(); }
     return;
+  }
+  // 戦闘画面。Enter は盤へ（まだ回していなければ回す）、space は詠唱
+  if (ev.key === "Enter"){
+    if (!S.anim){ if (!S.roul) startRoulette(); else if (S.roul.left > 0){ S.phase = "roul"; render(); } }
+    ev.preventDefault(); return;
   }
   if (ev.key===" "){ cast(); ev.preventDefault(); }
 });
@@ -1610,13 +1716,19 @@ function spinBalls(){
   R.wa = rnd(TAU);                             // 盤の向きも毎回変える
   R.wv = 1.05 + rnd(0.35);                     // 盤を回し直す
   R.balls = [];
-  for (let i=0;i<R.left;i++){
+  // 一つの区画に二つの玉は入らない。玉が区画より多いと、最後の一つは
+  // 永遠に収まる場所が無く、打ち切りの保険に落ちる（＝止まった場所と
+  // 違う札が適用される、という不具合の正体）。投げる数を区画数で抑える。
+  const throwN = Math.min(R.left, n);
+  for (let i=0;i<throwN;i++){
     R.balls.push({
       a: rnd(TAU), av: -(3.2 + rnd(0.9)),      // 盤と逆向きに、速く投げる
       r: WTRK, rv: 0, on:"track", sec:-1, rest:0,
       t: -i*6                                   // 間隔を詰めて、追いつき・ぶつかりを起こす
     });
   }
+  if (throwN < R.left)
+    S.log.push({k:"foe", t:`区画が ${n} しかないので ${throwN} 個だけ投げた`});
   R.left = 0;
   R.spin = 0;
   SPINNING = true;
@@ -1631,9 +1743,44 @@ function stepRoul(){
   rouletteStep(R, n);                          // 1 フレーム 1 歩。ゆっくり見せる
   drawWheel();
   R.spin++;
-  const moving = R.balls.some(b=>b.on !== "pocket");
+  // 収まった後も、落ち着く場所まで転がりきるまでは回し続ける。
+  // ここで打ち切ると、最後の一つが隣の玉に重なったまま止まる
+  const moving = R.balls.some(b=>b.on !== "pocket" || Math.abs(b.offT - b.off) > 0.004);
   if (moving && R.spin < 620) setTimeout(stepRoul, 16);
   else finishSpin();
+}
+
+/** 収まった玉の角度。区画番号 + 区画内のどこに落ちたか、から必ず引く */
+function pocketAngle(R, b, sw){ return norm(R.wa + (b.sec + b.off)*sw); }
+/** 区画に収める。off は「いまいる場所」、offT は「落ち着く場所」。
+    隣の玉を避けてずらすとき、いきなり移すと 1 コマで飛ぶ。転がして寄せる。 */
+function setPocket(b, sec, off, target){
+  b.on = "pocket"; b.sec = sec; b.rest = 0;
+  b.off  = Math.min(0.96, Math.max(0.04, off));
+  b.offT = Math.min(0.80, Math.max(0.20, target === undefined ? off : target));
+}
+/** 同じ区画に既にいる玉と重ならない位置を探す。
+    区画を独占させると、3 玉 3 区画のとき最後の一つが空き 1 箇所を
+    引き当てるまで延々と弾かれ続け、しかも「必ず全部引く」ので抽選にならない。
+    ポケットは玉より広いので、横に並べて収める。 */
+function freeOffset(R, b, sec, sw){
+  const sep = Math.max(0.16, Math.min(0.34, 4 / Math.max(1, WPKT*sw)));
+  const others = R.balls.filter(o=>o!==b && o.on==="pocket" && o.sec===sec).map(o=>o.off);
+  if (others.length * sep > 0.62) return null;              // もう入らない
+  let off = Math.min(0.80, Math.max(0.20, norm(b.a - R.wa)/sw % 1));
+  for (let k=0; k<24; k++){
+    const bad = others.find(o=>Math.abs(o - off) < sep);
+    if (bad === undefined) return off;
+    off = bad < off ? Math.min(0.80, bad + sep) : Math.max(0.20, bad - sep);
+    if (off <= 0.20 || off >= 0.80){
+      // 端に詰まったら、空いている側から詰め直す
+      const sorted = others.slice().sort((x,y)=>x-y);
+      for (let c=0.20; c<=0.80; c+=sep/2)
+        if (!sorted.some(o=>Math.abs(o-c) < sep)) return c;
+      return null;
+    }
+  }
+  return null;
 }
 
 function rouletteStep(R, n){
@@ -1641,14 +1788,24 @@ function rouletteStep(R, n){
   R.wv *= FRIC_W;
   if (R.wv < 0.18) R.wv = 0.18;                // 盤は最後までゆっくり回り続ける
   const sw = TAU / n;                          // 1 区画の角幅
+  // 先に決まった玉があるほど、残りは早く落ち着かせる。
+  // 決着済みの玉が転がるのを待つ時間は、見ていて何も起きていない時間なので削る。
+  const done = R.balls.reduce((a,b)=>a + (b.on === "pocket" ? 1 : 0), 0);
+  const fb = FRIC_B - done*0.0035;
 
   for (const b of R.balls){
     if (b.t < 0){ b.t++; continue; }           // まだ投げていない
-    if (b.on === "pocket"){ b.a = norm(R.wa + (b.sec + .5)*sw); continue; }
+    // 収まった玉の絵は、必ず区画番号から引く。角度を別に持つと、
+    // 絵と「適用される札」が食い違う（実際そうなっていた）
+    if (b.on === "pocket"){
+      if (Math.abs(b.offT - b.off) > 0.002) b.off += (b.offT - b.off)*0.22;
+      else b.off = b.offT;
+      b.a = pocketAngle(R, b, sw); continue;
+    }
 
     // 角運動量：内側へ落ちるほど速く回る
     const r0 = b.r;
-    b.av *= FRIC_B;
+    b.av *= fb;
 
     if (b.on === "track"){
       // 遠心力 v²/r が足りなくなったらトラックから外れる
@@ -1685,13 +1842,18 @@ function rouletteStep(R, n){
       if (Math.abs(rel) < 0.45 && b.r <= WPKT + 1.2){
         b.rest++;
         if (b.rest > 14){
-          const sec = ((Math.floor(norm(b.a - R.wa)/sw) % n) + n) % n;
-          // 一つのポケットに二つの玉は入らない。埋まっていたら弾き返す
-          if (R.balls.some(o=>o !== b && o.on === "pocket" && o.sec === sec)){
+          const rel = norm(b.a - R.wa) / sw;
+          const sec = ((Math.floor(rel) % n) + n) % n;
+          const off = freeOffset(R, b, sec, sw);
+          if (off === null){                       // 本当に入る隙が無いときだけ弾き返す
             b.rest = 0; b.av = R.wv + (rnd(1) < 0.5 ? -0.9 : 0.9); b.rv = 0.10;
             sfx("fret");
           } else {
-            b.on = "pocket"; b.sec = sec; sfx("settle");
+            // いまいる場所から始めて、落ち着く場所まで転がす。
+            // 中心へ吸い寄せるとテレポートに見える
+            setPocket(b, sec, rel - Math.floor(rel), off);
+            b.a = pocketAngle(R, b, sw);           // この場で絵と番号を一致させる
+            sfx("settle");
           }
         }
       } else b.rest = 0;
@@ -1700,7 +1862,6 @@ function rouletteStep(R, n){
   }
 
   // 玉どうしの衝突。トラック上でもロータ内でも、近づいたら弾き合う
-  const RW = R.wv;
   for (let i=0;i<R.balls.length;i++) for (let j=i+1;j<R.balls.length;j++){
     const p = R.balls[i], q = R.balls[j];
     if (p.t < 0 || q.t < 0) continue;
@@ -1708,16 +1869,12 @@ function rouletteStep(R, n){
     let d = norm(p.a - q.a); if (d > Math.PI) d -= TAU;
     const gap = Math.abs(d) * ((p.r + q.r)/2);
     if (gap > 4.4) continue;
-    if (p.on === "pocket" && q.on === "pocket") continue;
+    if (p.on === "pocket" || q.on === "pocket") continue;   // 収まった玉は動かさない
     const t = p.av; p.av = q.av*0.92; q.av = t*0.92;    // 1 次元の弾性衝突
     sfx("clack");
     const push = (4.4 - gap) / ((p.r + q.r)/2) * 0.5 * Math.sign(d || 1);
     p.a = norm(p.a + push); q.a = norm(q.a - push);
-    // ポケットに収まった玉を弾き出すのは、相手が十分速いときの 1 回だけ。
-    // 無条件に弾き出すと、二つの玉が延々と押し合って止まらなくなる
-    const fast = Math.abs(p.av - RW) > 1.2 || Math.abs(q.av - RW) > 1.2;
-    if (fast && p.on === "pocket" && !p.kicked){ p.on = "rotor"; p.rest = 0; p.rv = 0.08; p.kicked = 1; }
-    if (fast && q.on === "pocket" && !q.kicked){ q.on = "rotor"; q.rest = 0; q.rv = 0.08; q.kicked = 1; }
+
   }
 }
 
@@ -1728,21 +1885,26 @@ function finishSpin(){
   for (const b of R.balls){          // 保険。止まりきらなかった玉はその場に収める
     if (b.on === "pocket" || b.t < 0) continue;
     let sec = ((Math.floor(norm(b.a - R.wa)/sw) % n) + n) % n;
-    for (let k=0; k<n && R.balls.some(o=>o!==b && o.on==="pocket" && o.sec===sec); k++)
-      sec = (sec + 1) % n;                       // 埋まっていたら隣へずらす
-    b.on = "pocket"; b.sec = sec;
+    let off = freeOffset(R, b, sec, sw);
+    for (let k=0; k<n && off === null; k++){     // 詰まっていたら隣の区画へ
+      sec = (sec + 1) % n; off = freeOffset(R, b, sec, sw);
+    }
+    const rel0 = norm(b.a - R.wa) / sw;
+    setPocket(b, sec, rel0 - Math.floor(rel0), off === null ? 0.5 : off);
+    b.off = b.offT;                                // 打ち切りなので転がす猶予は無い
+    // 絵も一緒に動かす。ここで番号だけ変えていたので、
+    // 「止まって見える場所」と「適用される札」が食い違っていた
+    b.a = pocketAngle(R, b, sw);
   }
   // 玉が止まった順ではなく、盤の上での並び順でもなく、
   // 「投げた玉が収まった区画」を、止まった順に杖へ積む
   const got = R.balls.filter(b=>b.on === "pocket");
   for (const b of got){
     const c = mk(R.secs[b.sec]);
-    if (c.type === "utility"){
-      S.block += c.block;
-      S.log.push({k:"mod", t:`${c.name} → 防御 +${c.block}`});
-    } else if (S.wand.length < S.cap) S.wand.push(c);
+    if (S.wand.length < S.cap) S.wand.push(c);
     else S.log.push({k:"foe", t:`${c.name} は溢れた`});
   }
+  drawWheel();                       // 保険で動かした玉を描き直す
   renderRoul();
 }
 
@@ -1837,8 +1999,9 @@ function renderRoul(){
   const R = S.roul; if (!R) return;
   $("r-floor").innerHTML = D(`第 ${S.floor} 層`);
   $("r-round").innerHTML = D(`ラウンド ${S.round}`);
-  $("r-hp").innerHTML    = D(`体力 ${Math.max(0,S.hp)} / ${S.maxHp}`);
+  $("r-hp").innerHTML    = hpBarHTML(); hpClass($("r-hp"));
   $("r-block").innerHTML = D(`防御 ${S.block}`);
+  mightChip($("r-might"));
   const cnt = {};
   for (const id of S.pool) cnt[id] = (cnt[id]||0)+1;
   $("rl-side").innerHTML =
@@ -1879,18 +2042,35 @@ function renderRoul(){
 const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $ = id => document.getElementById(id);
 
+/** 自分の体力帯。3 画面で同じものを使う */
+function hpBarHTML(){
+  const pct = S.maxHp > 0 ? Math.max(0, Math.min(100, Math.round(S.hp/S.maxHp*100))) : 0;
+  return `<span class="bar"><i style="width:${pct}%"></i>`+
+         `<span class="n">${D(`${Math.max(0,S.hp)} / ${S.maxHp}`)}</span></span>`;
+}
+function hpClass(el){
+  const pct = S.maxHp > 0 ? S.hp/S.maxHp : 0;
+  el.classList.toggle("low", pct <= 0.3);        // 残り 3 割で朱に変わる
+}
+function mightChip(el){
+  const m = S.might || 0;
+  el.className = "chip mig" + (m ? "" : " hidden");
+  el.innerHTML = m ? D(`力 +${m}`) : "";
+}
+
 function renderHud(){
   $("f-floor").innerHTML = D(`第 ${S.floor} 層`);
   $("f-round").innerHTML = D(`ラウンド ${S.round}`);
-  $("f-hp").innerHTML    = D(`体力 ${Math.max(0,S.hp)} / ${S.maxHp}`);
+  $("f-hp").innerHTML    = hpBarHTML(); hpClass($("f-hp"));
   $("f-block").innerHTML = D(`防御 ${S.block}`);
+  mightChip($("f-might"));
   if (S.hurt){ $("f-hp").classList.remove("hpflash");
     void $("f-hp").offsetWidth; $("f-hp").classList.add("hpflash"); }
 }
 function renderDungeon(){
   $("d-floor").innerHTML = D(`第 ${S.floor} 層`);
   $("d-pool").innerHTML  = D(`札 ${S.pool.length}`);
-  $("d-hp").innerHTML    = D(`体力 ${Math.max(0,S.hp)} / ${S.maxHp}`);
+  $("d-hp").innerHTML    = hpBarHTML(); hpClass($("d-hp"));
   $("d-gun").innerHTML = D(`玉 ${S.balls} ・容量 ${S.cap}`);
 
   const stage = document.getElementById("stage");
@@ -2125,12 +2305,21 @@ function render(){
       t:`合計 ${S.foes.reduce((a,f,i)=>a+Math.max(0,f.hp-pv.hp[i]),0)}`}] : []);
   $("log").innerHTML = lines.map(l=>`<div class="l-${l.k}">${D(l.t)}</div>`).join("");
 
+  // 盤をまだ回していないラウンドでは「盤を回す」が主役。回した後は「詠唱」。
+  const fresh = !S.roul;
   const bk = $("btn-back");
-  bk.innerHTML = D("盤に戻る","m");
-  bk.disabled = !!S.anim || !!S.over || !S.roul || S.roul.left <= 0;
-  bk.onclick = ()=>{ if (S.roul){ S.phase = "roul"; render(); } };
+  bk.innerHTML = D(fresh ? "盤を回す" : "盤に戻る","m") +
+                 `<small>${D(fresh ? "enter" : "")}</small>`;
+  bk.className = "btn" + (fresh ? " go" : "");
+  bk.disabled = !!S.anim || !!S.over || (!fresh && S.roul.left <= 0);
+  bk.onclick = ()=>{
+    if (S.anim || S.over) return;
+    if (fresh) startRoulette();
+    else { S.phase = "roul"; render(); }
+  };
   const cb = $("btn-cast");
   cb.disabled = !!S.over || !!S.anim;
+  cb.className = "btn" + (fresh ? "" : " go");
   cb.innerHTML = D(S.wand.length ? "詠唱" : "敵の番へ","m") + `<small>${D("space")}</small>`;
   cb.onclick = cast;
 }
@@ -2151,10 +2340,13 @@ function openInv(){
   const cnt = {};
   for (const id of S.pool) cnt[id] = (cnt[id]||0) + 1;
   const deck = Object.keys(CARDS).filter(id=>cnt[id]).map(id=>{
+    const c = CARDS[id];
     const w = document.createElement("div");
-    w.innerHTML = cardHTML(CARDS[id], {});
-    return `<div class="invcell">${w.innerHTML}`+
-           `<span class="n">${D("×"+cnt[id])}</span></div>`;
+    w.innerHTML = cardHTML(c, {});
+    // 札の上には 2 行しか書けないので、正確な規則はここで読ませる
+    return `<div class="invitem">${w.innerHTML}`+
+           `<div class="invtxt"><b>${D(`${c.name} ×${cnt[id]}`)}</b>`+
+           `<span>${DP(c.rule || c.text, 150)}</span></div></div>`;
   }).join("");
   const line = (spr, name, note) =>
     `<div class="dexi">${spriteSVG(spr,"dexs")}`+

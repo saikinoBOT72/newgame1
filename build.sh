@@ -27,3 +27,11 @@ echo "roulette/index.html を生成しました"
   printf '\n</body>\n</html>\n'
 } > roulette3d/index.html
 echo "roulette3d/index.html を生成しました"
+
+# 俯瞰版（物理は 3D、絵は斜投影の 2D）
+{
+  cat roulette-top/head.html
+  cat roulette-top/app.html
+  printf '\n</body>\n</html>\n'
+} > roulette-top/index.html
+echo "roulette-top/index.html を生成しました"

@@ -36,6 +36,14 @@ echo "roulette3d/index.html を生成しました"
 } > roulette-top/index.html
 echo "roulette-top/index.html を生成しました"
 
+# 試作版のゲーム UI（戦闘画面のレイアウト案。見た目だけ）
+{
+  cat game/ui-demo/head.html
+  cat game/ui-demo/app.html
+  printf '\n</body>\n</html>\n'
+} > game/ui-demo/index.html
+echo "game/ui-demo/index.html を生成しました"
+
 # 差し替え版（区画の数・中身・色を変えられる。賭けなし）
 {
   cat wheel/head.html

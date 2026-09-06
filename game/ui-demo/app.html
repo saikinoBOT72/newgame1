@@ -1,0 +1,669 @@
+<title>戦闘画面のレイアウト案</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   射的の杖・試作版 — 戦闘画面のレイアウト案
+   見た目だけ。機能は一切入れていない。数字も文言も仮。
+   ルーレットは、いまある wheel/ を写した静止画を貼ってあるだけ。
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  /* 色は 16 だけ。ルーレットと同じ系統にして、ひと続きの世界に見せる */
+  --ink0:#0b0f0e; --ink1:#141a18; --ink2:#1e2724; --ink3:#2b3733;
+  --line:#3f514b; --line-hi:#5b736b;
+  --wood:#4a2a18; --wood-hi:#6d3f24; --wood-lo:#2c180d;
+  --brass:#c9a227; --brass-hi:#f0d878; --brass-lo:#8a6d15;
+  --ivory:#f2ece0; --dim:#8a958e;
+  --red:#b8262c; --red-hi:#d94a4a;
+  --green:#2fa066; --blue:#3f7fa8; --purple:#7a4fa8;
+  --felt:#0d5132; --felt-lo:#093a24;
+
+  --dot: "DotGothic16", ui-monospace, monospace;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ink0);color:var(--ivory);font-family:var(--dot);
+  -webkit-font-smoothing:none}
+
+/* ── 外枠（案を選ぶところ。ゲーム画面ではない） ── */
+.page{max-width:1400px;margin:0 auto;padding:14px 14px 60px}
+.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  border-bottom:2px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.top h1{margin:0;font-size:20px;font-weight:400;letter-spacing:1px}
+.top h1 em{font-style:normal;color:var(--brass)}
+.top .sub{color:var(--dim);font-size:12px;font-family:var(--mono)}
+.top .spacer{flex:1 1 auto}
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{font:inherit;font-size:13px;padding:8px 14px;cursor:pointer;
+  background:var(--ink2);color:var(--dim);border:2px solid var(--line);
+  box-shadow:3px 3px 0 var(--ink0)}
+.tabs button:hover{color:var(--ivory);border-color:var(--line-hi)}
+.tabs button.on{background:var(--brass);color:#1a1405;border-color:var(--brass-hi);
+  font-weight:400}
+.tabs button small{display:block;font-family:var(--mono);font-size:9.5px;opacity:.75}
+
+.caption{background:var(--ink1);border:2px solid var(--line);padding:10px 12px;
+  margin-bottom:12px;font-size:13px;line-height:1.75}
+.caption b{color:var(--brass-hi)}
+.caption .ng{color:var(--red-hi)}
+.caption .row{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;
+  font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.caption .row span b{color:var(--ivory);font-weight:400}
+
+/* ── ゲーム画面。1280×720 で組んで、入る大きさに縮める ── */
+.stagewrap{position:relative;width:100%;overflow:hidden;
+  border:2px solid var(--line);background:#000}
+.screen{position:absolute;left:0;top:0;width:1280px;height:720px;
+  transform-origin:0 0;background:var(--ink0);overflow:hidden;
+  display:none}
+.screen.on{display:block}
+
+/* ── 共通の部品 ── */
+.px{image-rendering:pixelated;image-rendering:crisp-edges}
+.lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:1.6px;
+  text-transform:uppercase;color:var(--dim)}
+.hr{height:2px;background:var(--line)}
+
+/* ルーレット */
+.wheelimg{display:block;width:100%;height:auto}
+.bezel{background:var(--wood-lo);border:3px solid var(--wood-hi);
+  box-shadow:inset 0 0 0 3px var(--wood), 0 0 0 2px var(--ink0)}
+
+/* 敵 */
+.foe{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px}
+.foe .sp{display:block}
+/* 名前と数字は同じ行に並べる。重ねると必ずどちらかが読めなくなる */
+.foe .nmrow{display:flex;align-items:baseline;gap:6px;line-height:1}
+.foe .nmrow .nm{font-size:12px;color:var(--ivory)}
+.foe .nmrow .num{font-family:var(--mono);font-size:10px;color:var(--red-hi)}
+.foe .hp{width:100%;height:8px;background:var(--ink3);border:2px solid var(--ink0);
+  box-shadow:0 0 0 1px var(--line)}
+.foe .hp i{display:block;height:100%;background:var(--red)}
+.foe.front::after{content:"";position:absolute;left:50%;top:-16px;
+  width:0;height:0;margin-left:-7px;
+  border-left:7px solid transparent;border-right:7px solid transparent;
+  border-top:9px solid var(--brass)}
+/* 「次の一手」の札。.foe の中でも外でも使う */
+.intent{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--brass);
+  background:var(--ink1);border:2px solid var(--line);padding:1px 5px;line-height:1.5}
+
+/* 札（杖の 1 枚） */
+.card{position:relative;flex:0 0 auto;background:var(--ink2);
+  border:2px solid var(--line);box-shadow:3px 3px 0 var(--ink0);
+  display:flex;flex-direction:column;overflow:hidden}
+.card .top{display:flex;align-items:center;gap:4px;padding:3px 4px 2px;
+  border:0;margin:0;background:var(--ink3)}
+.card .ico{width:14px;height:14px;flex:0 0 auto}
+.card .nm{font-size:11px;line-height:1.1;flex:1 1 auto;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .body{flex:1 1 auto;padding:4px;font-size:10px;line-height:1.35;color:var(--dim)}
+.card .body em{font-style:normal;color:var(--ivory)}
+.card.proj{border-color:var(--red)}
+.card.proj .top{background:#3a1416}
+.card.mod{border-color:var(--blue)}
+.card.mod .top{background:#132a38}
+.card.util{border-color:var(--brass-lo)}
+.card.util .top{background:#332a0c}
+.card .ord{position:absolute;right:2px;top:2px;font-family:var(--mono);font-size:9px;
+  color:var(--dim)}
+
+/* 矢印 */
+.arrow{flex:0 0 auto;color:var(--line-hi);font-family:var(--mono);font-size:14px}
+
+/* メーター */
+.meter{position:relative;background:var(--ink3);border:2px solid var(--ink0);
+  box-shadow:0 0 0 2px var(--line)}
+.meter i{display:block;height:100%}
+.meter .txt{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-family:var(--mono);font-size:11px;color:var(--ivory);
+  text-shadow:1px 1px 0 #000}
+
+/* バフの粒 */
+.chip{display:inline-flex;align-items:center;gap:3px;padding:1px 5px;
+  background:var(--ink2);border:2px solid var(--line);font-size:10px;
+  font-family:var(--mono)}
+.chip.sh{border-color:var(--blue);color:#9ccfe8}
+.chip.mi{border-color:var(--brass-lo);color:var(--brass-hi)}
+.chip.po{border-color:var(--purple);color:#c9a8e8}
+
+/* 押せそうに見えるボタン（押せない） */
+.btn{font:inherit;font-size:13px;padding:7px 14px;background:var(--ink2);
+  color:var(--ivory);border:2px solid var(--line);box-shadow:3px 3px 0 var(--ink0)}
+.btn.go{background:var(--brass);color:#1a1405;border-color:var(--brass-hi)}
+</style>
+
+<div class="page">
+  <div class="top">
+    <h1>戦闘画面の<em>レイアウト案</em></h1>
+    <div class="sub">射的の杖・試作版 / 見た目だけ・機能なし / 1280×720</div>
+    <div class="spacer"></div>
+    <div class="sub" id="scale">—</div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="caption" id="caption"></div>
+  <div class="stagewrap" id="stagewrap"></div>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════════════════
+   1. 中身。4 案とも同じ盤面を出す。違うのは並べ方だけ
+   ═══════════════════════════════════════════════════════════════════ */
+const FOES = [
+  {nm:"どぶ鼠", sp:"rat",  hp:11, max:18, intent:"6 ダメージ"},
+  {nm:"苔の塊", sp:"blob", hp:22, max:22, intent:"守る +8"},
+  {nm:"骨兵",   sp:"bone", hp:9,  max:30, intent:"力 +3"},
+];
+const WAND = [
+  {t:"mod",  nm:"倍加", ico:"mul",  body:"次の発射体の威力 <em>×2</em>"},
+  {t:"mod",  nm:"貫通", ico:"pier", body:"奥へ <em>2 体</em>まで通す"},
+  {t:"proj", nm:"火球", ico:"fire", body:"<em>9</em> ダメージ"},
+  {t:"util", nm:"構え", ico:"gard", body:"盾 <em>+6</em>"},
+  {t:"proj", nm:"氷矢", ico:"ice",  body:"<em>5</em> ダメージ・鈍化"},
+];
+const SELF = {nm:"あなた", hp:34, max:50, shield:6, might:3, poison:2, deck:9, used:5};
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. ドット絵。文字列の格子から <svg> の矩形を起こす
+   ═══════════════════════════════════════════════════════════════════ */
+const SPRITES = {
+  rat: {key:{b:"#6d5a4a", d:"#4a3c31", w:"#f2ece0", e:"#0b0f0e"}, rows:[
+    "..............",
+    "..............",
+    ".b..........b.",
+    ".bb........bb.",
+    "..bbbbbbbbbb..",
+    ".bbbbbbbbbbbbd",
+    ".bbwbbbbbbwbbd",
+    "bbbbbbbbbbbbb.",
+    "bbbbbbbbbbbbb.",
+    ".bbbbbbbbbbbb.",
+    "..dd..dd..dd..",
+    "..dd..dd..dd..",
+    "..............",
+    "..............",
+  ]},
+  blob: {key:{g:"#2fa066", d:"#1a6b45", w:"#f2ece0", h:"#8ee0b0"}, rows:[
+    "..............",
+    "..............",
+    ".....hhhh.....",
+    "...hhgggghh...",
+    "..gggggggggg..",
+    ".gggwggggwggg.",
+    ".gggwggggwggg.",
+    ".gggggggggggg.",
+    "gggggggggggggg",
+    "gggggggggggggg",
+    ".dddggggggddd.",
+    "..dddddddddd..",
+    "..............",
+    "..............",
+  ]},
+  bone: {key:{i:"#d8d2c2", d:"#8a8474", e:"#0b0f0e"}, rows:[
+    ".....iiii.....",
+    "....iiiiii....",
+    "....ideedi....",
+    "....iiiiii....",
+    ".....iddi.....",
+    "...iiiiiiii...",
+    "..iiiiiiiiii..",
+    "..i.iiiiii.i..",
+    "..i.iiiiii.i..",
+    "....ii..ii....",
+    "....ii..ii....",
+    "...ddd..ddd...",
+    "..............",
+    "..............",
+  ]},
+  hero: {key:{p:"#c9a227", c:"#3f7fa8", d:"#28556f", s:"#e8c9a0", y:"#f0d878", e:"#0b0f0e"}, rows:[
+    ".....pppp.....",
+    "....pppppp....",
+    "....psseps....",
+    "....pssssp....",
+    "...cccccccc.y.",
+    "..cccccccccy..",
+    "..ddccccccy...",
+    "..ddcccccy....",
+    "..ddcccccc....",
+    "...cc..cc.....",
+    "...cc..cc.....",
+    "..ddd..ddd....",
+    "..............",
+    "..............",
+  ]},
+};
+
+/** 格子 → SVG。px は 1 マスの大きさ */
+function sprite(name, px){
+  const s = SPRITES[name];
+  const w = s.rows[0].length, h = s.rows.length;
+  let r = "";
+  for (let y=0;y<h;y++){
+    const row = s.rows[y];
+    let x = 0;
+    while (x < row.length){
+      const ch = row[x];
+      if (ch === "."){ x++; continue; }
+      let n = 1;
+      while (x+n < row.length && row[x+n] === ch) n++;   // 同じ色は横につなげる
+      r += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${s.key[ch]}"/>`;
+      x += n;
+    }
+  }
+  return `<svg class="sp px" width="${w*px}" height="${h*px}" viewBox="0 0 ${w} ${h}"
+    shape-rendering="crispEdges">${r}</svg>`;
+}
+
+/* 札の小さな記号 */
+const ICONS = {
+  fire: `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" width="14" height="14">
+    <rect x="3" y="0" width="2" height="2" fill="#f0d878"/>
+    <rect x="2" y="2" width="4" height="3" fill="#d94a4a"/>
+    <rect x="1" y="4" width="6" height="3" fill="#b8262c"/></svg>`,
+  ice: `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" width="14" height="14">
+    <rect x="3" y="0" width="2" height="8" fill="#9ccfe8"/>
+    <rect x="0" y="3" width="8" height="2" fill="#9ccfe8"/>
+    <rect x="1" y="1" width="2" height="2" fill="#3f7fa8"/>
+    <rect x="5" y="5" width="2" height="2" fill="#3f7fa8"/></svg>`,
+  mul: `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" width="14" height="14">
+    <rect x="1" y="1" width="2" height="2" fill="#f0d878"/>
+    <rect x="5" y="1" width="2" height="2" fill="#f0d878"/>
+    <rect x="3" y="3" width="2" height="2" fill="#c9a227"/>
+    <rect x="1" y="5" width="2" height="2" fill="#f0d878"/>
+    <rect x="5" y="5" width="2" height="2" fill="#f0d878"/></svg>`,
+  pier: `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" width="14" height="14">
+    <rect x="0" y="3" width="6" height="2" fill="#9ccfe8"/>
+    <rect x="5" y="2" width="2" height="4" fill="#3f7fa8"/>
+    <rect x="6" y="1" width="2" height="6" fill="#3f7fa8"/></svg>`,
+  gard: `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" width="14" height="14">
+    <rect x="1" y="0" width="6" height="5" fill="#c9a227"/>
+    <rect x="2" y="5" width="4" height="2" fill="#c9a227"/>
+    <rect x="3" y="7" width="2" height="1" fill="#8a6d15"/></svg>`,
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. 共通の部品
+   ═══════════════════════════════════════════════════════════════════ */
+const abs = (x,y,w,h,cls,html) =>
+  `<div class="${cls||""}" style="position:absolute;left:${x}px;top:${y}px;`+
+  (w?`width:${w}px;`:"")+(h?`height:${h}px;`:"")+`">${html||""}</div>`;
+
+function foeBlock(f, px, front, opt){
+  const o = opt || {};
+  const pct = Math.round(f.hp / f.max * 100);
+  return `<div class="foe${front ? " front" : ""}">
+    ${o.intent !== false ? `<span class="intent">${f.intent}</span>` : ""}
+    ${sprite(f.sp, px)}
+    ${o.name !== false
+      ? `<div class="nmrow"><span class="nm">${f.nm}</span>
+           <span class="num">${f.hp}/${f.max}</span></div>` : ""}
+    <div class="hp" style="width:${o.hpw || 84}px"><i style="width:${pct}%"></i></div>
+  </div>`;
+}
+
+function cardBlock(c, w, h, ord){
+  return `<div class="card ${c.t}" style="width:${w}px;height:${h}px">
+    ${ord ? `<span class="ord">${ord}</span>` : ""}
+    <div class="top"><span class="ico">${ICONS[c.ico]}</span><span class="nm">${c.nm}</span></div>
+    <div class="body">${c.body}</div>
+  </div>`;
+}
+
+function selfBar(w){
+  const pct = Math.round(SELF.hp / SELF.max * 100);
+  return `<div style="display:flex;align-items:center;gap:10px">
+    ${sprite("hero", 3)}
+    <div style="flex:1 1 auto;min-width:0">
+      <div class="meter" style="height:18px;width:${w}px">
+        <i style="width:${pct}%;background:var(--red)"></i>
+        <span class="txt">${SELF.hp} / ${SELF.max}</span>
+      </div>
+      <div style="margin-top:6px;display:flex;gap:6px">
+        <span class="chip sh">盾 ${SELF.shield}</span>
+        <span class="chip mi">力 ${SELF.might}</span>
+        <span class="chip po">毒 ${SELF.poison}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+const WHEEL_IMG = "data:image/png;base64,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";
+const wheel = w => `<img class="wheelimg px" src="${WHEEL_IMG}" alt="" style="width:${w}px">`;
+
+/* ═══════════════════════════════════════════════════════════════════
+   4. 案。1280×720 の中に、座標で置いていく
+   ═══════════════════════════════════════════════════════════════════ */
+const LAYOUTS = {};
+
+/* ── 案A 卓 ───────────────────────────────────────────────────────
+   ルーレットと戦闘を「同じ台の上」に置く。盤は台に嵌まった装置で、
+   敵も札も同じフェルトの上にある。世界がひと続きに見える。 */
+LAYOUTS.table = {
+  name:"卓", en:"TABLE",
+  lead:"ルーレットと戦闘を<b>同じ台の上</b>に置く。盤は卓に嵌まった装置で、敵も札も同じフェルトの上にいる。",
+  pro:"世界がひと続きに見える。盤が「別画面の抽選機」ではなく卓の一部になる",
+  con:"フェルトの緑が画面の大半を占めるので、札や敵の色が沈みやすい",
+  build(){
+    const felt = 400;
+    let h = "";
+    // 台
+    h += abs(0,0,1280,720,"", `<div style="position:absolute;inset:0;
+      background:radial-gradient(120% 90% at 62% 10%, #12653f 0%, var(--felt) 45%, var(--felt-lo) 100%)"></div>`);
+    // 左：木の張り出しと盤
+    h += abs(0,0,felt,720,"", `<div style="position:absolute;inset:0;
+      background:linear-gradient(90deg, var(--wood-lo), var(--wood) 60%, var(--wood-hi));
+      border-right:4px solid var(--wood-lo)"></div>`);
+    h += abs(24,84,352,0,"bezel", wheel(346));
+    h += abs(24,44,352,0,"", `<div class="lbl" style="color:#e0c9a8">Wheel — 抽選</div>`);
+    h += abs(24,520,352,0,"", `
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <span class="lbl" style="color:#e0c9a8">玉</span>
+        ${[1,2,3].map(n=>`<span class="chip" style="border-color:#8a6d15;color:#f0d878">${n}</span>`).join("")}
+      </div>
+      <button class="btn go" style="width:100%;font-size:16px;padding:12px">投 げ る</button>
+      <div class="lbl" style="margin-top:10px;color:#c9b89a">残り札 ${SELF.deck} / 使用済 ${SELF.used}</div>`);
+    // 上の帯
+    h += abs(felt+28,18,0,0,"", `<span class="lbl">地下 3 階 — 戦闘 2 / 3</span>`);
+    // 敵の列（手前が左）
+    const xs = [felt+50, felt+290, felt+520];
+    const ys = [96, 74, 56];
+    FOES.forEach((f,i)=>{ h += abs(xs[i], ys[i], 0, 0, "", foeBlock(f, i===0?7:6, i===0)); });
+    h += abs(felt+28, 62, 0, 0, "", `<span class="lbl">← 前</span>`);
+    // 杖
+    h += abs(felt+28, 306, 824, 2, "hr");
+    h += abs(felt+28, 318, 0, 0, "", `<span class="lbl">Wand — 落ちた順が詠唱の順</span>`);
+    h += abs(felt+28, 340, 824, 124, "", `<div style="display:flex;align-items:stretch;gap:0">
+      ${WAND.map((c,i)=> cardBlock(c,146,124,i+1) + (i<WAND.length-1
+        ? `<div class="arrow" style="display:flex;align-items:center;padding:0 6px">▶</div>` : "")).join("")}
+    </div>`);
+    // 自分と、直前の出目
+    h += abs(felt+28, 492, 824, 2, "hr");
+    h += abs(felt+28, 510, 0, 0, "", `<span class="lbl">Self</span>`);
+    h += abs(felt+28, 534, 520, 0, "", selfBar(500));
+    h += abs(felt+600, 510, 0, 0, "", `<span class="lbl">直前の出目</span>`);
+    h += abs(felt+600, 532, 252, 0, "", `
+      <div style="background:rgba(9,58,36,.75);border:2px solid var(--line);padding:8px 10px">
+        ${["火球 → 倍加 → 構え","氷矢 → 貫通","倍加 → 火球"].map((t,i)=>`
+          <div style="font-size:12px;color:${i?"var(--dim)":"var(--ivory)"};
+            padding:2px 0">${t}</div>`).join("")}
+      </div>`);
+    h += abs(felt+28, 646, 824, 2, "hr");
+    h += abs(felt+28, 662, 0, 0, "", `<span class="lbl">
+      落ちた札が左から順に杖へ入る　—　修飾は次の発射体に乗る</span>`);
+    return h;
+  }
+};
+
+/* ── 案B 機械 ─────────────────────────────────────────────────────
+   盤を機械に嵌め、右を計器盤にする。区画がはっきり分かれていて、
+   どこに何が出るかが決まっている。Into the Breach 的な硬さ。 */
+LAYOUTS.console = {
+  name:"機械", en:"CONSOLE",
+  lead:"盤を機械に嵌めて、右を<b>計器盤</b>にする。枠がはっきり分かれていて、どこに何が出るかが固定される。",
+  pro:"情報が探しやすい。札が増えても枠が崩れない。Into the Breach 的な硬さ",
+  con:"戦っている感じは薄い。枠線が多いぶん画面が忙しく見えることがある",
+  build(){
+    const L = 420;
+    let h = "";
+    h += abs(0,0,1280,720,"", `<div style="position:absolute;inset:0;background:var(--ink0)"></div>`);
+    // 左の機械
+    h += abs(0,0,L,720,"", `<div style="position:absolute;inset:0;background:var(--ink1);
+      border-right:4px solid var(--line)"></div>`);
+    // リベット
+    let riv = "";
+    for (let y=24;y<720;y+=64) riv += `<div style="position:absolute;left:${L-18}px;top:${y}px;
+      width:8px;height:8px;background:var(--line-hi);box-shadow:1px 1px 0 var(--ink0)"></div>`;
+    h += riv;
+    h += abs(30,26,0,0,"", `<span class="lbl">Wheel — 抽選装置</span>`);
+    h += abs(30,50,360,0,"bezel", wheel(354));
+    h += abs(30,376,360,0,"", `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${[["区画","5"],["玉","2"],["残り札",SELF.deck],["使用済",SELF.used]].map(([k,v])=>`
+          <div style="background:var(--ink2);border:2px solid var(--line);padding:6px 8px">
+            <div class="lbl">${k}</div>
+            <div style="font-family:var(--mono);font-size:20px;color:var(--brass-hi)">${v}</div>
+          </div>`).join("")}
+      </div>
+      <button class="btn go" style="width:100%;margin-top:12px;font-size:16px;padding:12px">投 げ る</button>`);
+    // 右の 3 枚の板
+    const panel = (x,y,w,ht,label,inner) =>
+      abs(x,y,w,ht,"", `<div style="position:absolute;inset:0;background:var(--ink1);
+        border:2px solid var(--line)"></div>
+        <div style="position:absolute;left:10px;top:-9px;background:var(--ink0);padding:0 6px">
+          <span class="lbl">${label}</span></div>
+        <div style="position:absolute;left:14px;top:18px;right:14px;bottom:12px">${inner}</div>`);
+    const RX = L+24, RW = 1280-L-48;
+    h += panel(RX, 26, RW, 232, "Enemy line — 前から当たる", `
+      <div style="display:flex;align-items:flex-end;gap:34px;height:100%">
+        ${FOES.map((f,i)=> foeBlock(f, 6, i===0)).join(
+          `<div class="arrow" style="align-self:center">◀</div>`)}
+        <div style="flex:1 1 auto"></div>
+        <div style="align-self:flex-start;text-align:right">
+          <div class="lbl">次の一手</div>
+          <div style="font-size:12px;color:var(--brass-hi);margin-top:4px">合計 6 ダメージ</div>
+        </div>
+      </div>`);
+    h += panel(RX, 288, RW, 236, "Wand — 落ちた順が詠唱の順", `
+      <div style="display:flex;align-items:stretch;gap:0;height:100%">
+        ${WAND.map((c,i)=> cardBlock(c,146,192,i+1) + (i<WAND.length-1
+          ? `<div class="arrow" style="display:flex;align-items:center;padding:0 5px">▶</div>` : "")).join("")}
+      </div>`);
+    h += panel(RX, 556, RW, 148, "Self", `
+      <div style="display:flex;align-items:center;gap:18px;height:100%">
+        ${sprite("hero",4)}
+        <div style="flex:1 1 auto">
+          <div class="meter" style="height:22px">
+            <i style="width:${Math.round(SELF.hp/SELF.max*100)}%;background:var(--red)"></i>
+            <span class="txt">${SELF.hp} / ${SELF.max}</span>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <span class="chip sh">盾 ${SELF.shield}</span>
+            <span class="chip mi">力 ${SELF.might}</span>
+            <span class="chip po">毒 ${SELF.poison}</span>
+          </div>
+        </div>
+      </div>`);
+    return h;
+  }
+};
+
+/* ── 案C 舞台 ─────────────────────────────────────────────────────
+   右を横から見た舞台にする。奥へ行くほど上に小さく並ぶ。
+   手前に細い帯を置いて、そこに杖と自分をまとめる。 */
+LAYOUTS.stage = {
+  name:"舞台", en:"STAGE",
+  lead:"右を<b>横から見た舞台</b>にする。奥へ行くほど上に並び、手前の帯に杖と自分をまとめる。",
+  pro:"戦っている感じがいちばん強い。敵の「列」が絵として分かる",
+  con:"札の置き場が細い帯だけなので、詳細を書ききれない。札が増えると横に溢れる",
+  build(){
+    const L = 340, SX = L;
+    let h = "";
+    h += abs(0,0,1280,720,"", `<div style="position:absolute;inset:0;background:var(--ink0)"></div>`);
+    // 舞台：壁と床の帯
+    h += abs(SX,0,1280-SX,300,"", `<div style="position:absolute;inset:0;
+      background:linear-gradient(180deg,#0e1614,#18211e)"></div>`);
+    /* 帯の境目が、そのまま「その列の足元の線」になるように置く。
+       奥の敵ほど上の帯に立つ。ここを合わせないと、敵が床から浮いて見える。 */
+    const bands = [["#212c28",300,112],["#1a2420",412,43],["#141d1a",455,37],["#101816",492,64]];
+    bands.forEach(([c,y,ht])=> h += abs(SX,y,1280-SX,ht,"",
+      `<div style="position:absolute;inset:0;background:${c};border-top:2px solid #2f3d38"></div>`));
+    // 壁のドット模様
+    let brick = "";
+    for (let y=18;y<292;y+=16) for (let x=SX+8;x<1268;x+=26){
+      const bx = x + (y/16%2 ? 13 : 0);
+      if (bx + 22 > 1274) continue;              // 枠の外へ出さない
+      brick += `<div style="position:absolute;left:${bx}px;top:${y}px;
+        width:22px;height:8px;background:#131b19"></div>`;
+    }
+    h += brick;
+    // 松明。壁が広いので、明かりで奥行きを出す
+    [SX+180, SX+520, SX+860].forEach(x=>{
+      h += abs(x, 74, 0, 0, "", `<div style="width:10px;height:26px;background:var(--wood-hi)"></div>
+        <div style="width:14px;height:14px;margin-left:-2px;margin-top:-30px;
+          background:var(--brass-hi);box-shadow:0 0 24px 10px rgba(240,216,120,.22)"></div>`);
+    });
+    // 自分（手前・左）
+    h += abs(SX+44, 394, 0, 0, "", sprite("hero", 7));   // 足元 = 492
+    h += abs(SX+44, 500, 0, 0, "", `<span class="lbl">あなた</span>`);
+    /* 足元 = y + 25 + 14×px。手前 492 / 中 455 / 奥 412 の線に合わせる */
+    const ex = [SX+286, SX+528, SX+742], ey = [369, 346, 317], ep = [7,6,5];
+    FOES.forEach((f,i)=>{ h += abs(ex[i], ey[i], 0, 0, "", foeBlock(f, ep[i], i===0, {hpw:68})); });
+    h += abs(1088, 526, 0, 0, "", `<span class="lbl">← 前　　奥 →</span>`);
+    // 手前の帯
+    h += abs(0,556,1280,164,"", `<div style="position:absolute;inset:0;background:var(--ink1);
+      border-top:4px solid var(--line)"></div>`);
+    h += abs(20,572,0,0,"", `<span class="lbl">Wand</span>`);
+    h += abs(20,592,760,112,"", `<div style="display:flex;align-items:stretch;gap:0">
+      ${WAND.map((c,i)=> cardBlock(c,138,112,i+1) + (i<WAND.length-1
+        ? `<div class="arrow" style="display:flex;align-items:center;padding:0 4px">▶</div>` : "")).join("")}
+    </div>`);
+    h += abs(812,572,0,0,"", `<span class="lbl">Self</span>`);
+    h += abs(812,592,288,0,"", selfBar(288));
+    h += abs(1130,572,0,0,"", `<span class="lbl">直前の出目</span>`);
+    h += abs(1130,592,130,0,"", `
+      <div style="background:var(--ink2);border:2px solid var(--line);padding:6px 8px;
+        font-size:11px;line-height:1.6">火球 → 倍加<br><span style="color:var(--dim)">氷矢 → 貫通</span></div>`);
+    h += abs(1130,660,130,0,"", `<button class="btn go" style="width:100%;padding:10px 0">投げる</button>`);
+    // 左：盤
+    h += abs(0,0,L,556,"", `<div style="position:absolute;inset:0;background:var(--ink1);
+      border-right:4px solid var(--line)"></div>`);
+    h += abs(18,20,0,0,"", `<span class="lbl">Wheel</span>`);
+    h += abs(18,42,304,0,"bezel", wheel(298));
+    h += abs(18,340,304,0,"", `
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="lbl">玉</span>
+        ${[1,2,3].map(n=>`<span class="chip" style="border-color:var(--brass-lo);color:var(--brass-hi)">${n}</span>`).join("")}
+      </div>
+      <div style="margin-top:14px;background:var(--ink2);border:2px solid var(--line);padding:8px 10px">
+        <div class="lbl">直前の出目</div>
+        <div style="font-size:15px;margin-top:4px">火球 → 倍加 → 構え</div>
+      </div>`);
+    h += abs(0,502,L,2,"hr");
+    h += abs(18,516,0,0,"", `<span class="lbl">地下 3 階 — 戦闘 2 / 3</span>`);
+    return h;
+  }
+};
+
+/* ── 案D 巻物 ─────────────────────────────────────────────────────
+   杖を縦に置く。上から下へ読む順がそのまま詠唱の順になる。
+   この作品の核（落ちた順が呪文）を、いちばんはっきり見せる並べ方。 */
+LAYOUTS.scroll = {
+  name:"巻物", en:"SCROLL",
+  lead:"杖を<b>縦</b>に置く。上から下へ読む順が、そのまま詠唱の順。この作品の核をいちばんはっきり見せる並べ方。",
+  pro:"「順番が呪文」が一目で伝わる。札 1 枚あたりの面積が広く、長い説明も書ける",
+  con:"敵に使える幅が狭い。札が 7 枚を超えると縦に入りきらない",
+  build(){
+    const L = 336, R = 300, CX = L, CW = 1280 - L - R;
+    let h = "";
+    h += abs(0,0,1280,720,"", `<div style="position:absolute;inset:0;background:var(--ink0)"></div>`);
+    // 左：盤
+    h += abs(0,0,L,720,"", `<div style="position:absolute;inset:0;background:var(--ink1);
+      border-right:4px solid var(--line)"></div>`);
+    h += abs(18,22,0,0,"", `<span class="lbl">Wheel — 抽選</span>`);
+    h += abs(18,46,300,0,"bezel", wheel(294));
+    h += abs(18,306,300,0,"", `
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px">
+        <span class="lbl">玉</span>
+        ${[1,2,3].map(n=>`<span class="chip" style="border-color:var(--brass-lo);color:var(--brass-hi)">${n}</span>`).join("")}
+      </div>
+      <button class="btn go" style="width:100%;font-size:16px;padding:12px">投 げ る</button>`);
+    h += abs(18,410,300,2,"hr");
+    h += abs(18,428,300,0,"", `<span class="lbl">Self</span>`);
+    h += abs(18,452,300,0,"", selfBar(230));
+    h += abs(18,566,300,2,"hr");
+    h += abs(18,584,300,0,"", `
+      <div class="lbl">山札</div>
+      <div style="font-family:var(--mono);font-size:26px;color:var(--brass-hi);margin-top:4px">
+        ${SELF.deck}<span style="font-size:13px;color:var(--dim)"> / 使用済 ${SELF.used}</span></div>
+      <div class="lbl" style="margin-top:18px">地下 3 階 — 戦闘 2 / 3</div>`);
+    // 中：敵
+    h += abs(CX+24,24,0,0,"", `<span class="lbl">Enemy line — 攻撃は前から当たる</span>`);
+    const ys = [70, 268, 466];
+    FOES.forEach((f,i)=>{
+      h += abs(CX+24, ys[i], CW-48, 178, "", `
+        <div style="position:absolute;inset:0;background:${i===0?"#1a2320":"var(--ink1)"};
+          border:2px solid ${i===0?"var(--brass-lo)":"var(--line)"}"></div>
+        <div style="position:absolute;left:16px;top:14px;bottom:14px;right:16px;
+          display:flex;align-items:center;gap:20px">
+          ${sprite(f.sp, i===0?8:7)}
+          <div style="flex:1 1 auto">
+            <div style="font-size:16px;margin-bottom:2px">${f.nm}
+              ${i===0?`<span class="lbl" style="color:var(--brass)">　前</span>`:""}</div>
+            <div class="meter" style="height:16px;max-width:260px">
+              <i style="width:${Math.round(f.hp/f.max*100)}%;background:var(--red)"></i>
+              <span class="txt">${f.hp} / ${f.max}</span>
+            </div>
+            <div style="margin-top:8px"><span class="intent">${f.intent}</span></div>
+          </div>
+        </div>`);
+    });
+    // 右：杖（縦）
+    h += abs(1280-R,0,R,720,"", `<div style="position:absolute;inset:0;background:var(--ink1);
+      border-left:4px solid var(--line)"></div>`);
+    h += abs(1280-R+18,22,0,0,"", `<span class="lbl">Wand — 上から順に詠唱</span>`);
+    const cy = 48, ch = 116, gap = 14;
+    WAND.forEach((c,i)=>{
+      const y = cy + i*(ch+gap);
+      h += abs(1280-R+18, y, R-36, ch, "", cardBlock(c, R-36, ch, i+1));
+      if (i < WAND.length-1)
+        h += abs(1280-R+18+(R-36)/2-6, y+ch+1, 0, 0, "arrow", "▼");
+    });
+    return h;
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════════
+   5. 案を並べて、入る大きさに縮める
+   ═══════════════════════════════════════════════════════════════════ */
+const ORDER = ["table","console","stage","scroll"];
+let current = ORDER[0];
+
+function build(){
+  const wrap = $("stagewrap");
+  wrap.innerHTML = "";
+  for (const k of ORDER){
+    const d = document.createElement("div");
+    d.className = "screen" + (k === current ? " on" : "");
+    d.id = "sc-" + k;
+    d.innerHTML = LAYOUTS[k].build();
+    wrap.appendChild(d);
+  }
+  const tabs = $("tabs");
+  tabs.innerHTML = "";
+  ORDER.forEach((k,i)=>{
+    const b = document.createElement("button");
+    b.className = k === current ? "on" : "";
+    b.innerHTML = `案${"ABCD"[i]}　${LAYOUTS[k].name}<small>${LAYOUTS[k].en}</small>`;
+    b.onclick = () => { current = k; build(); };
+    tabs.appendChild(b);
+  });
+  const L = LAYOUTS[current];
+  $("caption").innerHTML = `${L.lead}
+    <div class="row">
+      <span><b>効くところ</b>　${L.pro}</span>
+    </div>
+    <div class="row">
+      <span class="ng"><b>弱いところ</b>　${L.con}</span>
+    </div>`;
+  fit();
+}
+
+/** 1280×720 を、入る幅に合わせて縮める。伸ばしはしない */
+function fit(){
+  const wrap = $("stagewrap");
+  const s = Math.min(1, wrap.clientWidth / 1280);
+  for (const k of ORDER){
+    const el = $("sc-"+k);
+    if (el) el.style.transform = `scale(${s})`;
+  }
+  wrap.style.height = Math.round(720*s) + "px";
+  $("scale").textContent = `表示 ${Math.round(s*100)}%`;
+}
+addEventListener("resize", fit);
+build();
+</script>

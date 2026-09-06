@@ -19,3 +19,11 @@ echo "index.html を生成しました"
   printf '\n</body>\n</html>\n'
 } > roulette/index.html
 echo "roulette/index.html を生成しました"
+
+# 3D 版
+{
+  cat roulette3d/head.html
+  cat roulette3d/app.html
+  printf '\n</body>\n</html>\n'
+} > roulette3d/index.html
+echo "roulette3d/index.html を生成しました"

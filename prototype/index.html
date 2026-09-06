@@ -112,7 +112,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
 .dwrap{position:relative;touch-action:none;
   padding:calc(var(--u)*2);background:var(--c1);
   border:var(--bw) solid var(--c2);box-shadow:var(--sh)}
-.dgrid{display:grid;gap:0}
+.dgrid{display:grid;gap:0;position:relative}
 .dc{width:var(--ts);height:var(--ts);position:relative}
 .dc.wall{background:var(--c0)}
 /* 通路と部屋。上端 1 ドットの照りと下端 1 ドットの影で厚みを出す */
@@ -478,7 +478,7 @@ body.isfull #stagebox{position:fixed;inset:0;z-index:90}
       </div>
     </div>
     <div class="dside left" id="dsl"></div>
-    <div class="dwrap"><div class="dgrid" id="dgrid"></div><div class="hero" id="hero"></div></div>
+    <div class="dwrap"><div class="dgrid" id="dgrid"><div class="hero" id="hero"></div></div></div>
     <div class="dside right" id="dsr"></div>
     <div class="dtip" id="dtip"></div>
     <button class="btn dex" id="btn-dex">図鑑</button>
@@ -1348,7 +1348,10 @@ function renderDungeon(){
     `<div class="dsrow"><span class="nm">1 ラウンドの引き</span><span class="ct">${S.draw}</span></div>`+
     (S.swapMax?`<div class="dsrow"><span class="nm">入れ替え</span><span class="ct">${S.swapMax}</span></div>`:``);
 
-  const hero = $("hero");
+  // 盤面の中に入れ直す（grid.innerHTML で消えるので毎回付け直す）
+  let hero = $("hero");
+  if (!hero){ hero = document.createElement("div"); hero.id = "hero"; hero.className = "hero"; }
+  grid.appendChild(hero);
   hero.style.width = hero.style.height = ts + "px";
   hero.style.left = (S.d.px*ts) + "px";
   hero.style.top  = (S.d.py*ts) + "px";

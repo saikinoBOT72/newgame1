@@ -339,6 +339,22 @@ const OMEGA_CRIT = Math.sqrt(G * Math.tan(W.alpha) / W.rRim);   // ≈ 4.31 rad/
 /** 玉が収まる半径。ポケット帯のまんなか。 */
 const R_REST = (W.rPocket + W.rRotor) / 2;
 
+/* ── 区画の位置は、ここだけで決める ──
+   描画と物理がそれぞれ勝手に計算すると、必ず食い違う。
+   実際これを分けていたせいで、玉が乗っている区画と発表される数字が
+   9〜10 区画ずれていた（π/2 ぶん）。角度→区画 と 区画→角度 を
+   1 組の関数にして、両方から必ずこれを通す。 */
+const SLOT = TAU / N;
+const ROTOR_PHASE = -Math.PI / 2;        // 区画 0 を真上に置くための回転
+
+/** 区画 i の始まりの角（ロータ内座標） */
+const pocketStart = i => i * SLOT + ROTOR_PHASE;
+/** 絶対角 a は、ロータの向きが tr のときどの区画か */
+const pocketAt = (a, tr) =>
+  ((Math.floor(norm(a - tr - ROTOR_PHASE) / SLOT) % N) + N) % N;
+/** 区画 i の中心の絶対角 */
+const pocketCentre = (i, tr) => norm(tr + ROTOR_PHASE + (i + 0.5) * SLOT);
+
 /* 乱数。統計を再現できるよう種を持つ */
 let rngState = (Math.random() * 4294967296) >>> 0;
 function rnd(){                                   // mulberry32
@@ -466,8 +482,9 @@ function step(s){
 
     // フレット（区画の仕切り）との衝突。相対角速度で決まる
     const wrel = s.wb - s.wr;
-    const slot = TAU / N;
-    const pa = norm(s.tb - s.tr) / slot;
+    // フレットは区画の境目にある。描画と同じ位相で数えないと、
+    // 絵の上では区画の真ん中なのに跳ねる、という挙動になる
+    const pa = norm(s.tb - s.tr - ROTOR_PHASE) / SLOT;
     const near = Math.abs(pa - Math.round(pa));
     if (near < 0.085 && Math.abs(wrel) > 0.30){
       s.wb = s.wr - wrel * rr(0.28, 0.52);   // 跳ね返って減速
@@ -479,7 +496,7 @@ function step(s){
       s.settleT += DT;
       if (s.settleT > 0.10){
         s.phase = "done";
-        s.pocket = ((Math.floor(norm(s.tb - s.tr) / slot) % N) + N) % N;
+        s.pocket = pocketAt(s.tb, s.tr);       // 描画と同じ式を通す
         s.number = SEQ[s.pocket];
         s.wb = s.wr;                          // 以後はロータと一緒に回る
         s.r  = R_REST;                        // すでにそこにいる（跳ばない）
@@ -495,7 +512,7 @@ function runSpin(tight){
   let guard = 0;
   while (s.phase !== "done" && guard++ < 480 * 40) step(s);
   if (s.phase !== "done"){                    // 保険（実測では発生しない）
-    s.pocket = ((Math.floor(norm(s.tb - s.tr) / (TAU/N)) % N) + N) % N;
+    s.pocket = pocketAt(s.tb, s.tr);
     s.number = SEQ[s.pocket]; s.phase = "done";
   }
   return s;
@@ -763,7 +780,7 @@ function paintRotor(){
   // ポケット帯。実物は外周寄りの狭い帯で、内側は滑らかな円錐
   for (let i = 0; i < N; i++){
     const n = SEQ[i];
-    const a0 = i * slot - Math.PI/2, a1 = a0 + slot;
+    const a0 = pocketStart(i), a1 = a0 + slot;
     const col = n === 0 ? "#1e7d4f" : (REDS.has(n) ? "#c1272d" : "#1a1a1c");
     const lo  = n === 0 ? "#0d3f27" : (REDS.has(n) ? "#6e1216" : "#070708");
     g.beginPath();
@@ -776,7 +793,7 @@ function paintRotor(){
   }
   // フレット（区画の仕切り金具）。ポケット帯を横切る
   for (let i = 0; i < N; i++){
-    const a0 = i * slot - Math.PI/2;
+    const a0 = pocketStart(i);
     g.save(); g.translate(C,C); g.rotate(a0);
     const fg = g.createLinearGradient(m2p(W.rPocket),0,m2p(W.rRotor),0);
     fg.addColorStop(0,"#6e737a"); fg.addColorStop(.45,"#eef2f6");
@@ -787,7 +804,7 @@ function paintRotor(){
   }
   // 数字。ポケットの外側に、外を向けて置く
   for (let i = 0; i < N; i++){
-    const n = SEQ[i], a0 = i * slot - Math.PI/2;
+    const n = SEQ[i], a0 = pocketStart(i);
     g.save(); g.translate(C,C); g.rotate(a0 + slot/2);
     g.translate(m2p((W.rPocket + W.rRotor)/2 + 0.012), 0); g.rotate(Math.PI/2);
     g.fillStyle = "#f6f3ea";
@@ -821,13 +838,17 @@ function paintRotor(){
   g.fillStyle = knob; g.beginPath(); g.arc(C,C,m2p(0.019),0,TAU); g.fill();
 }
 
-function drawWheel(s){
+let lastTb = 0, lastTr = 0, lastR = 0;   // 検査から読むための直前フレームの値
+/** tr = ロータの向き、ba = 玉の絶対角（無ければ null）、br = 玉の半径 */
+function drawWheel(tr, ba, br_){
   const C = PX/2;
+  lastTr = tr; if (ba !== null){ lastTb = ba; lastR = br_; }
   cx.clearRect(0,0,PX,PX);
   cx.drawImage(bowlCv, 0, 0);
-  cx.save(); cx.translate(C,C); cx.rotate(s ? s.tr : rotorIdle); cx.translate(-C,-C);
+  cx.save(); cx.translate(C,C); cx.rotate(tr); cx.translate(-C,-C);
   cx.drawImage(rotorCv, 0, 0); cx.restore();
-  if (!s) return;
+  if (ba === null) return;
+  const s = {tb: ba, r: br_};
   // 玉。落ちる影を内側にずらして、すり鉢の中にいるように見せる
   const bx = C + Math.cos(s.tb) * m2p(s.r), by = C + Math.sin(s.tb) * m2p(s.r);
   const br = Math.max(2, m2p(W.ballR));
@@ -844,7 +865,10 @@ function drawWheel(s){
    10. 進行
    ═══════════════════════════════════════════════════════════════════ */
 let spin = null;            // 進行中の spin 状態
-let rotorIdle = 0;          // 待機中もロータは回っている
+/* ロータは席を立つまで回り続ける。収まった玉はポケットに乗ったまま一緒に回る。
+   決着のたびにロータの向きを捨てて回し直すと、玉が消えて盤が飛ぶ。 */
+const rotor = {t: 0, w: 0.55};
+let resting = null;         // 収まっている区画（無ければ null）
 let locked = false;         // 「もう賭けられません」
 let raf = 0;
 
@@ -860,6 +884,9 @@ function startSpin(){
   lastBets = bets.map(b => ({node:b.node, amount:b.amount}));
   wagered += betTotal();
   spin = newSpin(launch($("tight").checked));
+  spin.tr = rotor.t;                    // いま回っている向きから続ける
+  spin.wr = Math.max(spin.wr, rotor.w);
+  resting = null;
   locked = false;
   calloutEl.classList.remove("on");
   say("Rien ne va plus — no more bets");
@@ -909,19 +936,22 @@ function loop(){
     const sub = Math.round((1/60) / DT) * (fast ? 4 : 1);
     for (let i = 0; i < sub && spin.phase !== "done"; i++) step(spin);
     if (!locked && spin.t > 2.2){ locked = true; render(); }
-    drawWheel(spin);
-    renderPhys(spin);
     if (spin.phase === "done"){
-      // 収まってから少し見せる
-      if (spin.hold === undefined){ spin.hold = 0; say(""); }
+      // 収まってから少し見せる。玉はポケットに乗ってロータと一緒に回る
+      if (spin.hold === undefined){ spin.hold = 0; say(""); resting = spin.pocket; }
       spin.hold += 1/60;
       spin.tr = norm(spin.tr + spin.wr * (1/60));
-      spin.tb = spin.tr + (spin.pocket + 0.5) * (TAU/N);
-      if (spin.hold > 0.9) finishSpin();
+      spin.tb = pocketCentre(spin.pocket, spin.tr);
     }
+    rotor.t = spin.tr; rotor.w = spin.wr;
+    drawWheel(spin.tr, spin.tb, spin.r);
+    renderPhys(spin);
+    if (spin.phase === "done" && spin.hold > 0.9) finishSpin();
   } else {
-    rotorIdle = norm(rotorIdle + 0.55 / 60);
-    drawWheel(null);
+    rotor.t = norm(rotor.t + rotor.w / 60);
+    rotor.w = Math.max(0.35, rotor.w - 0.006 / 60);
+    drawWheel(rotor.t,
+      resting !== null ? pocketCentre(resting, rotor.t) : null, R_REST);
   }
 }
 

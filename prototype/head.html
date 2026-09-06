@@ -2,13 +2,22 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>射的の杖</title>
-<meta name="description" content="落ちた順が呪文の順になる、射的ローグライト">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>杖と順序</title>
+<meta name="description" content="ルーレットで引いた順が呪文の順になるローグライト">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070E">
+<!-- iPhone は Fullscreen API を持たない。ホーム画面に追加して standalone で
+     起動すると、Safari の UI ごと消えて本当の全画面になる。 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="杖と順序">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
-  html,body{margin:0;padding:0}
-  body{background:#080A14;color:#E9E4D4;-webkit-text-size-adjust:100%}
+  html,body{margin:0;padding:0;overscroll-behavior:none}
+  body{background:#05070E;color:#E4E2DA;-webkit-text-size-adjust:100%;
+       -webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   img{max-width:100%}
   [hidden]{display:none!important}
 </style>

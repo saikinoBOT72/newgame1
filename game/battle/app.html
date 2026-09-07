@@ -1000,8 +1000,9 @@ function textOn(hex){
 
    ── 手番の流れ ──────────────────────────────────────────────
      自分の手番のはじめ  火傷を受ける（数値ぶんのダメージ／そのあと 1 減る）
-     投げる（玉の数だけ繰り返す）
-        盤を回す → 出た区画の札が手札に入る → その場で効く
+     盤を回す（1 手番に GS.spins 回）
+        玉は<b>まとめて</b>投げる（GS.balls 個）。収まった区画の札が全部手札に入り、
+        引いた順に 1 枚ずつ、光らせながら効かせる
      自分の手番おわり     敵の盾を消す
      敵の手番のはじめ     敵が火傷を受ける
      敵が動く             攻撃／盾
@@ -1083,12 +1084,16 @@ const GS = {
   foes: newFoes(),
   hand: [],                        // この手番で引いた札（DECK の番号）
   deck: DECK.map(c => c.n),        // 区画を何個ずつ置くか
-  balls: 1,                        // 一度の手番で投げる回数。強化で増える想定
-  throws: 1,                       // この手番の残り
+  balls: 1,                        // 1 回転で投げる玉の数。強化で増える想定
+  spins: 2,                        // 1 手番に回せる回数
+  throws: 2,                       // この手番の残り
+  active: -1,                      // いま効いている札（手札の何番目か）
+  pops: [],                        // 頭の上に出す数字
   phase: "idle",
   msg: "",
   inv: false,
 };
+const MAX_SPINS = 4;
 const alive = () => GS.foes.filter(f => f.hp > 0);
 const frontFoe = () => alive()[0];
 const backFoe  = () => alive()[alive().length - 1];
@@ -1111,6 +1116,23 @@ function hit(t, n, brk, raw){
   t.shield -= a; t.hp = Math.max(0, t.hp - (n - a));
 }
 
+/* ── 頭の上に出す数字 ──────────────────────────────────────
+   数字だけ大きく出す。字は 16 ドット（書体の設計サイズの 2 倍）で、
+   仮想の升目にちょうど乗る。半端な大きさにすると格子が壊れる。 */
+/** 16 ドットの字の幅。全角は 16、半角は 8。
+    文字数 × 決め打ちで箱を作ると、全角が入ったとたんに溢れて折り返す。 */
+const textW16 = t => [...t].reduce((a,ch)=> a + (ch.charCodeAt(0) < 0x100 ? 8 : 16), 0);
+
+function pop(o){
+  const w = textW16(o.text) + 16, x = Math.max(2, Math.min(VW-w-2, o.x - (w >> 1))), y = o.y;
+  let h = "";
+  h += shadowOf(x, y, w, 22, 2);
+  h += plate(x, y, w, 22, {fill:C(o.ramp,1), hi:C(o.ramp,3), lo:C(o.ramp,0)});
+  h += box(x, y, w, 22, "display:flex;align-items:center;justify-content:center;white-space:nowrap",
+    `<span class="t2 sh" style="color:${C("bone",4)}">${o.text}</span>`);
+  return h;
+}
+
 /* ── 手札 ────────────────────────────────────────────────────
    扇に「傾けて」持つのはやめた。傾けると札に載せる名前と効果まで傾く。
    文字を絵に焼き込むと 8 ドットに潰れて読めないので、文字は札の上に
@@ -1120,9 +1142,11 @@ const CW = 110, CH = 154;
 const HAND_X = 436, HAND_L = 236, HAND_R = 636;   // 置ける範囲
 const HAND_STEP = 130, HAND_Y = 344, HAND_LIFT = 6;
 
-function handCard(x, y, c){
+function handCard(x, y, c, on){
   let h = "";
   h += shadowOf(x, y, CW, CH, 3);
+  if (on)                                        // いま効いている札を縁で光らせる
+    h += box(x-3, y-3, CW+6, CH+6, `background:${C("brass",3)}`);
   h += box(x, y, CW, CH, "overflow:hidden",
     `<img src="${c.img}" width="${CW}" height="${CH}" alt="${c.nm}">`);
   /* 名前。台紙の帯にぴったり載せる（帯は絵のほうに描いてある） */
@@ -1139,7 +1163,7 @@ function handCard(x, y, c){
     詰めると重なるが、名前の帯は札の左寄りにあるので、重なっても名前は読める。
     いちばん新しい 1 枚だけ持ち上げて、いま引いたのがどれか分かるようにする。 */
 const HAND_MAX = 4;                               // 出す枚数の上限。これ以上は数で出す
-function hand(all){
+function hand(all, active){
   if (!all.length) return "";
   /* 詰めすぎると名前も効果も読めなくなる。古いほうは切って「＋n」で出す */
   const cut = Math.max(0, all.length - HAND_MAX);
@@ -1150,9 +1174,12 @@ function hand(all){
   const x0 = Math.round(HAND_X - ((n-1)*step)/2 - CW/2);
   let h = "";
   list.forEach((ci,i)=>{
+    const on = (cut + i) === active;
     const last = i === n-1;
-    const lift = last ? HAND_LIFT + 4 : (n > 1 ? Math.round(HAND_LIFT * (1 - Math.abs(i-(n-1)/2)/((n-1)/2 || 1))) : HAND_LIFT);
-    h += handCard(x0 + i*step, HAND_Y - CH - lift, DECK[ci]);
+    const lift = on ? HAND_LIFT + 12
+      : last ? HAND_LIFT + 4
+      : (n > 1 ? Math.round(HAND_LIFT * (1 - Math.abs(i-(n-1)/2)/((n-1)/2 || 1))) : HAND_LIFT);
+    h += handCard(x0 + i*step, HAND_Y - CH - lift, DECK[ci], on);
   });
   if (cut)
     h += box(HAND_L - 32, HAND_Y - 40, 30, 12,
@@ -1301,7 +1328,7 @@ function actor(sp, x, foot, d, front, dy){
 function invPanel(){
   if (!GS.inv) return "";
   /* 高さは札の数から出す。札が増えても余白が空いたままにならない */
-  const W2 = 552, H2 = 160 + DECK.length*30;
+  const W2 = 552, H2 = 182 + DECK.length*30;
   const X = Math.round((VW - W2)/2), Y = Math.round((VH - H2)/2);
   let h = "";
   h += box(0, 0, VW, VH, `background:${INK};opacity:.72`, "", "hit close");
@@ -1345,17 +1372,24 @@ function invPanel(){
 
   const ry = Y+64 + DECK.length*30 + 12;
   h += box(cx0, ry, W2-32, 1, `background:${C("wood",0)}`);
-  h += box(cx0+34, ry+14, 200, 10, "", `<span class="t" style="color:${C("bone",4)}">区画の合計</span>`);
+  h += box(cx0+34, ry+8, 200, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${C("bone",4)}">区画の合計</span>`);
   const bad = deckTotal() < MIN_N || deckTotal() > MAX_N;
-  h += box(cx0+306, ry+14, 84, 10, "",
+  h += box(cx0+306, ry+8, 84, 14, "display:flex;align-items:center",
     `<span class="t" style="color:${bad ? C("red",4) : C("bone",3)}">${deckTotal()} / ${MAX_N}</span>`);
 
-  h += box(cx0+34, ry+38, 200, 10, "", `<span class="t" style="color:${C("bone",4)}">一度に投げる玉</span>`);
-  h += stepper(cx0+306, ry+35, GS.balls, "b");
-  h += box(cx0+400, ry+38, 90, 10, `display:flex;justify-content:flex-end`,
+  h += box(cx0+34, ry+30, 200, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${C("bone",4)}">1 回転で投げる玉</span>`);
+  h += stepper(cx0+306, ry+30, GS.balls, "b");
+  h += box(cx0+400, ry+30, 90, 14, "display:flex;align-items:center;justify-content:flex-end",
     `<span class="lbl">最大 ${MAX_BALLS}</span>`);
-  h += box(cx0+34, ry+56, 460, 10, "",
-    `<span class="lbl">玉は本来 1 個から始まって強化で増える。ここはテスト用</span>`);
+  h += box(cx0+34, ry+52, 200, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${C("bone",4)}">1 手番に回せる数</span>`);
+  h += stepper(cx0+306, ry+52, GS.spins, "s");
+  h += box(cx0+400, ry+52, 90, 14, "display:flex;align-items:center;justify-content:flex-end",
+    `<span class="lbl">最大 ${MAX_SPINS}</span>`);
+  h += box(cx0+34, ry+74, 460, 14, "display:flex;align-items:center",
+    `<span class="lbl">本来は強化で増える。ここはテスト用</span>`);
   return h;
 }
 
@@ -1431,6 +1465,7 @@ const BAND  = 168;          // 上段（世界）と下段（筐体）の境
 const WALLH = 96;           // 壁と床の境
 const FOOT  = 138;          // 自分も敵も、この線に立つ。手前に床を残す
 const GX = 6, GY = 180;     // 盤の窓の左上（大きさは BW × BH ＝ 焼いた裏画面のまま）
+const HERO_X = 24, FX = [296, 384, 468];      // 立ち位置。数字を出す所もここから出す
 
 function sceneStatic(){
   let h = "";
@@ -1513,32 +1548,34 @@ function wheelFrame(){
 function sceneLive(){
   let h = "";
   /* 役者 */
-  h += actor("hero", 24, FOOT, GS.self, false, 6);
-  const fx = [296, 384, 468];
+  h += actor("hero", HERO_X, FOOT, GS.self, false, 6);
   GS.foes.forEach((f,i)=>{
     if (f.hp <= 0) return;
-    h += actor(f.sp, fx[i], FOOT, f, f === frontFoe(), 6);
+    h += actor(f.sp, FX[i], FOOT, f, f === frontFoe(), 6);
   });
   h += topRight();
   h += depth(VW - 116, 42);
 
   /* 操作 */
   h += lever(192, 200, 56);
-  /* この手番であと何回投げられるか。玉の数＝投げる回数 */
+  /* この手番であと何回まわせるか。玉はまとめて投げるので、回数と玉の数は別 */
   if (GS.throws > 0 && GS.phase === "idle")
     h += box(GX, GY + BH + 8, 168, 12, "display:flex;align-items:center;justify-content:center",
-      `<span class="t" style="color:${C("brass",4)}">のこり ${GS.throws} 投</span>`);
+      `<span class="t" style="color:${C("brass",4)}">のこり ${GS.throws} 回　玉 ${GS.balls}</span>`);
 
   /* 手札。拡大している間は出さない（盤の下に結果を出したいので場所を空ける） */
   const big = GS.phase === "spin" || GS.phase === "deal";
-  h += hand(big ? [] : GS.hand);
+  h += hand(big ? [] : GS.hand, GS.active);
 
-  /* 実況。何が起きたかを 1 行で出す */
+  /* 頭の上に出す数字。誰に何が起きたかを、その場所で見せる */
+  GS.pops.forEach(o => h += pop(o));
+
   h += invPanel();
+  /* 実況。ふだんは敵の HP の下（床の上）、拡大中は盤の下。
+     筐体の上に置くと、いま光っている札とぶつかる。 */
   if (GS.msg && !GS.inv)
-    h += box(20, big ? 338 : 172, 600, 11,
-      `display:flex;align-items:center;justify-content:${big ? "center" : "flex-start"};
-       padding-left:${big ? 0 : 214}px`,
+    h += box(180, big ? 338 : 155, 456, 12,
+      "display:flex;align-items:center;justify-content:center;white-space:nowrap",
       `<span class="t sh" style="color:${C("brass",4)}">${GS.msg}</span>`);
   return h;
 }
@@ -1613,63 +1650,99 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 function live(){ $("fg").innerHTML = sceneLive(); }
 function say(t){ GS.msg = t; live(); }
 
+/* ── 見せ方の間 ──────────────────────────────────────────────
+   一瞬で数字が変わると、何が起きたのか読めない。
+   「札が光る → 数字が飛ぶ → 消える」の 3 拍に分けて、それぞれ間を置く。 */
+const T = {card:640, dmg:1000, gap:240, foe:520, burn:900, draw:1100};
+
+/** 頭の上に数字を出す。誰に何が起きたかを、その場所で見せる */
+function popAt(t, text, ramp){
+  const i = GS.foes.indexOf(t);
+  const sp = i < 0 ? "hero" : GS.foes[i].sp;
+  const x  = (i < 0 ? HERO_X : FX[i]) + (spriteW(sp) >> 1);
+  GS.pops.push({x, y: FOOT - spriteH(sp) - 30, text, ramp});
+}
+
 /* ── 自分の手番のはじめ ── */
 async function playerTurn(){
-  GS.phase = "burn";
-  GS.hand = [];
+  GS.phase = "burn"; GS.hand = []; GS.active = -1; GS.pops = [];
   if (GS.self.burn > 0){
     hit(GS.self, GS.self.burn, false, true);        // 火傷は盾で防げない
+    popAt(GS.self, "火傷 " + GS.self.burn, "red");
     say(`火傷 ${GS.self.burn}`);
     GS.self.burn--;
-    await wait(620);
+    await wait(T.burn);
+    GS.pops = [];
     if (GS.self.hp <= 0){ await wipe(); return; }
   }
-  GS.throws = GS.balls;
+  GS.throws = GS.spins;
   GS.phase = "idle";
   say("");
 }
 
-/* ── 投げる。1 回の手番で GS.balls 回まで。1 投ごとに 1 枚出て、その場で効く ── */
+/* ── 盤を回す。玉はまとめて投げる ── */
 async function throwBall(){
   if (GS.phase !== "idle" || GS.throws <= 0) return;
   GS.phase = "spin";
   say("回している");
   await zoom(true);
-  spin = newSpin(launch(false, 1), rotor.t);
+  spin = newSpin(launch(false, GS.balls), rotor.t);
   spin.wr = Math.max(spin.wr, rotor.w);
   resting = null;
 }
 
-/* ── 玉が収まったあと ── */
-async function settled(balls){
-  const ci = SLOTS[balls[0].pocket], c = DECK[ci];
-  GS.hand.push(ci);
-  GS.phase = "deal";
-  say(c.nm);
-  await wait(800);
-  await zoom(false);
-  await wait(120);
-
-  /* 札が効く。杖のように積み上がらず、1 枚ずつ独立して効く */
-  GS.phase = "resolve";
+/* ── 札 1 枚ぶんの見せ方。光らせる → 効かせて数字を出す → 消す ── */
+async function playCard(c){
   const a = c.act;
   const tgt = a.tgt === "front" ? [frontFoe()]
             : a.tgt === "back"  ? [backFoe()]
             : alive();
-  if (tgt[0]){
-    tgt.forEach(f => {
-      if (a.dmg)  hit(f, a.dmg + GS.self.pow, a.brk);
-      if (a.burn) f.burn += a.burn;
-    });
-    const nm = a.tgt === "all" ? "全体" : tgt[0].nm;
-    say(a.burn ? `${c.nm} → ${nm}に炎上 ${a.burn}`
-               : `${c.nm} → ${nm}に ${a.dmg + GS.self.pow}`);
+  if (!tgt[0]) return;
+  say(c.nm + "　" + c.fx.replace(/<br>/g, "／"));
+  live();
+  await wait(T.card);                               // 札が光っているあいだ
+
+  GS.pops = [];
+  tgt.forEach(f => {
+    if (a.dmg){
+      const n = a.dmg + GS.self.pow;
+      hit(f, n, a.brk);
+      popAt(f, "−" + n, "red");
+    }
+    if (a.burn){
+      f.burn += a.burn;
+      popAt(f, "炎上 " + a.burn, "brass");
+    }
+  });
+  live();
+  await wait(T.dmg);
+  GS.pops = []; live();
+  await wait(T.gap);
+}
+
+/* ── 玉が収まったあと ── */
+async function settled(balls){
+  const drew = balls.map(b => SLOTS[b.pocket]);
+  const base = GS.hand.length;
+  GS.hand = GS.hand.concat(drew);
+  GS.phase = "deal";
+  say(drew.map(i => DECK[i].nm).join("・") + " が出た");
+  await wait(T.draw);
+  await zoom(false);
+  await wait(200);
+
+  /* 引いた順に 1 枚ずつ。杖のように積み上がらず、独立して効く */
+  GS.phase = "resolve";
+  for (let k = 0; k < drew.length; k++){
+    GS.active = base + k;
+    await playCard(DECK[drew[k]]);
+    if (!frontFoe()) break;
   }
-  await wait(560);
+  GS.active = -1; GS.pops = [];
 
   GS.throws--;
   if (!frontFoe()){ await clearFloor(); return; }
-  if (GS.throws > 0){ GS.phase = "idle"; say(GS.throws + " 投のこり"); return; }
+  if (GS.throws > 0){ GS.phase = "idle"; say(""); return; }
   await foeTurn();
 }
 
@@ -1678,39 +1751,47 @@ async function foeTurn(){
   GS.phase = "foes";
   alive().forEach(f => { f.shield = 0; });      // 自分の攻撃が終わったので敵の盾は消える
   live();
-  await wait(300);
+  await wait(T.gap);
 
   for (const f of alive()){                      // 敵の火傷
     if (f.burn <= 0) continue;
     hit(f, f.burn, false, true);
+    popAt(f, "火傷 " + f.burn, "red");
     say(`${f.nm} 火傷 ${f.burn}`);
     f.burn--;
-    await wait(520);
+    live();
+    await wait(T.burn);
+    GS.pops = [];
   }
   if (!frontFoe()){ await clearFloor(); return; }
 
   for (const f of alive()){                      // 敵が動く
     for (const [k, n] of f.act){
+      GS.pops = [];
       if (k === "atk"){
         hit(GS.self, n + f.pow);
+        popAt(GS.self, "−" + (n + f.pow), "red");
         say(`${f.nm} の攻撃 ${n + f.pow}`);
       } else {
         f.shield += n;
+        popAt(f, "盾 +" + n, "blue");
         say(`${f.nm} が盾 +${n}`);
       }
-      await wait(440);
+      live();
+      await wait(T.foe);
       if (GS.self.hp <= 0){ await wipe(); return; }
     }
   }
+  GS.pops = [];
   GS.self.shield = 0;                            // 敵の攻撃が終わったので自分の盾は消える
-  await wait(240);
+  await wait(T.gap);
   await playerTurn();
 }
 
 async function clearFloor(){
-  GS.phase = "foes";
+  GS.phase = "foes"; GS.pops = []; GS.active = -1;
   say("この階は片づいた");
-  await wait(900);
+  await wait(1100);
   GS.self.floor = Math.min(GS.self.floors, GS.self.floor + 1);
   GS.self.coin += 24;
   GS.self.shield = 0;
@@ -1719,9 +1800,9 @@ async function clearFloor(){
 }
 
 async function wipe(){
-  GS.phase = "foes";
+  GS.phase = "foes"; GS.pops = []; GS.active = -1;
   say("倒れた。地下 1 階からやり直し");
-  await wait(1200);
+  await wait(1400);
   Object.assign(GS.self, {hp:GS.self.max, shield:0, burn:0, pow:0, floor:1, coin:0});
   GS.foes = newFoes();
   await playerTurn();
@@ -1791,6 +1872,11 @@ $("scr").addEventListener("click", e => {
     }
     if (cl.contains("b")){
       GS.balls = Math.max(1, Math.min(MAX_BALLS, GS.balls + s2));
+      live(); return;
+    }
+    if (cl.contains("s")){
+      GS.spins = Math.max(1, Math.min(MAX_SPINS, GS.spins + s2));
+      if (GS.phase === "idle") GS.throws = Math.min(GS.throws, GS.spins);
       live(); return;
     }
     return;

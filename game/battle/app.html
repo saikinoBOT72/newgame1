@@ -53,10 +53,11 @@ body{color:#d2c8b2;font-family:"DotGothic16",ui-monospace,monospace;
 #bg,#fg,#dim{position:absolute;left:0;top:0;width:640px;height:360px}
 #bg{z-index:1} #dim{z-index:2;background:#07090b;opacity:0;pointer-events:none;
   transition:opacity .14s linear}
-#whl{position:absolute;z-index:3;transform-origin:0 0;transition:transform .14s ease-out}
+#whl{position:absolute;z-index:3;transform-origin:0 0;transition:transform .17s ease-out}
+#frm{position:absolute;left:0;top:0}
 #fg{z-index:5}
 #wheel{position:absolute;display:block;image-rendering:pixelated}
-.key:hover{filter:brightness(1.25)}
+.hit:hover{filter:brightness(1.2)}
 .throwhit:active{filter:brightness(1.3)}
 </style>
 
@@ -64,7 +65,7 @@ body{color:#d2c8b2;font-family:"DotGothic16",ui-monospace,monospace;
 <div id="wrap"><div class="hold" id="hold"><div id="scr">
   <div id="bg"></div>
   <div id="dim"></div>
-  <div id="whl"><canvas id="wheel"></canvas></div>
+  <div id="whl"><div id="frm"></div><canvas id="wheel"></canvas></div>
   <div id="fg"></div>
 </div></div></div>
 
@@ -283,6 +284,11 @@ const SHAPES = {
     {k:"e", x:0,y:0, w:20,h:20, c:S("red",2)},
     {k:"e", x:4,y:3, w:7, h:6,  c:{r:"red",s:4,fix:1}},        // つや
     {k:"e", x:12,y:12,w:6, h:5,  c:{r:"red",s:0,fix:1}},        // 落ち込み
+  ]},
+  /* 玉。持っている数を数で書かず、この玉を並べて見せる */
+  orb: {w:8, h:8, ops:[
+    {k:"e", x:0,y:0, w:8,h:8, c:S("bone",3)},
+    {k:"e", x:2,y:1, w:3,h:3, c:{r:"bone",s:4,fix:1}},
   ]},
 };
 
@@ -757,7 +763,11 @@ const ELEV = 56 * Math.PI/180;
 const SIN_E = Math.sin(ELEV), COS_E = Math.cos(ELEV);
 
 /** 裏画面の横幅（ドットの数）。ここが粗さを決める */
-const DOTS_W = 168;   // 戦闘画面の盤の窓の幅
+/* 裏画面の横幅（＝盤のドット数）。ふだんは 168、拡大したときは 336 に切り替える。
+   拡大を CSS の scale(2) だけでやると、168 ドットの絵が 2 倍に太るだけで
+   情報量は増えない。裏画面ごと焼き直せば、拡大したぶんだけ実際に細かくなる。
+   縮尺 SCL も枠も BW から出しているので、ここを変えるだけで全部ついてくる。 */
+let DOTS_W = 168;
 
 /* 裏画面。ここに描いてから引き伸ばす */
 const bufCv = document.createElement("canvas"), bufCx = bufCv.getContext("2d", {willReadFrequently:true});
@@ -870,13 +880,16 @@ function ell(g, r, z, fill, stroke, lw){
 }
 
 /** 高さ違いの輪を外から内へ。段差がそのままドットの階調になる */
+/* 鉢の木は、ポケットの茶より 1 段暗くしてある。
+   同じ明るさだと、無属性（茶）の区画が鉢に溶けて区画の切れ目が読めない。
+   区画がいちばん明るい、という関係を崩さない。 */
 const BOWL_RINGS = [
-  [W.rBowl,       Z_TRACK+0.040, "#3d2216"],
-  [W.rBowl-0.020, Z_TRACK+0.052, "#8a5530"],
-  [W.rWall+0.014, Z_TRACK+0.040, "#55311c"],
-  [W.rWall,       Z_TRACK+0.014, "#a86b3e"],
-  [W.rRim,        Z_TRACK,       "#dda06a"],   // ボールトラック
-  [W.rTrack,      Z_SLOPE,       "#3d2216"],   // すり鉢
+  [W.rBowl,       Z_TRACK+0.040, "#2a1710"],
+  [W.rBowl-0.020, Z_TRACK+0.052, "#55311c"],
+  [W.rWall+0.014, Z_TRACK+0.040, "#3d2216"],
+  [W.rWall,       Z_TRACK+0.014, "#6d3f24"],
+  [W.rRim,        Z_TRACK,       "#8a5530"],   // ボールトラック
+  [W.rTrack,      Z_SLOPE,       "#2a1710"],   // すり鉢
   [W.rRotor,      0,             "#171310"],
 ];
 
@@ -887,7 +900,7 @@ function drawWheel(tr, balls, showBall){
 
   for (const [r,z,c] of BOWL_RINGS) ell(g, r, z, c);
   ell(g, W.rTrack, Z_SLOPE, null, "#2a1710", Math.max(1, 0.004*SCL));
-  ell(g, W.rRim,   Z_TRACK, null, "#efbe8b", Math.max(1, 0.002*SCL));
+  ell(g, W.rRim,   Z_TRACK, null, "#a86b3e", Math.max(1, 0.002*SCL));
 
   // ディフレクタ 8 個
   for (let k=0;k<W.nDefl;k++){
@@ -976,22 +989,53 @@ function textOn(hex){
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   D. 中身。札 3 枚と、盤の区画の割り当て
+   D. 中身。札と、盤の区画の割り当て
 
    杖（引いた順が呪文になる）の要素は無い。札は 1 枚ずつ独立して効く。
    区画に札を何個置くかが、そのまま出る確率になる（区画の数で重みを付ける）。
+
+   ── 区画の色は「属性」で決める ──────────────────────────────
+   盤は 168 ドットしかないので、区画に字は入らない。色だけが手がかりになる。
+   だから色は 1 枚ずつ勝手に選ばず、<b>属性ごとの色の帯</b>から取る。
+     無属性（ただの武器） … 茶。同じ属性の中で明るさを変えて見分ける
+     火                   … 赤〜橙
+     氷                   … 青灰
+     毒                   … 緑
+   こうしておけば、札が増えても「赤が出た＝火の何か」がすぐ読める。
+   色は盤の色表（PAL）に入っている値だけを使う。表に無い色は丸められて、
+   選んだ色と出ている色が食い違う。
    ═══════════════════════════════════════════════════════════════════ */
+const ELEM = {
+  /* 茶は明るさの差がいちばん大きくなる順に並べる。
+     隣どうしの段（#dda06a と #c8874f）を続けて配ると、盤の上で見分けられない。 */
+  norm: {nm:"無", cols:["#efbe8b","#a86b3e","#c8874f","#8a5530","#dda06a","#6d3f24"]},
+  fire: {nm:"火", cols:["#d94a4a","#b8262c","#8a1a20"]},
+  ice:  {nm:"氷", cols:["#c6ccd4","#98a0aa","#6a707a"]},
+  poi:  {nm:"毒", cols:["#2fa066","#1a7048","#0b3a24"]},
+};
+
 const DECK = [
-  {id:"sword",  nm:"錆びたボロ剣",   fx:"最前の敵に5ダメージ",
-   col:"#b8262c", n:5, img:CARD_IMG.sword,  act:{tgt:"front", dmg:5}},
-  {id:"kunai",  nm:"錆びたクナイ",   fx:"全ての敵に3ダメージ",
-   col:"#1a7048", n:4, img:CARD_IMG.kunai,  act:{tgt:"all",   dmg:3}},
-  {id:"hammer", nm:"錆びたハンマー", fx:"最前の敵のシールドを破る<br>最前の敵に8ダメージ",
-   col:"#a5851d", n:3, img:CARD_IMG.hammer, act:{tgt:"front", dmg:8, brk:true}},
+  {id:"sword",  el:"norm", nm:"錆びたボロ剣",   fx:"最前の敵に5ダメージ",
+   n:5, img:CARD_IMG.sword,  act:{tgt:"front", dmg:5}},
+  {id:"kunai",  el:"norm", nm:"錆びたクナイ",   fx:"全ての敵に3ダメージ",
+   n:4, img:CARD_IMG.kunai,  act:{tgt:"all",   dmg:3}},
+  {id:"hammer", el:"norm", nm:"錆びたハンマー", fx:"最前の敵のシールドを破る<br>最前の敵に8ダメージ",
+   n:3, img:CARD_IMG.hammer, act:{tgt:"front", dmg:8, brk:true}},
 ];
-/* 区画。同じ札を固めると機械投擲で偏るので、種類が隣り合わないように配る */
-const SLOTS = (() => {
-  const left = DECK.map(c => c.n), out = [];
+/* 同じ属性の中で、上から順に色の帯を配る。札を足すときは el を書くだけでよい */
+(function(){
+  const seen = {};
+  DECK.forEach(c => {
+    const e = ELEM[c.el] || ELEM.norm;
+    const k = seen[c.el] = (seen[c.el] === undefined ? 0 : seen[c.el] + 1);
+    c.col = e.cols[k % e.cols.length];
+  });
+})();
+
+/** 区画の並び。同じ札を固めると、機械投擲（初期条件が近い）では
+    隣どうしに固まって出る。残りがいちばん多い種類から、直前と違うものを置く。 */
+function layout(counts){
+  const left = counts.slice(), out = [];
   while (left.some(v => v > 0)){
     let pick = -1;
     for (let i=0;i<left.length;i++){
@@ -1001,8 +1045,8 @@ const SLOTS = (() => {
     }
     out.push(pick); left[pick]--;
   }
-  return out;                                   // 12 区画
-})();
+  return out;
+}
 
 const FOE_KINDS = {
   rat:  {nm:"どぶ鼠", max:18, acts:[["atk",2],["atk",2],["atk",2]]},
@@ -1014,15 +1058,26 @@ const newFoes = () => ["rat","blob","bone"].map(sp => ({
   shield:0, act:FOE_KINDS[sp].acts,
 }));
 
+const MAX_BALLS = 6;               // 物理がまともに収まる上限
 const GS = {
   self: {hp:50, max:50, shield:0, coin:128, floor:3, floors:20},
   foes: newFoes(),
-  hand: [],                 // 引いた札（DECK の番号）
-  balls: 2,                 // 一度に投げる玉の数
-  phase: "idle",            // idle / spin / deal / resolve / foes
+  hand: [],                        // 引いた札（DECK の番号）
+  deck: DECK.map(c => c.n),        // 区画を何個ずつ置くか
+  balls: 1,                        // 一度に投げる玉の数。強化で増える想定
+  phase: "idle",
   msg: "",
+  inv: false,                      // 持ち物（テスト用の組み替え画面）を開いているか
 };
 const frontFoe = () => GS.foes.find(f => f.hp > 0);
+const deckTotal = () => GS.deck.reduce((a,b)=>a+b, 0);
+
+/** 盤に区画を置き直す。GS.deck を触ったら必ずここを通す */
+let SLOTS = [];
+function applyDeck(){
+  SLOTS = layout(GS.deck);
+  setPockets(SLOTS.map(i => ({label:"", colour:DECK[i].col})));
+}
 
 /** 盾から先に削る。盾を割る札は盾を 0 にしてから当てる */
 function hit(t, n, brk){
@@ -1048,8 +1103,8 @@ function handCard(x, y, c){
   h += box(x+6, y+11, 96, 10, "display:flex;align-items:center;justify-content:center",
     `<span class="t" style="color:#2a2118">${c.nm}</span>`);
   /* 効果。帯の幅で折り返す */
-  h += box(x+11, y+110, 88, 33, "display:flex;align-items:center;justify-content:center;text-align:center",
-    `<span class="t" style="color:#2a2118;line-height:11px">${c.fx}</span>`);
+  h += box(x+11, y+109, 88, 34, "display:flex;align-items:center;justify-content:center;text-align:center",
+    `<span class="t" style="color:#2a2118;line-height:10px">${c.fx}</span>`);
   return h;
 }
 
@@ -1120,19 +1175,13 @@ function lever(x, top, len){
   return h;
 }
 
-/* ── 玉の数。カウンターに埋めた小さな盤 ── */
-function ballKeys(x, y){
+/* ── 玉の数。選ばせない。いまは 1 個で、強化で増える想定 ── */
+function ballCount(x, y){
   let h = "";
   h += plate(x, y, 104, 24, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
-  h += box(x+6, y+7, 16, 10, "", `<span class="lbl" style="color:${C("steel",5)}">玉</span>`);
-  [1,2,3].forEach((n,i)=>{
-    const on = n === GS.balls, kx = x + 24 + i*26;
-    h += plate(kx, y+4, 22, 16,
-      {fill:on?C("brass",3):C("steel",2), hi:on?C("brass",4):C("steel",4), lo:on?C("brass",1):C("steel",0)});
-    h += box(kx, y+4, 22, 16,
-      `display:flex;align-items:center;justify-content:center;cursor:pointer`,
-      `<span class="t" style="color:${on?C("wood",0):C("bone",2)}">${n}</span>`, "key k"+n);
-  });
+  h += box(x+8, y+7, 30, 10, "", `<span class="lbl" style="color:${C("steel",5)}">玉</span>`);
+  for (let i=0;i<GS.balls;i++)
+    h += box(x+34+i*11, y+8, 8, 8, "", sprite("orb"));
   return h;
 }
 
@@ -1160,8 +1209,9 @@ function topRight(){
   h += box(x+68, y+2, 1, 14, `background:${C("wood",0)}`);
   /* 持ち物 */
   h += plate(x+74, y+2, 40, 14, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
-  h += box(x+74, y+2, 40, 14, `display:flex;align-items:center;justify-content:center`,
-    `<span class="t" style="color:${C("bone",3)}">持ち物</span>`);
+  h += box(x+74, y+2, 40, 14,
+    `display:flex;align-items:center;justify-content:center;cursor:pointer`,
+    `<span class="t" style="color:${C("bone",3)}">持ち物</span>`, "hit open");
   return h;
 }
 
@@ -1205,6 +1255,89 @@ function actor(sp, x, foot, d, front, dy){
     for (let i=0;i<4;i++)
       h += box(mx-3+i, foot-sh-24+i, 7-i*2, 1, `background:${C("brass",3)}`);
   }
+  return h;
+}
+
+
+/* ── 持ち物。いまはテスト用の組み替え画面 ─────────────────────
+   デッキ（どの札を盤に何区画置くか）と玉の数を、その場で変えられる。
+   区画の数がそのまま確率なので、ここを触ると盤の色分けも即座に変わる。
+   本番では買い物・報酬でしか変えられなくなる予定。 */
+function invPanel(){
+  if (!GS.inv) return "";
+  /* 高さは札の数から出す。札が増えても余白が空いたままにならない */
+  const W2 = 552, H2 = 160 + DECK.length*30;
+  const X = Math.round((VW - W2)/2), Y = Math.round((VH - H2)/2);
+  let h = "";
+  h += box(0, 0, VW, VH, `background:${INK};opacity:.72`, "", "hit close");
+  h += shadowOf(X, Y, W2, H2, 4);
+  h += plate(X, Y, W2, H2, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
+  h += plate(X+4, Y+4, W2-8, H2-8, {fill:C("wood",1), hi:C("wood",0), lo:C("wood",3), sunk:true,
+    dither:ditherCSS(C("wood",1), C("wood",0), 3)});
+  h += box(X+14, Y+12, 300, 12, "", `<span class="t" style="color:${C("brass",4)}">持ち物（テスト用）</span>`);
+  h += box(X+14, Y+26, 400, 10, "",
+    `<span class="lbl">区画の数がそのまま出る確率になる</span>`);
+  h += plate(X+W2-46, Y+10, 34, 16, {fill:C("wood",3), hi:C("brass",3), lo:C("wood",0)});
+  h += box(X+W2-46, Y+10, 34, 16,
+    `display:flex;align-items:center;justify-content:center;cursor:pointer`,
+    `<span class="t" style="color:${C("bone",4)}">閉じる</span>`, "hit close");
+  h += box(X+12, Y+42, W2-24, 1, `background:${C("wood",0)}`);
+
+  /* 見出し */
+  const cx0 = X+16;
+  h += box(cx0+34, Y+48, 200, 10, "", `<span class="lbl">札</span>`);
+  h += box(cx0+250, Y+48, 60, 10, "", `<span class="lbl">属性</span>`);
+  h += box(cx0+310, Y+48, 60, 10, `display:flex;justify-content:flex-end`,
+    `<span class="lbl">区画</span>`);
+  h += box(cx0+400, Y+48, 90, 10, `display:flex;justify-content:flex-end`,
+    `<span class="lbl">出る確率</span>`);
+
+  const tot = Math.max(1, deckTotal());
+  DECK.forEach((c,i)=>{
+    const ry = Y+64 + i*30;
+    h += box(cx0, ry, W2-32, 26, `background:${C("wood",2)};opacity:${i%2?0.5:0.25}`);
+    /* 属性の色見本。盤に出る色そのもの */
+    h += plate(cx0+6, ry+6, 20, 14, {fill:c.col, hi:c.col, lo:C("wood",0)});
+    h += box(cx0+34, ry+8, 210, 10, "", `<span class="t" style="color:${C("bone",4)}">${c.nm}</span>`);
+    h += box(cx0+250, ry+8, 60, 10, "",
+      `<span class="t" style="color:${C("bone",2)}">${(ELEM[c.el]||ELEM.norm).nm}</span>`);
+    /* − 区画 ＋ */
+    h += stepper(cx0+306, ry+5, GS.deck[i], "d"+i);
+    const pct = GS.deck[i] * 100 / tot;
+    h += box(cx0+400, ry+8, 90, 10, `display:flex;justify-content:flex-end`,
+      `<span class="t" style="color:${GS.deck[i] ? C("brass",4) : C("steel",3)}">${pct.toFixed(1)} %</span>`);
+  });
+
+  const ry = Y+64 + DECK.length*30 + 12;
+  h += box(cx0, ry, W2-32, 1, `background:${C("wood",0)}`);
+  h += box(cx0+34, ry+14, 200, 10, "", `<span class="t" style="color:${C("bone",4)}">区画の合計</span>`);
+  const bad = deckTotal() < MIN_N || deckTotal() > MAX_N;
+  h += box(cx0+306, ry+14, 84, 10, "",
+    `<span class="t" style="color:${bad ? C("red",4) : C("bone",3)}">${deckTotal()} / ${MAX_N}</span>`);
+
+  h += box(cx0+34, ry+38, 200, 10, "", `<span class="t" style="color:${C("bone",4)}">一度に投げる玉</span>`);
+  h += stepper(cx0+306, ry+35, GS.balls, "b");
+  h += box(cx0+400, ry+38, 90, 10, `display:flex;justify-content:flex-end`,
+    `<span class="lbl">最大 ${MAX_BALLS}</span>`);
+  h += box(cx0+34, ry+56, 460, 10, "",
+    `<span class="lbl">玉は本来 1 個から始まって強化で増える。ここはテスト用</span>`);
+  return h;
+}
+
+/** − 値 ＋ の 3 つ組。id は押されたときに何を動かすかの目印 */
+function stepper(x, y, v, id){
+  let h = "";
+  const btn = (bx, t, cls) => {
+    let g = plate(bx, y, 16, 16, {fill:C("wood",3), hi:C("wood",4), lo:C("wood",0)});
+    g += box(bx, y, 16, 16,
+      `display:flex;align-items:center;justify-content:center;cursor:pointer`,
+      `<span class="t" style="color:${C("bone",4)}">${t}</span>`, "hit " + cls);
+    return g;
+  };
+  h += btn(x, "−", "dec " + id);
+  h += box(x+18, y+3, 30, 10, `display:flex;justify-content:center`,
+    `<span class="t" style="color:${C("bone",4)}">${v}</span>`);
+  h += btn(x+50, "＋", "inc " + id);
   return h;
 }
 
@@ -1355,7 +1488,7 @@ function sceneLive(){
   h += depth(VW - 116, 42);
 
   /* 操作 */
-  h += ballKeys(GX, GY + BH + 6);
+  h += ballCount(GX, GY + BH + 6);
   h += lever(192, 200, 56);
 
   /* 手札。拡大している間は出さない（盤の下に結果を出したいので場所を空ける） */
@@ -1363,7 +1496,8 @@ function sceneLive(){
   h += hand(big ? [] : GS.hand);
 
   /* 実況。何が起きたかを 1 行で出す */
-  if (GS.msg)
+  h += invPanel();
+  if (GS.msg && !GS.inv)
     h += box(20, big ? 338 : 172, 600, 11,
       `display:flex;align-items:center;justify-content:${big ? "center" : "flex-start"};
        padding-left:${big ? 0 : 214}px`,
@@ -1382,17 +1516,55 @@ let resting = null;                    // 収まった玉の置き場所（ロ�
 /** 盤の描画まわりを組み直す。setPockets から呼ばれる */
 function rebuild(){ resting = null; paintRotorFace(); }
 
-/* ── 拡大。回した瞬間に真ん中で ×2 にする。
-      倍率は整数だけ。1.5 倍などにすると画素が 2px と 3px に割れる。 ── */
-function zoom(on){
+/* ── 拡大。回した瞬間に真ん中で 2 倍にする ──────────────────────
+   倍率は整数だけ。1.5 倍などにすると画素が 2px と 3px に割れる。
+
+   ただの scale(2) だと 168 ドットの絵が太くなるだけで、細かさは増えない。
+   そこで<b>寄せ切ったあとに裏画面ごと 336 ドットで焼き直す</b>。
+   物理はメートルで解いているので、絵の解像度を変えても出目は変わらない。
+
+   動きは低解像度のまま scale(2) で見せて、止まってから高解像度に差し替える。
+   （拡大しながら焼き直すと、動いている最中に絵が飛ぶ） */
+const DOTS_SMALL = 168, DOTS_BIG = 336;
+let bigWheel = false;
+
+function setDots(w){
+  if (DOTS_W === w) return;
+  DOTS_W = w;
+  sizeWheel();                                   // BW / BH / SCL が決まり直す
+  const el = $("whl");
+  el.style.width  = (BW+8) + "px";
+  el.style.height = (BH+8) + "px";
+  $("frm").innerHTML = wheelFrame();
+}
+const zoomedXY = () => [Math.round((VW - (BW+8))/2), Math.round((VH - (BH+8))/2)];
+
+async function zoom(on){
   const el = $("whl");
   if (on){
     const dx = Math.round((VW - (BW+8)*2)/2) - (GX-4);
-    const dy = Math.round((VH - (BH+8)*2)/2) - (GY-4) - 8;
+    const dy = Math.round((VH - (BH+8)*2)/2) - (GY-4);
     el.style.transform = `translate(${dx}px,${dy}px) scale(2)`;
     el.style.zIndex = 8;
     $("dim").style.opacity = .82;
+    await wait(170);
+    setDots(DOTS_BIG); bigWheel = true;
+    const [zx, zy] = zoomedXY();
+    el.style.transition = "none";
+    el.style.transform = "";
+    el.style.left = zx + "px"; el.style.top = zy + "px";
+    el.offsetHeight; el.style.transition = "";
   } else {
+    /* 低解像度に戻し、いまと同じ見た目になる transform を当ててから外す */
+    const [zx, zy] = zoomedXY();
+    setDots(DOTS_SMALL); bigWheel = false;
+    const dx = Math.round((VW - (BW+8)*2)/2) - (GX-4);
+    const dy = Math.round((VH - (BH+8)*2)/2) - (GY-4);
+    el.style.transition = "none";
+    el.style.left = (GX-4) + "px"; el.style.top = (GY-4) + "px";
+    el.style.transform = `translate(${dx}px,${dy}px) scale(2)`;
+    el.offsetHeight;
+    el.style.transition = "";
     el.style.transform = "";
     el.style.zIndex = 3;
     $("dim").style.opacity = 0;
@@ -1409,8 +1581,7 @@ async function throwBalls(){
   GS.phase = "spin";
   GS.hand = [];
   say("回している");
-  zoom(true);
-  await wait(140);
+  await zoom(true);
   spin = newSpin(launch(false, GS.balls), rotor.t);
   spin.wr = Math.max(spin.wr, rotor.w);
   resting = null;
@@ -1422,8 +1593,8 @@ async function settled(balls){
   GS.phase = "deal";
   say(GS.hand.map(i => DECK[i].nm).join("・") + " が出た");
   await wait(950);
-  zoom(false);
-  await wait(180);
+  await zoom(false);
+  await wait(120);
 
   /* 札は 1 枚ずつ、出た順に効く（杖のように積み上がらない） */
   GS.phase = "resolve";
@@ -1507,13 +1678,13 @@ function loop(){
    ═══════════════════════════════════════════════════════════════════ */
 function boot(){
   sizeWheel();                                   // BW / BH が決まる
-  setPockets(SLOTS.map(i => ({label:"", colour:DECK[i].col})));
+  applyDeck();
   const wb = $("whl");
   wb.style.left = (GX-4) + "px";
   wb.style.top  = (GY-4) + "px";
   wb.style.width = (BW+8) + "px";
   wb.style.height = (BH+8) + "px";
-  wb.insertAdjacentHTML("afterbegin", wheelFrame());
+  $("frm").innerHTML = wheelFrame();
   $("wheel").style.left = "4px"; $("wheel").style.top = "4px";
   $("bg").innerHTML = sceneStatic();
   live();
@@ -1523,15 +1694,32 @@ function boot(){
 
 /* 押せるもの。組み直しても効くように、親で受ける */
 $("scr").addEventListener("click", e => {
-  const k = e.target.closest(".key");
-  if (k){
-    if (GS.phase !== "idle") return;
-    GS.balls = +[...k.classList].find(c=>/^k\d$/.test(c)).slice(1);
-    live(); return;
+  const t = e.target.closest(".hit");
+  if (t){
+    const cl = t.classList;
+    if (cl.contains("open")){ GS.inv = true; live(); return; }
+    if (cl.contains("close")){ GS.inv = false; live(); return; }
+    const d = [...cl].find(c => /^d\d+$/.test(c));
+    const s2 = cl.contains("dec") ? -1 : 1;
+    if (d){
+      const i = +d.slice(1);
+      GS.deck[i] = Math.max(0, Math.min(20, GS.deck[i] + s2));
+      if (deckTotal() < MIN_N || deckTotal() > MAX_N){ GS.deck[i] -= s2; return; }
+      applyDeck(); live(); return;
+    }
+    if (cl.contains("b")){
+      GS.balls = Math.max(1, Math.min(MAX_BALLS, GS.balls + s2));
+      live(); return;
+    }
+    return;
   }
+  if (GS.inv) return;
   if (e.target.closest(".throwhit")) throwBalls();
 });
-addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") throwBalls(); });
+addEventListener("keydown", e => {
+  if (GS.inv){ if (e.key === "Escape"){ GS.inv = false; live(); } return; }
+  if (e.key === " " || e.key === "Enter") throwBalls();
+});
 
 /** 拡大は整数倍だけ。半端な倍率にするとドットが 2px と 3px に割れて、
     せっかく揃えた格子が壊れる。入りきらないぶんは中央に置いて余白にする。

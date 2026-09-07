@@ -36,6 +36,14 @@ echo "roulette3d/index.html を生成しました"
 } > roulette-top/index.html
 echo "roulette-top/index.html を生成しました"
 
+# 試作版の戦闘画面（案B で確定。見た目だけ）
+{
+  cat game/battle/head.html
+  cat game/battle/app.html
+  printf '\n</body>\n</html>\n'
+} > game/battle/index.html
+echo "game/battle/index.html を生成しました"
+
 # 試作版のゲーム UI（戦闘画面のレイアウト案。見た目だけ）
 {
   cat game/ui-demo/head.html

@@ -276,6 +276,12 @@ const SHAPES = {
     {k:"r", x:5,y:37, w:5,h:5,     c:S("wood",1)},               // 足
     {k:"r", x:13,y:37,w:5,h:5,     c:S("wood",1)},
   ]},
+  /* レバーの握り。丸は自動陰影がいちばん効く（左上が明るく、右下が暗くなる） */
+  knob: {w:20, h:20, ops:[
+    {k:"e", x:0,y:0, w:20,h:20, c:S("red",2)},
+    {k:"e", x:4,y:3, w:7, h:6,  c:{r:"red",s:4,fix:1}},        // つや
+    {k:"e", x:12,y:12,w:6, h:5,  c:{r:"red",s:0,fix:1}},        // 落ち込み
+  ]},
 };
 
 /* 札と意図の小さな記号。同じ升目の上に置く */
@@ -287,6 +293,7 @@ const GLYPH = {
   gard:[[1,0,6,4,"brass",3],[2,4,4,2,"brass",3],[3,6,2,2,"brass",1]],
   atk: [[5,0,3,3,"red",3],[3,2,3,3,"red",3],[1,4,3,3,"red",2],[0,6,2,2,"bone",1]],
   def: [[1,0,6,4,"blue",3],[2,4,4,2,"blue",3],[3,6,2,2,"blue",1]],
+  coin:[[2,0,4,1,"brass",4],[1,1,6,6,"brass",3],[2,7,4,1,"brass",1],[3,2,2,4,"brass",1]],
 };
 function glyph(k, px){
   const r = GLYPH[k].map(([x,y,w,h,rr,ss])=>
@@ -352,10 +359,9 @@ const TONE = {proj:"red", mod:"blue", util:"brass"};
    ═══════════════════════════════════════════════════════════════════ */
 const VW = 640, VH = 360;
 const WALLH = 296;                        // 壁と床の境
-const MX = 4, MY = 4, MW = 312, MH = 258; // 機械。棚は外に出したので幅が要らない
+const MX = 4, MY = 4, MW = 312, MH = 258; // 機械
 const GX = 8, GY = 8, GW = 300, GH = 250; // ガラスの中（盤がちょうど入る）
-const RKX = 356, RKW = 140, RKY = 34, RKH = 224;  // 壁に掛けた棚
-const RAILX = 504, RAILW = VW - RAILX;
+const RKX = 444, RKW = 144, RKY = 42, RKH = 218;  // 壁に掛けた棚。右へ寄せて管を長く引く
 const FOOT = 332;                         // 自分も敵も、この線に立つ
 
 function screen(){
@@ -411,14 +417,20 @@ function screen(){
     stair(34,  0, GH, 0.62, 12, C("bone",4), .07) +
     box(0,0,GW,1, `background:${C("bone",2)};opacity:.30`));
 
-  /* ── 盤から棚へ、札が通る管。これが無いと札は「どこかから湧いた」ことになる ── */
-  const py = RKY + 6;
-  h += shadowOf(MX+MW-2, py, RKX-MX-MW+6, 14, 3);
-  h += plate(MX+MW-2, py, RKX-MX-MW+6, 14, {fill:C("steel",2), hi:C("steel",4), lo:C("steel",0)});
-  h += box(MX+MW, py+4, RKX-MX-MW+2, 6, `background:${INK}`);
-  for (let i=0;i<3;i++)                                     // 送りの向き
-    h += box(MX+MW+8+i*10, py+5, 4, 4, `background:${C("brass",3)};opacity:${.8-i*.2}`);
-  h += plate(RKX-4, RKY, 8, 26, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
+  /* ── 盤から棚へ、札が通る管。これが無いと札は「どこかから湧いた」ことになる ──
+     レールを外して空いたぶん、管を長く引けるようになった。
+     長い管は「機械が札を送り出している」をいちばん強く言う。 */
+  const py = RKY + 8, plen = RKX - (MX+MW) + 8;
+  h += shadowOf(MX+MW-2, py, plen, 15, 3);
+  h += plate(MX+MW-2, py, plen, 15, {fill:C("steel",2), hi:C("steel",4), lo:C("steel",0)});
+  h += box(MX+MW, py+5, plen-4, 6, `background:${INK}`);
+  for (let i=0;i<8;i++)                                     // 送りの向き
+    h += box(MX+MW+10+i*15, py+6, 5, 4, `background:${C("brass",3)};opacity:${.85-i*.09}`);
+  /* 管の吊り金具。長い管が宙に浮かないよう、壁に留める */
+  [MX+MW+34, MX+MW+90].forEach(bx=>{
+    h += plate(bx, py-9, 7, 10, {fill:C("steel",1), hi:C("steel",3), lo:C("steel",0)});
+  });
+  h += plate(RKX-5, RKY, 9, 30, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
 
   /* ── 札の棚。機械と同じ木と真鍮。壁に金具で掛ける ── */
   h += shadowOf(RKX, RKY, RKW, RKH, 3);
@@ -427,20 +439,23 @@ function screen(){
   [[RKX+4,RKY+4],[RKX+RKW-8,RKY+4],[RKX+4,RKY+RKH-8],[RKX+RKW-8,RKY+RKH-8]].forEach(([bx,by])=>{
     h += plate(bx,by,4,4,{fill:C("brass",2), hi:C("brass",4), lo:C("brass",0)});
   });
-  h += rackCards(RKX+8, RKY+10, RKW-16);
-  h += box(RKX, RKY-14, RKW, 11, `display:flex;justify-content:center`,
+  h += box(RKX+6, RKY+6, RKW-12, 10, `display:flex;justify-content:center`,
     `<span class="lbl">出た札　上から順に詠唱</span>`);
+  h += box(RKX+8, RKY+18, RKW-16, 1, `background:${C("wood",0)}`);
+  h += rackCards(RKX+8, RKY+24, RKW-16);
 
-  /* ── レバー。丸ボタンではなく、機械に生えている物 ── */
-  h += lever(150, MY+MH, WALLH+30);
+  /* ── 投げる。機械の右側面に生えた縦レバー ── */
+  h += lever(316, 150);
+  /* ── 玉の数。機械の下枠に付いた小さな盤 ── */
+  h += ballKeys(120, MY+MH);
 
   /* ── 役者。足元の線をそろえる ── */
-  h += actor("hero", 78, FOOT, {hp:SELF.hp, max:SELF.max, shield:SELF.shield});
-  const fx = [336, 398, 452];
+  h += actor("hero", 60, FOOT, {hp:SELF.hp, max:SELF.max, shield:SELF.shield});
+  const fx = [380, 470, 555];
   FOES.forEach((f,i)=> h += actor(f.sp, fx[i], FOOT, f, i===0));
 
-  /* ── 右のレール。機械と同じ木と真鍮で作る ── */
-  h += rail();
+  /* ── 右上に小さく。所持金と持ち物だけ ── */
+  h += topRight();
   return h;
 }
 
@@ -456,7 +471,7 @@ function rackCards(x, y, w){
   let h = "", cy = y;
   g.forEach((grp)=>{
     const many = grp.length > 1;
-    const gh = grp.length*34 + (grp.length-1)*3 + (many?8:0);
+    const gh = grp.length*32 + (grp.length-1)*3 + (many?8:0);
     if (many){
       h += plate(x, cy, w, gh, {fill:C("wood",1), hi:C("wood",2), lo:C("wood",0), sunk:true});
       /* 束ねの棒。修飾が次の発射体に乗る＝この 3 枚で 1 発、を形で示す */
@@ -468,13 +483,13 @@ function rackCards(x, y, w){
     let iy = cy + (many?4:0);
     grp.forEach(({c,i})=>{
       const t = TONE[c.t];
-      h += plate(x+(many?8:0), iy, w-(many?12:0), 34, {fill:C(t,1), hi:C(t,2), lo:C(t,0)});
-      h += box(x+(many?8:0)+4, iy+12, 10, 10, "",
+      h += plate(x+(many?8:0), iy, w-(many?12:0), 32, {fill:C(t,1), hi:C(t,2), lo:C(t,0)});
+      h += box(x+(many?8:0)+4, iy+11, 10, 10, "",
         `<span class="lbl" style="color:${C(t,3)}">${i}</span>`);
-      h += box(x+(many?8:0)+15, iy+9, 16, 16, "", glyph(c.g, 16));
-      h += box(x+(many?8:0)+36, iy+12, 60, 10, "",
+      h += box(x+(many?8:0)+15, iy+8, 16, 16, "", glyph(c.g, 16));
+      h += box(x+(many?8:0)+36, iy+11, 60, 10, "",
         `<span class="t ivory">${c.nm}</span>`);
-      iy += 37;
+      iy += 35;
     });
     cy += gh + 6;
   });
@@ -484,25 +499,64 @@ function rackCards(x, y, w){
 /* ── レバー。丸ボタンではなく、床に立って機械につながる物にする ──
    実行の操作を世界の中の物にすると、UI が世界から浮かない。
    軸を機械の下枠まで通すことで、「これを引くと機械が動く」が絵で分かる。 */
-function lever(x, top, floorY){
-  const H = floorY - top;
+function lever(x, top){
+  const len = 80, sw = 11;
   let h = "";
-  /* 台。床に置く */
-  h += box(x-8, floorY-3, 30, 4, `background:${INK};opacity:.55`);
-  h += plate(x-9, floorY-10, 32, 10, {fill:C("steel",2), hi:C("steel",4), lo:C("steel",0)});
-  h += plate(x-5, floorY-13, 24, 4, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
-  /* 軸。機械の下枠まで通す。これで「引くと機械が動く」が絵で分かる */
-  h += box(x+1, top, 9, H-12, `background:${C("steel",2)}`);
-  h += box(x+1, top, 2, H-12, `background:${C("steel",4)}`);
-  h += box(x+8, top, 2, H-12, `background:${C("steel",0)}`);
-  h += box(x, top+H-32, 11, 3, `background:${C("brass",2)}`);        // 留め金
-  h += box(x, top+H-32, 11, 1, `background:${C("brass",4)}`);
-  /* 握り。赤い玉 */
-  h += plate(x-4, top+8, 19, 17, {fill:C("red",2), hi:C("red",4), lo:C("red",0)});
-  h += box(x-1, top+11, 6, 4, `background:${C("red",4)}`);
-  h += box(x-4, top+22, 19, 2, `background:${C("red",0)}`);
-  h += box(x-12, floorY+4, 35, 10, `display:flex;justify-content:center`,
-    `<span class="t sh" style="color:${C("brass",3)}">投げる</span>`);
+  /* 機械の側面に付く受け金具。ここから生えていることを見せる */
+  h += shadowOf(x, top-14, 28, 24, 3);
+  h += plate(x, top-14, 28, 24, {fill:C("steel",2), hi:C("steel",4), lo:C("steel",0)});
+  h += plate(x+3, top-11, 22, 18, {fill:C("steel",1), hi:C("steel",0), lo:C("steel",3), sunk:true});
+  [[x+5,top-9],[x+19,top-9],[x+5,top+1],[x+19,top+1]].forEach(([bx,by])=>
+    h += plate(bx,by,3,3,{fill:C("brass",2), hi:C("brass",4), lo:C("brass",0)}));
+  /* 軸。面の作り方は他と同じ（左が明るく右が暗い） */
+  h += box(x+8, top, sw, len, `background:${C("steel",2)}`);
+  h += box(x+8, top, 2, len, `background:${C("steel",4)}`);
+  h += box(x+17, top, 2, len, `background:${C("steel",0)}`);
+  for (let i=1;i<=3;i++)                                  // 段。長い棒が板に見えないように
+    h += box(x+7, top+i*20, 13, 2, `background:${C("steel",0)}`);
+  /* 握り。丸は自動陰影がいちばん効く */
+  h += box(x+2, top+len-6, 24, 24, "", sprite("knob"));
+  /* 引く向き */
+  for (let i=0;i<5;i++)
+    h += box(x+11, top+len+22+i, 7-Math.floor(i*1.4), 1, `background:${C("brass",2)};opacity:.75`);
+  /* 銘板。操作の名前は握りのすぐ下。床に離して置くと何の名前か分からない */
+  h += shadowOf(x-9, top+len+30, 46, 18, 3);
+  h += plate(x-9, top+len+30, 46, 18, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
+  h += box(x-9, top+len+30, 46, 18, `display:flex;align-items:center;justify-content:center`,
+    `<span class="t sh" style="color:${C("brass",4)}">投げる</span>`);
+  return h;
+}
+
+/* ── 玉の数。機械の下枠に付いた小さな盤 ── */
+function ballKeys(x, y){
+  let h = "";
+  h += plate(x, y, 104, 24, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
+  h += box(x+6, y+7, 16, 10, "", `<span class="lbl">玉</span>`);
+  [1,2,3].forEach((n,i)=>{
+    const on = n === 2, kx = x + 24 + i*26;
+    h += plate(kx, y+4, 22, 16,
+      {fill:on?C("brass",3):C("wood",1), hi:on?C("brass",4):C("wood",3), lo:on?C("brass",1):C("wood",0)});
+    h += box(kx, y+4, 22, 16, `display:flex;align-items:center;justify-content:center`,
+      `<span class="t" style="color:${on?C("wood",0):C("bone",2)}">${n}</span>`);
+  });
+  return h;
+}
+
+/* ── 右上。所持金と持ち物だけ。小さく、壁に留めた札のように ── */
+function topRight(){
+  const w = 118, x = VW - w - 8, y = 8;
+  let h = "";
+  h += shadowOf(x, y, w, 26, 3);
+  h += plate(x, y, w, 26, {fill:C("wood",1), hi:C("wood",3), lo:C("wood",0)});
+  /* 所持金 */
+  h += box(x+8, y+8, 10, 10, "", glyph("coin", 10));
+  h += box(x+20, y+8, 44, 10, `display:flex;justify-content:flex-end`,
+    `<span class="t" style="color:${C("brass",4)}">${SELF.coin}</span>`);
+  h += box(x+70, y+4, 1, 18, `background:${C("wood",0)}`);
+  /* 持ち物 */
+  h += plate(x+76, y+4, 34, 18, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
+  h += box(x+76, y+4, 34, 18, `display:flex;align-items:center;justify-content:center`,
+    `<span class="t" style="color:${C("bone",3)}">持ち物</span>`);
   return h;
 }
 
@@ -541,62 +595,6 @@ function actor(sp, x, foot, d, front){
     for (let i=0;i<4;i++)
       h += box(mx-3+i, foot-sh-26+i, 7-i*2, 1, `background:${C("brass",3)}`);
   }
-  return h;
-}
-
-/* ── 右のレール ────────────────────────────────────────────────── */
-function rail(){
-  const x = RAILX, w = RAILW;
-  let h = "";
-  h += shadowOf(x, 0, w, VH, 0);
-  h += plate(x, -2, w, VH+4, {fill:C("wood",1), hi:C("wood",3), lo:C("wood",0)});
-  h += box(x+3, 0, 1, VH, `background:${C("wood",0)}`);
-  const ix = x + 10, iw = w - 20;
-
-  const btn = (y, label, tall) => {
-    let s = plate(ix, y, iw, tall||20, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
-    s += box(ix, y, iw, tall||20, `display:flex;align-items:center;justify-content:center`,
-      `<span class="t" style="color:${C("bone",3)}">${label}</span>`);
-    return s;
-  };
-  h += btn(10, "ターンをスキップ", 22);
-  h += box(ix, 42, iw, 1, `background:${C("wood",0)}`);
-
-  h += box(ix, 48, 20, 10, "", `<span class="lbl">玉</span>`);
-  [1,2,3].forEach((n,i)=>{
-    const on = n === 2;
-    h += plate(ix+22+i*24, 46, 20, 16,
-      {fill:on?C("brass",3):C("wood",2), hi:on?C("brass",4):C("wood",4), lo:on?C("brass",1):C("wood",0)});
-    h += box(ix+22+i*24, 46, 20, 16, `display:flex;align-items:center;justify-content:center`,
-      `<span class="t" style="color:${on?C("wood",0):C("bone",2)}">${n}</span>`);
-  });
-  h += box(ix, 70, iw, 1, `background:${C("wood",0)}`);
-
-  ["持ち物","図鑑","相棒"].forEach((t,i)=> { h += btn(78+i*26, t); });
-  h += box(ix, 158, iw, 1, `background:${C("wood",0)}`);
-
-  /* 読み取り。見出しは左、数字は右にそろえる */
-  const read = (y, k, v) =>
-    box(ix, y, iw, 10, "", `<span class="lbl">${k}</span>`) +
-    box(ix, y, iw, 10, `display:flex;justify-content:flex-end`,
-      `<span class="t" style="color:${C("brass",3)}">${v}</span>`);
-  h += read(166, "階層", `${SELF.floor} / ${SELF.floors}`);
-  h += read(180, "所持金", SELF.coin);
-  h += read(194, "残り札", 9);
-
-  /* 次に起きることを 1 か所にまとめる。目の行き先を作らないと、
-     プレイヤーは画面を舐めるように探すことになる */
-  h += box(ix, 212, iw, 10, "", `<span class="lbl">次の一手</span>`);
-  h += plate(ix, 228, iw, 46, {fill:C("wood",0), hi:C("wood",2), lo:C("wood",0), sunk:true});
-  const rows = [["atk", 6, "受ける"], ["def", 8, "相手が守る"]];
-  rows.forEach(([g,n,t],i)=>{
-    const y = 234 + i*18;
-    h += box(ix+5, y, 12, 12, "", glyph(g,12));
-    h += box(ix+20, y+2, 14, 10, "", `<span class="t" style="color:${C("bone",4)}">${n}</span>`);
-    h += box(ix+36, y+2, iw-40, 10, "", `<span class="lbl">${t}</span>`);
-  });
-
-  /* 下は空けておく。詰め込むと、どこを見ればいいか分からなくなる */
   return h;
 }
 

@@ -1,16 +1,26 @@
 #!/bin/sh
-# prototype/index.html は artifact 用の断片（doctype/html/head/body を持たない）。
-# GitHub Pages で直接開けるよう、完全な HTML 文書に包んでリポジトリ直下の
-# index.html を作る。Pages の公開元がルートなので、ここに index.html があれば
-# README ではなくゲームが開く。
+# 各ディレクトリの head.html + app.html（artifact 用の断片。doctype/html/head/body を
+# 持たない）を、完全な HTML 文書に包んで index.html を作る。
+# Pages の公開元がルートなので、直下に index.html があれば README ではなく画面が開く。
 set -e
 cd "$(dirname "$0")"
+
+# ルートに出すのは試作版の戦闘画面。ここが本線。
+{
+  cat game/battle/head.html
+  cat game/battle/app.html
+  printf '\n</body>\n</html>\n'
+} > index.html
+echo "index.html（戦闘画面）を生成しました"
+
+# 元のゲーム（prototype/）は old/ に置いておく。参考用で、もう本線ではない。
+mkdir -p old
 {
   cat prototype/head.html
   cat prototype/index.html
   printf '\n</body>\n</html>\n'
-} > index.html
-echo "index.html を生成しました"
+} > old/index.html
+echo "old/index.html（元のゲーム）を生成しました"
 
 # ルーレット（単体・ローグライクとは無関係）も同じやり方で包む
 {
@@ -36,12 +46,8 @@ echo "roulette3d/index.html を生成しました"
 } > roulette-top/index.html
 echo "roulette-top/index.html を生成しました"
 
-# 試作版の戦闘画面（案B で確定。見た目だけ）
-{
-  cat game/battle/head.html
-  cat game/battle/app.html
-  printf '\n</body>\n</html>\n'
-} > game/battle/index.html
+# 戦闘画面は game/battle/ にも同じものを置く（ルートと同じ中身）
+cp index.html game/battle/index.html
 echo "game/battle/index.html を生成しました"
 
 # 試作版のゲーム UI（戦闘画面のレイアウト案。見た目だけ）

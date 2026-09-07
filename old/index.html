@@ -1,0 +1,2489 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>杖と順序</title>
+<meta name="description" content="ルーレットで引いた順が呪文の順になるローグライト">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05070E">
+<!-- iPhone は Fullscreen API を持たない。ホーム画面に追加して standalone で
+     起動すると、Safari の UI ごと消えて本当の全画面になる。 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="杖と順序">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  html,body{margin:0;padding:0;overscroll-behavior:none}
+  body{background:#05070E;color:#E4E2DA;-webkit-text-size-adjust:100%;
+       -webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<title>杖と順序</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+
+<style>
+:root{
+  /* ═══ 16 色。これが全部。CSS にも canvas にも他の色は書かない ═══
+     暗所に沈む紺と黒を地にして、金・朱・青を光として使う。
+     縁日の橙と生成りは、祭りの意匠と一緒に落とした。 */
+  --c0:#05070E;   /* 底。画面の縁と穴 */
+  --c1:#0C1020;   /* 地 */
+  --c2:#161C33;   /* 面 */
+  --c3:#28304F;   /* 縁・立ち上がり */
+  --c4:#7C86A6;   /* 添え字・細い線 */
+  --c5:#E4E2DA;   /* 明るい字 */
+  --c6:#7A6320;   /* 金・暗 */
+  --c7:#D9AE44;   /* 金 */
+  --c8:#F6DD92;   /* 金・明 */
+  --c9:#7E2A1C;   /* 朱・暗 */
+  --ca:#D4512A;   /* 朱 */
+  --cb:#EE8C55;   /* 朱・明 */
+  --cc:#2C5C8C;   /* 青・暗 */
+  --cd:#6FB6E8;   /* 青・明 */
+  --ce:#2A6B44;   /* 緑・暗 */
+  --cf:#5FBE72;   /* 緑・明 */
+
+  --night:var(--c0);  --panel:var(--c1);  --panel2:var(--c2);
+  --line:var(--c2);   --line2:var(--c3);
+  --ivory:var(--c5);  --mute:var(--c4);   --faint:var(--c4);
+  --gold:var(--c7);   --gold-dim:var(--c6);
+  --ember:var(--ca);  --amber:var(--ca);  --blood:var(--ca);
+  --jade:var(--cf);   --sky:var(--cd);
+  --n0:var(--c0); --n1:var(--c1); --n2:var(--c1); --n3:var(--c2); --n4:var(--c3);
+  --i0:var(--c5); --i1:var(--c4); --i2:var(--c4);
+  --g0:var(--c8); --g1:var(--c7); --g2:var(--c6); --g3:var(--c1);
+  --e0:var(--cb); --e1:var(--ca); --e2:var(--c9); --e3:var(--c1);
+  --s0:var(--cd); --s1:var(--cd); --s2:var(--cc); --s3:var(--c1);
+  --j0:var(--cf); --j1:var(--cf); --j2:var(--ce);
+  --b1:var(--ca); --b2:var(--c9);
+
+  /* ═══ ドットの規律 ═══
+     --u は 4 の倍数。その半分 --px が 1 ドット。
+     --dp は「字の 1 ドット」で、常に整数 px。 */
+  --u:8px;
+  --px:calc(var(--u) / 2);
+  --dp:1px;
+  --bw:var(--px);
+  --sh:var(--px) var(--px) 0 var(--c0);
+  --sp16:calc(var(--px) * 16);
+  --sp8:calc(var(--px) * 8);
+
+  --f-mono:"DotGothic16","Courier New",monospace;
+  --f-body:"DotGothic16","Courier New",monospace;
+  --f-disp:"DotGothic16","Courier New",monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--c0);image-rendering:pixelated;color:var(--c5);
+  font-family:var(--f-body);-webkit-font-smoothing:none;
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px;gap:10px;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
+button:focus-visible{outline:var(--bw) solid var(--c7);outline-offset:var(--px)}
+
+#stagebox{display:flex;align-items:center;justify-content:center;background:var(--c0)}
+body.isfull{padding:0;gap:0;overflow:hidden;height:100vh;justify-content:center}
+:fullscreen{background:var(--c0)}
+html:fullscreen body{padding:0;gap:0;justify-content:center}
+body.isfull .notes{display:none}
+body.isfull #stagebox{position:fixed;inset:0;z-index:90}
+.stage{width:100%;aspect-ratio:16/9;container-type:size;image-rendering:pixelated;
+  position:relative;overflow:hidden;background:var(--c0);
+  /* --u は snapStage が .stage に直接書く。派生する値は :root で一度きり
+     計算されてしまうので（:root の --u:8px のまま固まる）、ここで引き直す。
+     これを忘れると小さい画面でも枠・余白・絵だけが PC 寸法のまま残り、
+     文字と重なる。 */
+  --px:calc(var(--u) / 2);
+  --bw:var(--px);
+  --sh:var(--px) var(--px) 0 var(--c0);
+  --sp16:calc(var(--px) * 16);
+  --sp8:calc(var(--px) * 8)}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column}
+.screen.off{display:none}
+
+/* ═══ ドットで焼いた字 ═══
+   ドット数はそのまま viewBox の単位。高さを --dp の整数倍で決めれば
+   どの倍率でも滲まない。色は currentColor を継ぐ。 */
+.dt{display:inline-block;vertical-align:-0.18em;height:calc(var(--dp)*15);width:auto;
+  flex:0 0 auto}
+.dt.s{height:calc(var(--dp)*15)}
+.dt.m{height:calc(var(--dp)*23)}
+.dt.l{height:calc(var(--dp)*30)}
+.dt.xl{height:calc(var(--dp)*45)}
+.dtp{display:block}
+.dtp .dt{display:block}
+
+/* ═══ 共通の部品 ═══ */
+.btn{font-family:var(--f-mono);letter-spacing:1px;
+  padding:calc(var(--px)*2) calc(var(--px)*4);
+  background:var(--c2);border:var(--bw) solid var(--c3);color:var(--c5);
+  display:inline-flex;flex-direction:column;align-items:center;gap:var(--px);
+  transition:background .1s,border-color .1s}
+.btn:hover:not(:disabled){background:var(--c3);border-color:var(--c7)}
+.btn:disabled{background:var(--c1);border-color:var(--c2);color:var(--c3);cursor:default}
+.btn small{display:block;color:var(--c3)}
+.btn.go{background:var(--ca);border-color:var(--cb);color:var(--c5)}
+.btn.go:hover:not(:disabled){background:var(--cb);border-color:var(--c8)}
+.btn.go:disabled{background:var(--c2);border-color:var(--c3);color:var(--c3)}
+
+/* ═══ HUD ═══ */
+.hud{position:absolute;top:calc(var(--u)*2);left:0;right:0;display:flex;align-items:center;
+  justify-content:space-between;padding:0 calc(var(--u)*22) 0 calc(var(--u)*2);
+  z-index:6;pointer-events:none;
+  gap:calc(var(--u)*2);height:calc(var(--u)*4)}
+.hud .l,.hud .r{display:flex;align-items:center;gap:calc(var(--px)*3)}
+.chip{padding:var(--px) calc(var(--px)*3);background:var(--c1);
+  border:var(--bw) solid var(--c2);color:var(--c4);white-space:nowrap;
+  display:inline-flex;align-items:center;gap:calc(var(--px)*2)}
+.chip.solid{background:var(--c2);color:var(--c5)}
+.chip b{color:var(--c5);font-weight:400}
+.chip .hp{color:var(--cb)} .chip .bk{color:var(--cd)}
+/* 自分の体力帯。敵の帯と同じ形にして、色だけ変える（敵＝朱、自分＝緑）。
+   高さは中の字から決める。--px から決めると小さい画面で数字の下が切れる。 */
+.hpb{display:inline-flex;align-items:center;flex:0 0 auto}
+.hpb .bar{position:relative;width:calc(var(--u)*22);
+  height:calc(var(--dp)*19 + var(--bw)*2);
+  background:var(--c0);border:var(--bw) solid var(--c3);overflow:hidden}
+/* 濃い緑を地にして字は生成り。明るい緑だと字が読めない（敵の帯も同じ理由で中間色） */
+.hpb .bar i{position:absolute;inset:0;right:auto;background:var(--ce);
+  transition:width .18s steps(6)}
+.hpb .bar i::after{content:"";position:absolute;left:0;right:0;top:0;
+  height:var(--px);background:var(--cf)}
+.hpb.low .bar i{background:var(--c9)}
+.hpb.low .bar i::after{background:var(--ca)}
+.hpb .bar .n{position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;color:var(--c5)}
+.hpb.hpflash .bar{animation:hpf .4s steps(4)}
+.chip.mig{color:var(--c7)}
+.full{padding:var(--px) calc(var(--px)*2);border:var(--bw) solid var(--c2);
+  background:var(--c1);color:var(--c4);pointer-events:auto;flex:0 0 auto;
+  position:absolute;top:calc(var(--u)*2);z-index:20}
+#btn-full{right:calc(var(--u)*2)}
+#btn-mute{right:calc(var(--u)*10)}
+.full:hover{border-color:var(--c7);color:var(--c7)}
+
+/* ═══ 札 ═══ */
+/* 小さい画面。字には読める最小の px があるので、札は物理サイズを保つ。
+   --u が半分なら --u 単位では倍に取る、という考え方。 */
+.stage.tiny .card,.stage.tiny .slot{width:calc(var(--u)*25);height:calc(var(--u)*35)}
+/* 小札は名前と絵しか持たない。説明文の幅（88 ドット）に縛られないので、
+   縦横比 15:21 を保ったまま 20:28 まで落とせる。 */
+.stage.tiny .card.mini{width:calc(var(--u)*20);height:calc(var(--u)*28)}
+.stage.tiny .trashgrid{max-width:calc(var(--u)*180)}
+.stage.tiny .pk{width:calc(var(--u)*27)}
+.stage.tiny .pk .cwrap{width:calc(var(--u)*25);height:calc(var(--u)*35)}
+.stage.tiny .pk .card{transform:none}          /* もう最小サイズなので拡大しない */
+.stage.tiny .handrow{gap:var(--px)}
+.stage.tiny .hand{gap:var(--u);padding-bottom:calc(var(--u)*4)}
+.stage.tiny .log{flex-basis:calc(var(--u)*26)}
+.stage.tiny .arena{gap:calc(var(--u)*8);padding-top:calc(var(--u)*14)}
+.stage.tiny .picks3{gap:calc(var(--u)*2)}
+.stage.tiny .rwrap{padding:calc(var(--px)*2);gap:calc(var(--px)*3)}
+.stage.tiny .rlwrap{gap:calc(var(--u)*3)}
+.stage.tiny .rlside{width:calc(var(--u)*52)}
+/* flex:0 0 auto は必須。これが無いと札は行に合わせて潰され、中の字は
+   固定 px なので隣へはみ出す（overflow:hidden で見えないだけで切れている）。
+   入りきらないときは潰すのではなく handrow を横に流す。 */
+.card{position:relative;flex:0 0 auto;width:calc(var(--u)*15);height:calc(var(--u)*21);
+  background:var(--c1);border:var(--bw) solid var(--c3);
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px);
+  transition:transform .1s steps(2),border-color .1s;box-shadow:var(--sh);
+  overflow:hidden}   /* はみ出した字が外の要素に重なるのを止める */
+.card.t-projectile{border-color:var(--c9);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c9)}
+.card.t-modifier{border-color:var(--c6);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--c6)}
+.card.t-utility{border-color:var(--cc);
+  box-shadow:var(--sh), inset 0 0 0 var(--px) var(--c1), inset 0 0 0 calc(var(--px)*2) var(--cc)}
+.cidx{position:absolute;top:calc(var(--px)*-2);left:calc(var(--px)*-2);
+  width:calc(var(--px)*7);height:calc(var(--px)*7);
+  background:var(--c1);border:var(--bw) solid var(--c3);display:flex;
+  align-items:center;justify-content:center;color:var(--c5);z-index:2}
+.card.t-projectile .cidx{border-color:var(--c9);color:var(--cb)}
+.card.t-modifier .cidx{border-color:var(--c6);color:var(--c7)}
+.cname{color:var(--c5);text-align:center;line-height:1;flex:0 0 auto}
+.cart{width:100%;height:calc(var(--px)*10);flex:1 1 auto;min-height:calc(var(--px)*7);
+  border:var(--bw) solid var(--c2);
+  background:var(--c0);display:flex;align-items:center;justify-content:center;position:relative}
+.cicon{width:calc(var(--px)*7);height:calc(var(--px)*7);shape-rendering:crispEdges}
+.uic{width:var(--sp8);height:var(--sp8);shape-rendering:crispEdges;vertical-align:calc(var(--px)*-1)}
+.ckind{color:var(--c4);flex:0 0 auto}
+/* 説明は縮めない（flex に潰されると 2 行目が切れる）。詰める側は絵札 */
+.ctext{color:var(--c4);margin:auto 0;flex:0 0 auto;display:flex;
+  align-items:center;justify-content:center;text-align:center;width:100%}
+.cbind{width:100%;text-align:center;padding-top:var(--px);flex:0 0 auto;
+  border-top:var(--px) solid var(--c6);color:var(--c6)}
+/* 小さく出す札：名前と絵だけ */
+.card.mini{padding:calc(var(--px)*3) calc(var(--px)*2) calc(var(--px)*2);gap:var(--px)}
+.card.mini .cart{flex:1 1 auto;height:auto;border:0;background:none}
+.card.mini .cicon{width:calc(var(--px)*16);height:calc(var(--px)*16)}
+
+/* ═══ 画面0：ダンジョン ═══ */
+#dungeon{background:var(--c0);align-items:center;justify-content:center}
+.dwrap{position:relative;touch-action:none;padding:calc(var(--px)*4);
+  background:var(--c1);border:var(--bw) solid var(--c2)}
+.dgrid{display:grid;gap:0;position:relative}
+.dc{width:var(--ts);height:var(--ts);position:relative}
+.dc.wall{background:var(--c0)}
+.dc.floor{background:var(--c2)}
+.dc.room{background:var(--c3)}
+.dc.edge{background:var(--c0)}
+.dc.tn{box-shadow:inset 0 var(--px) 0 var(--c4)}
+.dc.bn{box-shadow:inset 0 calc(var(--px)*-1) 0 var(--c0)}
+.dc.tn.bn{box-shadow:inset 0 var(--px) 0 var(--c4), inset 0 calc(var(--px)*-1) 0 var(--c0)}
+.dc.floor::after,.dc.room::after{content:"";position:absolute;inset:0;z-index:0;
+  background-repeat:no-repeat}
+.dc.v0::after{background-image:linear-gradient(var(--c1) 0 0);
+  background-size:var(--px) var(--px);background-position:30% 60%}
+.dc.v1::after{background-image:linear-gradient(var(--c1) 0 0),linear-gradient(var(--c1) 0 0);
+  background-size:var(--px) var(--px);background-position:65% 30%, 25% 75%}
+.dc.v2::after{background-image:linear-gradient(var(--c1) 0 0);
+  background-size:calc(var(--px)*2) var(--px);background-position:55% 70%}
+.dc.v3::after{background-image:none}
+.dc .ic{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:2}
+.dc.here{box-shadow:inset 0 0 0 var(--px) var(--c7)}
+.hero{position:absolute;width:var(--ts);height:var(--ts);z-index:3;
+  transition:left .1s steps(2),top .1s steps(2);pointer-events:none;
+  display:flex;align-items:center;justify-content:center}
+.hspr{width:100%;height:100%;image-rendering:pixelated}
+.dtip{position:absolute;left:0;right:0;bottom:calc(var(--u)*4);text-align:center;color:var(--c4)}
+.dex{position:absolute;right:calc(var(--u)*2);bottom:calc(var(--u)*2);z-index:6}
+.dside{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+  display:flex;flex-direction:column;gap:var(--px);width:calc(var(--u)*26)}
+.dside.left{left:calc(var(--u)*3)}
+.dside.right{right:calc(var(--u)*3);align-items:flex-end}
+.dside h3{margin:0 0 calc(var(--px)*2);color:var(--c7)}
+.dsrow{display:flex;align-items:center;gap:calc(var(--px)*2);width:100%;color:var(--c4)}
+.dsrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
+.dsrow .nm{flex:1 1 auto}
+.dsrow .ct{color:var(--c5)}
+
+/* ═══ 画面R：ルーレット ═══ */
+/* 下は .dtip（画面下端の一言）の場所。ここを空けておかないと、
+   ボタンの小さい添え字と一言が重なる。 */
+#roul{background:var(--c0);align-items:center;justify-content:center;
+  gap:calc(var(--u)*2);padding:calc(var(--u)*7) 0 calc(var(--u)*8)}
+.rlwrap{display:flex;align-items:center;gap:calc(var(--u)*6);
+  max-width:100%;min-height:0;flex:0 1 auto;padding:0 calc(var(--u)*2)}
+#wheel{image-rendering:pixelated;display:block}
+/* 区画の一覧。プールが増えると際限なく縦に伸び、上は HUD、下は
+   画面下端の一言に食い込んでいた。盤の高さで頭打ちにして、超えたら送る。 */
+.rlside{display:flex;flex-direction:column;gap:calc(var(--px)*3);
+  width:calc(var(--u)*40);flex:0 1 auto;min-width:0;min-height:0;
+  max-height:calc(var(--u)*72);overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;-ms-overflow-style:none}
+.rlside::-webkit-scrollbar{display:none}
+.rlrow{flex:0 0 auto}
+.rlrow{display:flex;align-items:center;gap:calc(var(--px)*2);color:var(--c4)}
+.rlrow .sw{width:var(--sp8);height:var(--sp8);flex:0 0 auto}
+.rlrow .nm{flex:1 1 auto}
+.rlrow .ct{color:var(--c5)}
+.rlwand{display:flex;gap:calc(var(--px)*2);align-items:center;
+  min-height:calc(var(--px)*11)}
+.rlw{display:flex;align-items:center;gap:var(--px);color:var(--c5);
+  padding:var(--px) calc(var(--px)*2);background:var(--c1);
+  border:var(--bw) solid var(--c3)}
+.rlw .sw{width:var(--sp8);height:var(--sp8)}
+.rlw.empty{width:calc(var(--u)*12);height:calc(var(--px)*9);background:var(--c1);
+  border:var(--bw) solid var(--c2)}
+.rlfoot{display:flex;align-items:center;gap:calc(var(--u)*3)}
+.balls{display:flex;gap:calc(var(--px)*2);align-items:center}
+.ball{width:calc(var(--px)*5);height:calc(var(--px)*5);background:var(--c8);
+  border:var(--bw) solid var(--c6)}
+.ball.used{background:var(--c2);border-color:var(--c3)}
+
+/* ═══ 画面2：戦闘 ═══ */
+#fight{background:var(--c1)}
+/* 奥の壁。板の継ぎ目は 2 種類の幅で刻む */
+#fight::before{content:"";position:absolute;left:0;right:0;top:0;
+  height:calc(var(--u)*48);z-index:0;
+  background:repeating-linear-gradient(90deg,
+    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
+    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
+/* 床。敵が 1 列で奥まで並ぶので、床にも奥行きが要る。
+   奥ほど暗い帯を重ねて、上に立つほど遠く見えるようにする。 */
+#fight::after{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*48);
+  height:calc(var(--u)*24);z-index:1;
+  background:linear-gradient(
+    var(--c6)  0 var(--px),                           /* 壁と床の境の金線 */
+    var(--c1)  var(--px)           calc(var(--u)*8),  /* 奥 */
+    var(--c2)  calc(var(--u)*8)    calc(var(--u)*16), /* 中 */
+    var(--c3)  calc(var(--u)*16)   100%)}             /* 手前 */
+/* 敵の背後の明かり。市松のディザで散らす */
+.glow{position:absolute;left:50%;top:calc(var(--u)*14);transform:translateX(-50%);
+  width:calc(var(--u)*90);height:calc(var(--u)*46);z-index:0;pointer-events:none}
+/* ═══ 敵の隊列 ═══
+   1 列に並んでいる。手前（左）が先頭で、攻撃は必ずここに当たる。
+   奥へ行くほど右上へずらして重ねる。大きさは変えない（半端な倍率で
+   ドットが滲むため）。前後は「重なりの順」と「奥ほど暗い床影」で示す。 */
+.arena{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:center;
+  gap:0;padding:calc(var(--u)*16) calc(var(--u)*4) 0;
+  height:calc(var(--u)*66);z-index:2;max-width:100%;overflow:visible}
+.arena .foe{margin-left:calc(var(--u)*-9)}
+.arena .foe:first-child{margin-left:0}
+/* 奥は上へ持ち上げ、手前が必ず上に重なる */
+.arena .foe:nth-child(1){transform:translateY(0);                 z-index:5}
+.arena .foe:nth-child(2){transform:translateY(calc(var(--u)*-4)); z-index:4}
+.arena .foe:nth-child(3){transform:translateY(calc(var(--u)*-8)); z-index:3}
+.arena .foe:nth-child(4){transform:translateY(calc(var(--u)*-12));z-index:2}
+/* 先頭だけに「ここに当たる」印を出す */
+.foe .lead{color:var(--c4)}
+.foe[aria-pressed="true"] .lead{color:var(--c7)}
+
+.foe{position:relative;display:flex;flex-direction:column;align-items:center;
+  min-width:0;
+  gap:var(--px);background:none;border:0;padding:0 calc(var(--u)*2) calc(var(--u)*2);
+  transition:transform .1s steps(2);text-align:center}
+.foe::after{content:"";position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:calc(var(--px)*26);height:calc(var(--px)*2);background:var(--c0)}
+.foe[aria-pressed="true"]::after{background:var(--c7);height:calc(var(--px)*3)}
+.arena .foe:nth-child(n+2)::after{background:var(--c1)}
+.foe.dead::after{display:none}
+.foe.hurt{animation:hurt .2s steps(2)}
+@keyframes hurt{0%{transform:translateX(calc(var(--px)*-2))}
+  50%{transform:translateX(calc(var(--px)*2))}100%{}}
+.intent{padding:0 var(--px);background:var(--c1);border:var(--bw) solid var(--c9);
+  color:var(--cb);display:flex;align-items:center;gap:var(--px)}
+.fname{color:var(--c4)}
+.foe[aria-pressed="true"] .fname{color:var(--c5)}
+.glyph{width:calc(var(--px)*40);height:calc(var(--px)*40);color:var(--c4);
+  shape-rendering:crispEdges;margin-top:var(--px)}
+.f2{position:relative;display:inline-block}
+.f2 svg{position:absolute;left:0;top:0;width:100%;height:100%;shape-rendering:crispEdges}
+.f2 svg:nth-child(1){animation:fA 1.2s steps(1,end) infinite}
+.f2 svg:nth-child(2){animation:fB 1.2s steps(1,end) infinite}
+@keyframes fA{0%,49.9%{visibility:visible}50%,100%{visibility:hidden}}
+@keyframes fB{0%,49.9%{visibility:hidden}50%,100%{visibility:visible}}
+.dead .f2 svg:nth-child(1){animation:none;visibility:visible}
+.dead .f2 svg:nth-child(2){animation:none;visibility:hidden}
+.foe:nth-child(2) .f2 svg{animation-delay:.29s}
+.foe:nth-child(3) .f2 svg{animation-delay:.61s}
+/* 選択マーカーは頭上の 1 ドット三角 */
+.tgt{width:calc(var(--px)*7);height:calc(var(--px)*4);
+  clip-path:polygon(50% 100%, 0 0, 100% 0);background:transparent}
+.foe[aria-pressed="true"] .tgt{background:var(--c7)}
+/* 帯の高さは中の字から決める。--px から決めると、小さい画面で
+   枠 2 本ぶんを引いた中身が 15 ドットを下回り、数字の下が切れる。 */
+.fbar{width:calc(var(--u)*15);height:calc(var(--dp)*19 + var(--bw)*2);background:var(--c0);
+  border:var(--bw) solid var(--c2);position:relative;overflow:hidden}
+.fbar i{position:absolute;inset:0;right:auto;background:var(--ca);transition:width .18s steps(6)}
+.fbar .ghost{position:absolute;top:0;bottom:0;background:var(--c9)}
+.fbar span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--c5)}
+#floats{position:absolute;inset:0;pointer-events:none;z-index:9}
+.float{position:absolute;transform:translateX(-50%);z-index:8;pointer-events:none;
+  animation:pop 1s steps(10) forwards;color:var(--ca)}
+.float.kill{color:var(--c7)}
+@keyframes pop{0%{transform:translate(-50%,calc(var(--px)*2))}
+  20%{transform:translate(-50%,calc(var(--px)*-1))}
+  100%{transform:translate(-50%,calc(var(--px)*-9));visibility:hidden}}
+.hpflash{animation:hpf .4s steps(4)}
+@keyframes hpf{0%{border-color:var(--c5);background:var(--c9)}100%{}}
+.fdelta{position:absolute;top:calc(var(--dp)*-24);left:50%;transform:translateX(-50%);color:var(--c7)}
+
+/* 手前の帯：杖 */
+/* 左＝経過、中央＝杖、右＝ボタン。以前は 3 つとも絶対配置で、
+   容量が増えて杖が伸びると左右の柱に食い込んでいた。1 本の行にすれば
+   どれだけ伸びても互いを押すだけで、重なることはない。 */
+.hand{flex:1 1 auto;position:relative;z-index:3;display:flex;align-items:flex-end;
+  gap:calc(var(--u)*2);padding:0 calc(var(--u)*2) calc(var(--u)*7);min-width:0}
+.hand::before{content:"";position:absolute;left:0;right:0;bottom:0;
+  height:calc(var(--u)*7);z-index:0;
+  background:linear-gradient(var(--c7) 0 var(--px),
+    var(--c6) var(--px) calc(var(--px)*4), var(--c0) calc(var(--px)*4) calc(var(--px)*5),
+    var(--c1) calc(var(--px)*5) 100%)}
+/* 札は字が読める大きさから下げられない。容量が増えて 1 行に収まらなく
+   なったら、縮めずに横へ流す。上の余白は、選んだ札が持ち上がる分。 */
+.handrow{flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;
+  padding-top:calc(var(--px)*5);
+  scrollbar-width:none;-ms-overflow-style:none;
+  display:flex;align-items:flex-end;justify-content:center;z-index:1;gap:calc(var(--px)*2)}
+.handrow::-webkit-scrollbar{display:none}
+.handrow .card{cursor:grab}
+.handrow .card::after{content:"";position:absolute;left:calc(var(--px)*-1);
+  right:calc(var(--px)*-1);bottom:calc(var(--px)*-3);height:calc(var(--px)*2);
+  background:var(--c0);z-index:-1}
+.handrow .card.picked{border-color:var(--c7);transform:translateY(calc(var(--px)*-4))}
+.handrow .card:hover{transform:translateY(calc(var(--px)*-4));z-index:9;border-color:var(--c7)}
+.slot{width:calc(var(--u)*15);height:calc(var(--u)*21);position:relative;flex:0 0 auto;
+  background:var(--c1);box-shadow:inset 0 0 0 var(--px) var(--c2)}
+.slot::before{content:"";position:absolute;inset:calc(var(--px)*2);
+  background:repeating-linear-gradient(90deg,
+      var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) top/100% var(--px) no-repeat,
+    repeating-linear-gradient(90deg,
+      var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) bottom/100% var(--px) no-repeat,
+    repeating-linear-gradient(180deg,
+      var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) left/var(--px) 100% no-repeat,
+    repeating-linear-gradient(180deg,
+      var(--c2) 0 calc(var(--px)*2), transparent calc(var(--px)*2) calc(var(--px)*4)) right/var(--px) 100% no-repeat}
+/* 右のボタン柱とほぼ同じ幅にしておくと、真ん中の杖が中央に来る。
+   経過の 1 行は D() なので折り返さない。溢れたら切る。 */
+.log{flex:0 1 calc(var(--u)*30);min-width:0;overflow:hidden;z-index:7;color:var(--c4);
+  align-self:flex-end;padding-bottom:calc(var(--u)*2)}
+.l-fire{color:var(--cb)} .l-mod{color:var(--c7)} .l-foe{color:var(--ca)}
+.l-total{color:var(--c5)}
+.fightfoot{flex:0 0 auto;z-index:7;
+  display:flex;gap:calc(var(--px)*3);align-items:center;justify-content:flex-end;
+  padding-bottom:calc(var(--u)*2)}
+
+/* ═══ 画面3：報酬／焼却炉 ═══ */
+#reward,#trash{background:var(--c1);align-items:center;justify-content:center;
+  background-image:repeating-linear-gradient(90deg,
+    var(--c1) 0 calc(var(--u)*7), var(--c0) calc(var(--u)*7) calc(var(--u)*7.5),
+    var(--c1) calc(var(--u)*7.5) calc(var(--u)*18), var(--c0) calc(var(--u)*18) calc(var(--u)*18.5))}
+.rwrap{display:flex;flex-direction:column;align-items:center;
+  gap:calc(var(--px)*4);padding:calc(var(--u)*4);
+  max-height:100%;overflow:auto;width:100%}
+/* 見出しは flex にする。.dt は vertical-align で少し下に沈むので、
+   行ボックスに乗せたままだと下の一文に噛みつく。 */
+.rwrap h2{margin:0;color:var(--c7);line-height:1;display:flex}
+.rwrap p{margin:0;color:var(--c4);line-height:1;display:flex}
+.picks3{display:flex;gap:calc(var(--u)*4);align-items:stretch}
+.pk{background:none;border:0;padding:0;display:flex;flex-direction:column;
+  align-items:center;gap:calc(var(--px)*2);text-align:center;width:calc(var(--u)*30);
+  transition:transform .1s steps(2);cursor:pointer}
+.pk .cwrap{width:calc(var(--u)*30);height:calc(var(--u)*42);position:relative}
+.pk .card{position:absolute;left:0;top:0;transform:scale(2);transform-origin:0 0;
+  pointer-events:none;box-shadow:var(--sh);margin:0}
+.pk:hover{transform:translateY(calc(var(--px)*-3))}
+.pk:hover .card{border-color:var(--c7)}
+.pk .pkh{color:var(--c4)}
+.trashgrid{display:flex;flex-wrap:wrap;justify-content:center;
+  gap:calc(var(--px)*4);max-width:calc(var(--u)*160)}
+.tk{background:none;border:0;padding:0;display:flex;flex-direction:column;
+  align-items:center;gap:var(--px);cursor:pointer;transition:transform .1s steps(2)}
+.tk:hover{transform:translateY(calc(var(--px)*-3))}
+.tk:hover .card{border-color:var(--ca)}
+.tk .card{pointer-events:none}
+.tkn{color:var(--c4)}
+
+/* ═══ 図鑑 ═══ */
+#dexv,#invv{position:absolute;inset:0;background:var(--c0);z-index:30;
+  overflow:auto;padding:calc(var(--px)*6)}
+#invv.hidden{display:none}
+#invv h2{margin:calc(var(--px)*2) 0 calc(var(--px)*2);color:var(--c7)}
+.invrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(var(--u)*80),1fr));
+  gap:calc(var(--px)*5);margin-bottom:calc(var(--px)*5)}
+.invcell{display:flex;flex-direction:column;align-items:center;gap:var(--px)}
+.invcell .n{color:var(--c7)}
+/* 札 1 枚につき 1 行。左に絵、右に正確な規則。 */
+.invitem{display:flex;gap:calc(var(--px)*3);align-items:flex-start;min-width:0}
+.invitem .card{flex:0 0 auto}
+.invtxt{display:flex;flex-direction:column;gap:calc(var(--px)*2);min-width:0;color:var(--c4)}
+.invtxt b{color:var(--c7);font-weight:400}
+#invclose{position:sticky;top:0;float:right}
+#dexv.hidden{display:none}
+#dexv h2{margin:0 0 calc(var(--px)*2);color:var(--c7)}
+#invv .sub{color:var(--c4)}
+#dexv .sub{color:var(--c4);margin-bottom:calc(var(--px)*4)}
+.dexrow{display:flex;flex-wrap:wrap;gap:calc(var(--px)*3);margin-bottom:calc(var(--px)*6)}
+.dexcell{display:flex;flex-direction:column;align-items:center;gap:var(--px)}
+.dexcell .n{color:var(--c4)}
+.dexlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(20em,1fr));
+  gap:calc(var(--px)*2) calc(var(--px)*4)}
+.dexi{border:var(--bw) solid var(--c2);background:var(--c1);
+  padding:calc(var(--px)*2) calc(var(--px)*3);display:flex;align-items:center;
+  gap:calc(var(--px)*3);border-top-color:var(--c6)}
+.dexi.got{border-color:var(--c7);border-top-color:var(--c8)}
+.dexs{width:var(--sp16);height:var(--sp16);flex:0 0 auto;shape-rendering:crispEdges}
+.dexi .dt2{display:flex;flex-direction:column;gap:var(--px)}
+#dexclose{position:sticky;top:0;float:right}
+
+/* ═══ 幕 ═══ */
+.veil{position:absolute;inset:0;background:var(--c0);display:flex;align-items:center;
+  justify-content:center;z-index:40}
+.veil .box{background:var(--c1);border:var(--bw) solid var(--c3);
+  border-top:calc(var(--px)*2) solid var(--c7);
+  padding:calc(var(--px)*6) calc(var(--px)*8);text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:calc(var(--px)*3)}
+
+.hidden{display:none!important}
+.notes{width:100%;max-width:1280px;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px 24px;
+  font-size:13px;line-height:1.6;color:var(--c4);
+  border-top:var(--px) solid var(--c2);padding-top:12px}
+.notes h3{font-size:13px;letter-spacing:1px;color:var(--c6);margin:0 0 4px}
+.notes ul{margin:0;padding-left:16px} .notes li{margin-bottom:4px}
+.notes b{color:var(--c5);font-weight:400} .notes code{color:var(--c7)}
+</style>
+
+<div id="stagebox"><div class="stage" id="stage">
+
+  <!-- ══ ダンジョン ══ -->
+  <div class="screen off" id="dungeon">
+    <div class="hud">
+      <div class="l"><span class="chip solid" id="d-floor"></span>
+        <span class="chip" id="d-pool"></span></div>
+      <div class="r"><span class="hpb" id="d-hp"></span>
+        <span class="chip" id="d-gun"></span></div>
+    </div>
+    <div class="dside left" id="dsl"></div>
+    <div class="dwrap"><div class="dgrid" id="dgrid"><div class="hero" id="hero"></div></div></div>
+    <div class="dside right" id="dsr"></div>
+    <div class="dtip" id="dtip"></div>
+    <button class="btn dex" id="btn-dex"></button>
+  </div>
+
+  <!-- ══ ルーレット（抽選） ══ -->
+  <div class="screen off" id="roul">
+    <div class="hud">
+      <div class="l"><span class="chip solid" id="r-floor"></span>
+        <span class="chip" id="r-round"></span></div>
+      <div class="r"><span class="hpb" id="r-hp"></span>
+        <span class="chip" id="r-block"></span>
+        <span class="chip" id="r-might"></span></div>
+    </div>
+    <div class="rlwrap">
+      <canvas id="wheel"></canvas>
+      <div class="rlside" id="rl-side"></div>
+    </div>
+    <div class="rlwand" id="rl-wand"></div>
+    <div class="rlfoot">
+      <div class="balls" id="rl-balls"></div>
+      <button class="btn go" id="btn-spin"></button>
+      <button class="btn" id="btn-toarr"></button>
+    </div>
+    <div class="dtip" id="rl-tip"></div>
+  </div>
+
+  <!-- ══ 戦闘 ══ -->
+  <div class="screen off" id="fight">
+    <div class="hud">
+      <div class="l"><span class="chip solid" id="f-floor"></span>
+        <span class="chip" id="f-round"></span></div>
+      <div class="r"><span class="hpb" id="f-hp"></span>
+        <span class="chip" id="f-block"></span>
+        <span class="chip" id="f-might"></span></div>
+    </div>
+    <canvas class="glow" id="glow"></canvas>
+    <div class="arena" id="foes"></div>
+    <div class="hand">
+      <div class="log" id="log"></div>
+      <div class="handrow" id="hand"></div>
+      <div class="fightfoot">
+        <button class="btn" id="btn-back"></button>
+        <button class="btn go" id="btn-cast"></button>
+      </div>
+    </div>
+    <div id="floats"></div>
+  </div>
+
+  <!-- ══ 報酬 ══ -->
+  <div class="screen off" id="reward">
+    <div class="rwrap">
+      <h2 id="r-title"></h2>
+      <p id="r-sub"></p>
+      <div class="picks3" id="r-picks"></div>
+      <button class="btn" id="r-reroll"></button>
+    </div>
+  </div>
+
+  <!-- ══ 焼却炉 ══ -->
+  <div class="screen off" id="trash">
+    <div class="rwrap">
+      <h2 id="t-title"></h2>
+      <p id="t-sub"></p>
+      <div class="trashgrid" id="t-picks"></div>
+      <button class="btn" id="t-skip"></button>
+    </div>
+  </div>
+
+  <div id="invv" class="hidden"></div>
+  <div id="dexv" class="hidden"></div>
+  <div class="veil hidden" id="veil"><div class="box" id="veilbox"></div></div>
+  <button class="btn full" id="btn-mute" title="音（M）"></button>
+  <button class="btn full" id="btn-full" title="全画面（F）"></button>
+</div></div>
+
+<div class="notes">
+  <div>
+    <h3>流れ</h3>
+    <ul>
+      <li>ダンジョンの部屋を選んで進む。<b>戦闘</b>に入ると、まず相手と
+          その狙いが出る。そこから盤へ向かう。</li>
+      <li>勝つと <b>3 つから 1 つ</b>（札の追加 / 杖の強化）。<b>引き直し</b>が 1 回。</li>
+      <li><b>宝箱</b>は札 3 枚から 1 枚、<b>休息</b>は体力回復、<b>焼却炉</b>は札を 1 枚捨てる。</li>
+      <li><b>ボス</b>の報酬は根本的な強化（玉 +1・杖の容量 +1 など）。勝つと次の階へ。</li>
+    </ul>
+  </div>
+  <div>
+    <h3>抽選</h3>
+    <ul>
+      <li>手持ちの札がそのまま<b>ルーレットの区画</b>になる。同じ札が 2 枚あれば
+          区画も 2 つ。だから薄めるほど狙いが散る。</li>
+      <li>玉を投げ、<b>止まった区画の札が、止まった順に杖へ積まれる</b>。
+          玉は区画の数までしか投げられない。</li>
+      <li>並べ替えは<b>いつでも自由</b>。札を 2 枚選ぶと入れ替わる。</li>
+    </ul>
+  </div>
+  <div>
+    <h3>杖のきまり</h3>
+    <ul>
+      <li><b>修飾</b>は単体では何もしない。<b>後ろに来る発射体</b>に乗る。</li>
+      <li>だから <code>三分裂</code> が <code>火球</code> より前にあれば乗る。逆なら不発。</li>
+      <li>修飾は威力を下げない。倍率で乗せるか、敵にデバフを残す。</li>
+      <li><b>汎用</b>（防御・膂力）も杖の順に解決する。前に置けばこの詠唱から効く。</li>
+    </ul>
+  </div>
+  <div>
+    <h3>状態</h3>
+    <ul>
+      <li><b>力</b> 貯まる数値。以後すべての発射体の威力に足される。戦闘のあいだ残る。</li>
+      <li><b>防御</b> 攻撃を受け止め、<b>受け止めきれない分だけ</b>通る。ラウンドで消える。</li>
+      <li><b>毒</b> 敵の番のはじめに毒の数だけ入り、毒が 1 減る（4→3→2→1 で計 10）。
+          <b>火傷</b> 次の敵の番に 1 度だけ入って消える。</li>
+      <li><b>破鎧</b> 以降その敵の被弾 1.5 倍。<b>弱体</b> 攻撃 −2。</li>
+      <li>貫通・波及・分裂の「隣」は、すべて<b>生存する敵の並び</b>で数える。</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ═══════ カード ═══════ */
+const KIND_JA = {projectile:"発射体", modifier:"修飾", utility:"汎用"};
+/* art: 後から画像を差し替える枠。null の間は仮のアイコンを出す */
+/* ═══ 札 ═══
+   いったん全部捨てた。発射体 3 に対して修飾 7 という偏りと、
+   石礫のように「火球の下位互換」でしかない札が残っていたため。
+   仕組み（発射体／修飾／汎用、順序で解決する VM）はそのまま残してある。
+   前の 12 種は git log の ac0a072 より前に入っている。
+
+   text は札の上の覚え書き（2 行以内）、rule は持ち物で読む正確な規則。 */
+const CARDS = {};
+for (const k in CARDS) CARDS[k].id = k;   // 定義側にも id を持たせる
+
+/* 山は 3 枚から始める。区画が少ないほど盤が読めるので、
+   「増やす」と「削る」の両方に意味が出る。 */
+const POOL0 = [];   // 開始プール。札を入れ直すまで空
+/* 区画の濃淡。同じ札はいつも同じ色になるよう、札ごとに固定で持つ */
+const SHADE = {};   // 盤の区画の濃淡。札ごとに決める
+// 他の札は報酬・宝箱でのみ手に入る
+
+const FOEDEX = [
+  {name:"スライム", hp:18, atk:3, spr:"slime"},
+  {name:"火蜥蜴",   hp:20, atk:4, spr:"salamander"},
+  {name:"石人",     hp:24, atk:2, spr:"golem"},
+  {name:"蟲",       hp:14, atk:2, spr:"worm"}
+];
+const MAXHP0 = 70;
+
+let S = null, uid = 0;
+let ret = {x:88, y:64};      // 照準の位置
+const mk = id => Object.assign({id, uid:++uid}, CARDS[id]);
+const rnd = n => Math.random()*n;
+function shuffle(a){                      // Fisher-Yates（sort(()=>Math.random()-.5) は偏る）
+  const r = a.slice();
+  for (let i=r.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [r[i],r[j]]=[r[j],r[i]]; }
+  return r;
+}
+
+function newRun(){
+  S = {floor:1, round:1, hp:MAXHP0, maxHp:MAXHP0, block:0, sift:0,
+       balls:2, cap:5, dmgUp:0, pick:null, might:0,
+       pool:POOL0.slice(), owned:[], core:[],
+       wand:[], foes:[], over:null, mode:"aim", phase:"dungeon",
+       prizes:[], statics:[], shots:[], log:[], flash:[], note:"",
+       d:null, busy:false, walk:null, anim:null, hurt:false, roffer:[], rkind:"battle", rerolls:1, boss:false};
+  S.d = genFloor(1);
+}
+/* ── ラウンドの初期化 ──
+   抽選はルーレット（startRoulette / rouletteStep）。手持ちの札がそのまま
+   区画になり、玉が止まった順に杖へ積まれる。ここは杖を空にするだけ。 */
+function newRound(){
+  S.pick = null;
+  S.mode = "arrange";
+  S.wand = [];
+  S.log = [];
+}
+
+/* ═══════ ドット絵スプライト（1 文字 = 1 ピクセル） ═══════ */
+const SPRITES = {
+  /* 規則
+     1=本体 2=影(右下) 3=ハイライト/目(左上) 4=輪郭。輪郭は必ず --c0。
+     最下行（行 15）に必ず接地のドットを置く。行の使い方を揃えないと
+     align-items:flex-end だけでは床に立たない（火蜥蜴が 4 ドット浮いていた）。
+     待機の 2 コマ目は形を変える。1 ドット平行移動させただけでは
+     「上下している」だけで、変形していないので生きて見えない。
+     シルエットで割る。白く塗り潰しても 4 体を判別できることを目安にした。 */
+
+  // スライム＝水滴。上が細く底が広い。潰れと伸びの 2 コマ
+  slime:{p:["","#6FBF6A","#2E7A46","#E8E4D6","#0B0E1A"], d:[
+    "0000000440000000","0000004114000000","0000043112400000","0000431111240000",
+    "0004311111124000","0043111111112400","0431111111111240","0431144111441240",
+    "0431144111441240","0431111111112240","0431111111122240","0431111111222240",
+    "0431111112222240","0442222222222400","0044444444444400","0004444444444000"],
+   d2:[
+    "0000000000000000","0000000440000000","0000004114000000","0000043111240000",
+    "0004311111124000","0043111111112400","0431111111111240","4311441114411124",
+    "4311441114411124","4311111111112224","4311111111222224","4311111122222224",
+    "4311222222222224","4322222222222224","4442222222222444","0444444444444440"]},
+
+  // 火蜥蜴＝低く長い胴、胴より長い尾、4 本脚。頭は左端で口と目を打つ
+  salamander:{p:["","#E2622F","#8E3320","#F5A55C","#0B0E1A"], d:[
+    "0000000000000000","0000000000000000","0000000000000440","0000000000044114",
+    "0000000004441122","0004444443111122","0043333311111220","0431311111112200",
+    "4413111111112000","4411111111122000","0422222222220000","0011001100110000",
+    "0011001100110000","0022002200220000","0044004400440000","0044004400440000"],
+   d2:[
+    "0000000000000000","0000000000000000","0000000000000000","0000000000000440",
+    "0000000000044114","0000444444311122","0043333311111220","0431311111112200",
+    "4413111111112000","4411111111122000","0422222222220000","0110011001100000",
+    "0110011001100000","0220022002200000","0440044004400000","0440044004400000"]},
+
+  // 石人＝角・肩・腕・拳。直線だけで組む
+  golem:{p:["","#9AA2BC","#3A4467","#E8E4D6","#0B0E1A"], d:[
+    "0400000000000040","0440000000000440","0443333333333440","0431111111111240",
+    "4431144111441244","4311144111441124","1431111111111234","1131111111111213",
+    "1131112222111213","1131111111111213","1431111111111234","4442222222222444",
+    "0044111111114400","0043122222213400","0043122222213400","0044444444444400"],
+   d2:[
+    "0000000000000000","0400000000000040","0440000000000440","0443333333333440",
+    "4431111111111244","4311144111441124","1431144111441234","1131111111111213",
+    "1131112222111213","1131111111111213","1431111111111234","4432222222222344",
+    "0044111111114400","0043122222213400","0043122222213400","0044444444444400"],
+   foot:13},
+
+  // 蟲＝縦に節を並べる。左右非対称。2 コマ目は節の張り出しを互い違いにする（蠕動）
+  worm:{p:["","#35618C","#0B0E1A","#7EC0E8","#0B0E1A"], d:[
+    "0000044444000000","0000431113400000","0004311111240000","0043112211124000",
+    "0043121112124000","0004311111240000","0000431111400000","0004311111240000",
+    "0043112211124000","0043121112124000","0004311111240000","0000431111400000",
+    "0004311111240000","0043111111124000","0004422222240000","0000444444400000"],
+   d2:[
+    "0000044444000000","0004311113400000","0043111111240000","0043112211124000",
+    "0004121112120000","0000431111400000","0004311111240000","0043111111124000",
+    "0043112211124000","0004121112120000","0000431111400000","0004311111240000",
+    "0043111111124000","0004311111240000","0000442222400000","0000444444400000"]}
+};
+/* 札の絵。札を捨てたので空。UI の絵（UI.*）と敵の絵（SPRITES）は別で残っている */
+const ICONS = {};
+/* UI の記号。フォントの記号を使うとそこだけ滲むので、8x8 で自前で打つ */
+const UI = {
+  full:{p:["","#9AA2BC"], d:[
+    "11000011","10000001","00000000","00000000","00000000","00000000","10000001","11000011"]},
+  swap:{p:["","#9AA2BC"], d:[
+    "00000000","00100000","01111110","00100000","00000100","01111110","00000100","00000000"]},
+  atk:{p:["","#E2622F","#F5A55C"], d:[
+    "00000120","00001210","00012100","10121000","11210000","01100000","11000000","10000000"]},
+  aim:{p:["","#E0B23C"], d:[
+    "00011000","00011000","01100110","11000011","11000011","01100110","00011000","00011000"]}
+};
+/* 歩行の 2 コマ目（脚だけ入れ替える）。滑って動く主人公は素人の絵の代名詞 */
+const HERO2 = {p:["","#F7D97A","#8A6E22","#3A4467","#E2622F"], d:[
+  "00111100","01222210","01211210","00122100","04444440","44444444","00440440","03000330"]};
+const HERO = {p:["","#F7D97A","#8A6E22","#3A4467","#E2622F"], d:[
+  "00111100","01222210","01211210","00122100","04444440","44444444","04400440","03300330"]};
+const ROOMSPR = {
+  battle:{p:["","#F5A55C","#8E3320","#E8E4D6"], d:[
+    "00000330","00003310","00033100","10331000","01310010","00100110","01001110","11011100"]},
+  chest:{p:["","#E0B23C","#8A6E22","#F7D97A"], d:[
+    "00000000","01111110","12222221","11111111","12211221","12233221","12222221","01111110"]},
+  rest:{p:["","#6FBF6A","#2E7A46","#6FBF6A"], d:[
+    "00000000","01100110","13311331","13333331","01333310","00133100","00013000","00000000"]},
+  trash:{p:["","#9AA2BC","#3A4467","#E2622F"], d:[
+    "01111110","12222221","01111110","01311310","01311310","01311310","01222210","00111100"]},
+  boss:{p:["","#E2622F","#8E3320","#F5A55C"], d:[
+    "00111100","01333310","13311331","13111131","13322331","01311310","00111100","01011010"]},
+  start:{p:["","#9AA2BC","#3A4467","#E8E4D6"], d:[
+    "00011000","00133100","01333310","01311310","01311310","01333310","00133100","00011000"]}
+};
+/* 倒した敵・踏破済みの部屋。opacity や grayscale で薄めると
+   パレットに無い濁った色が無限に生まれるので、暗いランプに差し替える */
+const DEADPAL = ["", "#232A44", "#151A2E", "#232A44", "#151A2E", "#0B0E1A"];
+// 被弾の 2 コマだけ白く飛ばす。パレット差し替えなので中間色を作らない
+const HITPAL  = ["", "#E8E4D6", "#E8E4D6", "#E8E4D6", "#E8E4D6", "#0B0E1A"];
+/** 2 コマ持つスプライトは 2 枚重ねて CSS で交互に見せる。
+    敵が一度も変形しないのが「動いていない」の正体だった。 */
+function spriteAnim(sp, cls, pal){
+  if (!sp) return "";
+  if (!sp.d2) return spriteSVG(sp, cls, pal);
+  return `<span class="f2 ${cls}">${spriteSVG(sp, "", pal)}`+
+         `${spriteSVG({p:sp.p, d:sp.d2}, "", pal)}</span>`;
+}
+/* ═══════ 文字をドットに焼く ═══════
+   Web フォントの有無や環境のアンチエイリアスに関係なく、
+   どこでも同じ 1 ビットの字にする。字は一度焼いたらキャッシュする。
+   12 ドットの高さで焼き、表示は --dp（整数 px）の倍数でしか拡大しない。 */
+const GDOT = 12, GTOP = 2, GBOX = 15;      // 字丈 / 上の余白 / 箱の高さ（ドット）
+const GLYPHS = new Map();
+const gcv = document.createElement("canvas");
+const gcx = gcv.getContext("2d", {willReadFrequently:true});
+const GFONT = `${GDOT}px "DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",` +
+              `"Noto Sans JP","MS Gothic",monospace`;
+function bakeGlyph(ch){
+  let g = GLYPHS.get(ch);
+  if (g) return g;
+  gcx.font = GFONT;
+  const w = Math.max(1, Math.round(gcx.measureText(ch).width));
+  gcv.width = w; gcv.height = GBOX;
+  gcx.font = GFONT;                       // canvas を作り直すと font が戻る
+  gcx.textBaseline = "alphabetic";
+  gcx.clearRect(0, 0, w, GBOX);
+  gcx.fillStyle = "#fff";
+  gcx.fillText(ch, 0, GTOP + GDOT);
+  const d = gcx.getImageData(0, 0, w, GBOX).data;
+  const rows = [];
+  for (let y=0; y<GBOX; y++){
+    let r = "";
+    for (let x=0; x<w; x++) r += d[(y*w + x)*4 + 3] > 108 ? "1" : "0";
+    rows.push(r);
+  }
+  g = {w, rows};
+  GLYPHS.set(ch, g);
+  return g;
+}
+const SPW = Math.round(GDOT*0.34);
+function glyphRuns(str, ox, oy, out){
+  let x = ox;
+  for (const ch of String(str)){
+    if (ch === " "){ x += SPW; continue; }
+    if (ch === "　"){ x += GDOT; continue; }
+    const g = bakeGlyph(ch);
+    g.rows.forEach((row, y)=>{
+      let i = 0;
+      while (i < row.length){
+        if (row[i] === "0"){ i++; continue; }
+        let n = 1; while (row[i+n] === "1") n++;
+        out.push(`<rect x="${x+i}" y="${oy+y}" width="${n}" height="1"/>`);
+        i += n;
+      }
+    });
+    x += g.w;
+  }
+  return x - ox;
+}
+function textWidth(str){
+  let x = 0;
+  for (const ch of String(str)){
+    if (ch === " "){ x += SPW; continue; }
+    if (ch === "　"){ x += GDOT; continue; }
+    x += bakeGlyph(ch).w;
+  }
+  return x;
+}
+/** 1 行。cls は s / m / l / xl で高さを選ぶ */
+function D(str, cls){
+  const out = [];
+  const w = Math.max(1, glyphRuns(str, 0, 0, out));
+  return `<svg class="dt ${cls||"s"}" viewBox="0 0 ${w} ${GBOX}" `+
+         `shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">`+
+         out.join("")+`</svg>`;
+}
+/** 折り返す段落。maxDots はドット単位の幅 */
+/* 禁則処理。行頭に置けない字（句読点・閉じ括弧・拗促音など）と、
+   行末に置けない字（開き括弧）。無いと「。威力は落ちない」のように
+   行頭が句点で始まって、日本語として読めない見た目になる。 */
+const NO_HEAD = "、。，．・：；？！ゝゞーぁぃぅぇぉっゃゅょゎヵヶァィゥェォッャュョヮ）］｝」』〉》”’%）";
+const NO_TAIL = "（［｛「『〈《“‘";
+function DP(str, maxDots, cls){
+  const lines = [];
+  let cur = "";
+  const chars = [...String(str)];
+  for (let i=0;i<chars.length;i++){
+    const ch = chars[i];
+    if (ch === "\n"){ lines.push(cur); cur = ""; continue; }
+    const t = cur + ch;
+    if (textWidth(t) > maxDots && cur){
+      // この字が行頭に来られないなら、前の行に押し込む（ぶら下げ）
+      if (NO_HEAD.includes(ch)){ lines.push(t); cur = ""; continue; }
+      // 直前が開き括弧なら、それごと次の行へ送る
+      let carry = "";
+      while (cur && NO_TAIL.includes(cur[cur.length-1])){
+        carry = cur[cur.length-1] + carry; cur = cur.slice(0, -1);
+      }
+      if (!cur){ cur = carry + ch; continue; }   // 全部括弧なら諦めて切る
+      lines.push(cur); cur = carry + ch;
+    }
+    else cur = t;
+  }
+  if (cur) lines.push(cur);
+  const out = [];
+  let w = 1;
+  lines.forEach((ln, i)=>{
+    const lw = glyphRuns(ln, 0, i*(GBOX+1), out);
+    if (lw > w) w = lw;
+  });
+  const h = lines.length*(GBOX+1) - 1;
+  return `<svg class="dt ${cls||"s"}" viewBox="0 0 ${w} ${h}" `+
+         `style="height:calc(var(--dp)*${h})" `+
+         `shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">`+
+         out.join("")+`</svg>`;
+}
+
+function spriteSVG(sp, cls, pal){
+  if (!sp) return "";
+  let r = "";
+  sp.d.forEach((row, y)=>{
+    let x = 0;
+    while (x < row.length){
+      const c = row[x];
+      if (c === "0"){ x++; continue; }
+      let w = 1;
+      while (x+w < row.length && row[x+w] === c) w++;
+      r += `<rect x="${x}" y="${y}" width="${w}" height="1" fill="${(pal||sp.p)[+c]}"/>`;
+      x += w;
+    }
+  });
+  return `<svg class="${cls}" viewBox="0 0 ${sp.d[0].length} ${sp.d.length}" `+
+         `shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
+
+/* ═══════ カード部品（どの画面でも同じものを使う） ═══════ */
+function cardHTML(c, opt){
+  opt = opt || {};
+  if (opt.mini)
+    return `<div class="card mini t-${c.type}">`+
+      `<span class="cname">${D(c.name)}</span>`+
+      `<span class="cart">${spriteSVG(ICONS[c.id], "cicon")}</span>`+
+    `</div>`;
+  return `<div class="card t-${c.type}">`+
+    (opt.idx ? `<span class="cidx">${D(String(opt.idx))}</span>` : ``)+
+    `<span class="cname">${D(c.name)}</span>`+
+    `<span class="cart">${spriteSVG(ICONS[c.id], "cicon")}</span>`+
+    `<span class="ckind">${D(KIND_JA[c.type])}</span>`+
+    `<span class="ctext">${DP(c.text, 88)}</span>`+
+    (opt.bind ? `<span class="cbind">${D(opt.bind)}</span>` : ``)+
+  `</div>`;
+}
+
+/* ═══════ 杖 VM ═══════ */
+/* 修飾は威力を下げない。倍率で乗せるか、敵に残るデバフを置くか。
+   以前は分裂に「威力半減」が付いていたせいで、修飾を拾うより発射体を
+   もう 1 枚拾うほうが常に強く、並び順が結果に影響しなくなっていた。 */
+const newBuf = () => ({split:1, pierce:0, splash:0, mul:1, vuln:0, weak:0, psn:0, brn:0});
+const alive = st => st.foes.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0);
+let REC = null;                        // 演出用に解決手順を記録する
+function hit(st, i, amount, log){
+  const f = st.foes[i];
+  if (!f || f.hp<=0) return;
+  const d = Math.max(0, Math.round(amount * (1 + (f.vuln||0))));   // 破鎧の分だけ通る
+  f.hp -= d;
+  if (st.flash) st.flash.push(i);
+  log.push({k:"fire", t:`  ${f.name} −${d}`});
+  if (REC) REC.push({k:"hit", i, dmg:d});
+  if (f.hp<=0){ f.hp = 0; log.push({k:"total", t:`  ${f.name} 撃破`});
+    if (REC) REC.push({k:"kill", i}); }
+}
+/** 当てた敵に、この発射体が積んでいたデバフを残す */
+function debuff(st, i, buf, log){
+  const f = st.foes[i];
+  if (!f || f.hp<=0) return;
+  // 量はイベントに載せる。演出側で書き直すと、札の数値を変えたときに片方だけ古くなる
+  if (buf.vuln){ f.vuln = (f.vuln||0) + buf.vuln;
+    log.push({k:"mod", t:`  ${f.name} 破鎧`}); if (REC) REC.push({k:"deb", i, s:"破鎧", v:buf.vuln}); }
+  if (buf.weak){ f.weak = (f.weak||0) + buf.weak; f.atk = Math.max(1, f.atk - buf.weak);
+    log.push({k:"mod", t:`  ${f.name} 攻撃 −${buf.weak}`}); if (REC) REC.push({k:"deb", i, s:"弱体", v:buf.weak}); }
+  if (buf.psn){ f.psn = (f.psn||0) + buf.psn;
+    log.push({k:"mod", t:`  ${f.name} 毒 ${f.psn}`}); if (REC) REC.push({k:"deb", i, s:"毒", v:buf.psn}); }
+  if (buf.brn){ f.brn = (f.brn||0) + buf.brn;
+    log.push({k:"mod", t:`  ${f.name} 火傷 ${f.brn}`}); if (REC) REC.push({k:"deb", i, s:"火傷", v:buf.brn}); }
+}
+function shoot(st, card, buf, log){
+  const copies = buf.split;
+  // 力は「攻撃そのもの」に足してから修飾の倍率をかける。
+  // だから 力 → 拡大 → 火球 の並びは、力の分まで 1.5 倍になる。
+  const base   = (card.dmg + (S.dmgUp||0) + (st.might||0)) * buf.mul;
+  const pierce = (card.pierce||0) + buf.pierce;
+  const splash = buf.splash;
+  const tags = [];
+  if (copies>1)  tags.push(`分裂${copies}`);
+  if (pierce)    tags.push(`貫通${pierce}`);
+  if (splash)    tags.push(`波及${splash}`);
+  if (buf.mul!==1) tags.push(`威力${buf.mul}倍`);
+  if (buf.vuln)  tags.push("破鎧");
+  if (buf.weak)  tags.push("弱体");
+  if (buf.psn)   tags.push("毒");
+  if (buf.brn)   tags.push("火傷");
+  log.push({k:"fire", t:`${card.name} ${Math.round(base)}${tags.length?" ["+tags.join(" ")+"]":""}`});
+  if (REC) REC.push({k:"fire", name:card.name, tags:tags.join(" ")});
+  // 敵は 1 列に並んでいる。列は生きている敵だけで数える
+  // （倒れた敵は列から抜けるので、後ろが繰り上がって前に出る）。
+  const line = alive(st);
+  if (!line.length) return;
+  // 攻撃は必ず先頭から当たる。狙いを選ぶ余地は無い。
+  for (let c=0;c<copies;c++){
+    // 複製は先頭から順に、列の奥へ 1 体ずつずれて当たる
+    const ai = Math.min(c, line.length - 1);
+    // 貫通 N ＝ そこからさらに奥 N 体まで貫く
+    for (let p=0; p<=pierce && ai+p < line.length; p++){
+      hit(st, line[ai+p], base, log); debuff(st, line[ai+p], buf, log); }
+    // 波及 N ＝ 貫いた先のさらに奥 N 体へ、各 0.5 倍
+    for (let dj=1; dj<=splash; dj++){
+      const k = ai + pierce + dj;
+      if (k < line.length) hit(st, line[k], base*0.5, log);
+    }
+  }
+}
+function runCast(st, wand, log){
+  let buf = newBuf();
+  for (const c of wand){
+    if (c.type === "modifier"){
+      // 上書きではなく加算する（貫通+2 と書いてあるのだから重なるべき）
+      if (c.mod.pierce) buf.pierce += c.mod.pierce;
+      if (c.mod.splash) buf.splash += c.mod.splash;
+      if (c.mod.split)  buf.split  += c.mod.split - 1;
+      if (c.mod.mul)    buf.mul    *= c.mod.mul;
+      if (c.mod.vuln)   buf.vuln   += c.mod.vuln;
+      if (c.mod.weak)   buf.weak   += c.mod.weak;
+      if (c.mod.psn)    buf.psn    += c.mod.psn;
+      if (c.mod.brn)    buf.brn    += c.mod.brn;
+      log.push({k:"mod", t:`+ ${c.name}`});
+      if (REC) REC.push({k:"mod", name:c.name}); }
+    else if (c.type === "projectile"){ shoot(st, c, buf, log); buf = newBuf(); }
+    else if (c.type === "utility"){
+      // 汎用札も杖の中で順番に解決する。以前は玉が落ちた瞬間に効いていて、
+      // 「並べた順が呪文になる」という土台から一枚だけ外れていた。
+      // 力を前に置けばこの詠唱から乗り、後ろに置けば次の詠唱から乗る。
+      if (c.block){ st.block = (st.block||0) + c.block;
+        log.push({k:"mod", t:`${c.name} 防御 +${c.block}`});
+        if (REC) REC.push({k:"util", name:c.name, block:c.block}); }
+      if (c.might){ st.might = (st.might||0) + c.might;
+        log.push({k:"mod", t:`${c.name} 力 +${c.might}（計 ${st.might}）`});
+        if (REC) REC.push({k:"util", name:c.name, might:c.might}); }
+    }
+  }
+  const tail = [];
+  for (let j=wand.length-1; j>=0 && wand[j].type==="modifier"; j--) tail.unshift(wand[j].name);
+  if (tail.length) log.push({k:"foe", t:`不発：${tail.join("・")}`});
+}
+function preview(){
+  if (!S.wand.length)
+    return {log:[], hp:S.foes.map(f=>f.hp), total:0, dud:[],
+            block:S.block, might:S.might||0};
+  const st = {foes:S.foes.map(f=>Object.assign({}, f)),
+              block:S.block, might:S.might||0};
+  const log = [];
+  runCast(st, S.wand, log);
+  const total = S.foes.reduce((a,f,i)=>a + Math.max(0, f.hp - st.foes[i].hp), 0);
+  // 発射体より後ろに置かれて撃たれなかった修飾
+  const dud = [];
+  for (let j=S.wand.length-1; j>=0 && S.wand[j].type==="modifier"; j--) dud.unshift(S.wand[j].name);
+  return {log, hp:st.foes.map(f=>f.hp), total, dud, block:st.block, might:st.might};
+}
+
+/* ═══════ ダンジョン ═══════ */
+const ROOM_JA = {battle:"戦闘", chest:"宝箱", rest:"休息", trash:"焼却炉", boss:"ボス", start:"入口"};
+const DW = 15, DH = 11;
+
+/** 写真のような十字の通路。中央の縦通路から横に枝が伸び、その先に部屋がある。 */
+function genFloor(fl){
+  const g = Array.from({length:DH}, ()=>Array(DW).fill(0));
+  const rooms = [];
+  const cx = 7;
+  for (let y=2; y<=DH-2; y++) g[y][cx] = 1;           // 中央の縦通路
+  const put = (x,y,t)=>{
+    for (let j=y-1;j<=y+1;j++) for (let i=x-1;i<=x+1;i++) g[j][i] = 2;
+    rooms.push({x, y, t, done:false});
+  };
+  // 焼却炉が出る階を混ぜる。増やすだけでは杖が薄まる一方なので、捨てる場所が要る
+  const kinds = shuffle(fl % 2 === 0 ? ["battle","battle","trash","rest"]
+                                     : ["battle","battle","chest","rest"]);
+  [3, 7].forEach((by, bi)=>{
+    for (let x=3; x<=11; x++) g[by][x] = 1;            // 横の枝
+    put(2,  by, kinds[bi*2]);
+    put(12, by, kinds[bi*2+1]);
+  });
+  put(cx, 1, "boss");                                  // 上のボス部屋
+  const start = {x:cx, y:DH-2};
+  g[start.y][start.x] = 1;
+  // 床に接する空きマスを壁にする（通路が囲われて見える）
+  let w = g.map(r=>r.slice());
+  for (let pass=0; pass<2; pass++){          // 2 段膨張。内側に黒い穴が残らない
+    const nx2 = w.map(r=>r.slice());
+    for (let y=0;y<DH;y++) for (let x=0;x<DW;x++){
+      if (w[y][x] !== 0) continue;
+      let near = false;
+      for (let j=-1;j<=1 && !near;j++) for (let i=-1;i<=1;i++){
+        const ny=y+j, mx=x+i;
+        if (ny>=0&&mx>=0&&ny<DH&&mx<DW&&w[ny][mx]!==0){ near = true; break; }
+      }
+      if (near) nx2[y][x] = 3;
+    }
+    w = nx2;
+  }
+  return {g:w, rooms, px:start.x, py:start.y};
+}
+function roomAt(x, y){ return S.d.rooms.find(r=>r.x===x && r.y===y); }
+function passable(x, y){
+  const v = x>=0 && y>=0 && x<DW && y<DH ? S.d.g[y][x] : 0;
+  return v === 1 || v === 2;
+}
+/** クリックした床まで最短路で歩く */
+function walkTo(tx, ty){
+  if (S.phase !== "dungeon" || S.busy || S.walk) return;
+  const seen = {}, q = [[S.d.px, S.d.py, []]];
+  seen[S.d.px+","+S.d.py] = 1;
+  let path = null;
+  while (q.length && !path){
+    const [x,y,pa] = q.shift();
+    if (x===tx && y===ty){ path = pa; break; }
+    for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx, ny=y+dy, k=nx+","+ny;
+      if (seen[k] || !passable(nx,ny)) continue;
+      seen[k]=1; q.push([nx,ny,pa.concat([[dx,dy]])]);
+    }
+  }
+  if (!path || !path.length) return;
+  S.walk = path.slice();
+  const tickWalk = ()=>{
+    if (!S.walk || !S.walk.length || S.phase !== "dungeon"){ S.walk = null; return; }
+    const [dx,dy] = S.walk.shift();
+    step(dx, dy);
+    if (S.phase === "dungeon" && S.walk.length) setTimeout(tickWalk, 95);
+    else S.walk = null;
+  };
+  tickWalk();
+}
+function step(dx, dy){
+  if (S.phase !== "dungeon" || S.busy) return;
+  const nx = S.d.px + dx, ny = S.d.py + dy;
+  if (!passable(nx, ny)) return;
+  S.d.px = nx; S.d.py = ny;
+  sfx("walk");
+  S.d.stepn = (S.d.stepn||0) + 1;      // 1 歩ごとに脚を入れ替える
+  const rm = roomAt(nx, ny);
+  renderDungeon();
+  if (rm && !rm.done){ S.busy = true; setTimeout(()=>{ S.busy = false; enterRoom(rm); }, 180); }
+}
+
+const foeHp  = (f, fl, boss) => Math.round(f.hp * (1 + (fl-1)*0.34 + (boss?0.45:0)));
+const foeAtk = (f, fl) => Math.max(2, Math.round(f.atk * (1 + (fl-1)*0.20)));
+function makeFoes(kind, fl){
+  const n = kind === "boss" ? 3 : (rnd(1) < 0.55 ? 2 : 1);
+  const pick = shuffle(FOEDEX).slice(0, n);
+  const boss = kind === "boss";
+  return pick.map(f=>{
+    const hp = foeHp(f, fl, boss);
+    return {name:f.name, spr:f.spr, hp, maxHp:hp, atk:foeAtk(f, fl), vuln:0, weak:0, psn:0, brn:0};
+  });
+}
+
+function toDungeon(){ S.phase = "dungeon"; render(); }
+
+function enterRoom(rm){
+  if (!rm || rm.done) return;
+  rm.done = true;
+  if (rm.t === "rest"){
+    S.hp = Math.min(S.maxHp, S.hp + 26);
+    S.note = "焚き火で休んだ。体力 +26";
+    return render();
+  }
+  if (rm.t === "chest"){
+    return showReward("chest");
+  }
+  if (rm.t === "trash"){
+    S.phase = "trash";
+    return render();
+  }
+  S.foes = makeFoes(rm.t, S.floor);
+  S.block = 0; S.might = 0; S.round = 1;
+  S.boss = rm.t === "boss";
+  newRound();
+  // まず戦闘画面。誰と戦うのか、相手が何をしてくるのかを見てから盤へ向かう。
+  // いきなり抽選に飛ばすと、何を狙って引くのかが決められない。
+  S.roul = null;
+  S.phase = "fight";
+  render();
+}
+
+/* ═══════ 報酬 ═══════ */
+/** 何度でも取れる根本強化。CORE を取り尽くした後の受け皿。 */
+const REPEATABLE = [
+  {id:"hp+",  name:"鍛えた体", note:"最大体力 +15 して全回復する",
+   apply:()=>{ S.maxHp += 15; S.hp = S.maxHp; }},
+  {id:"ball+", name:"重い玉", note:"1 ラウンドに投げる玉が 1 つ増える",
+   apply:()=>{ S.balls++; }},
+  {id:"cap2+",name:"継ぎ手", note:"杖の容量 +1",
+   apply:()=>{ S.cap++; }},
+  {id:"dmg2+", name:"磨いた触媒", note:"すべての発射体の威力が +1 される",
+   apply:()=>{ S.dmgUp = (S.dmgUp||0) + 1; }},
+  {id:"cap+", name:"継ぎ足した杖", note:"1 ラウンドに拾える札が 1 枚増える",
+   apply:()=>{ S.cap++; }},
+  {id:"dmg+", name:"研いだ触媒", note:"すべての発射体の威力が +2 される",
+   apply:()=>{ S.dmgUp = (S.dmgUp||0) + 2; }}
+];
+const CORE = [
+  {id:"ball", name:"金の玉", note:"1 ラウンドに投げる玉が 1 つ増える", apply:()=>{ S.balls++; }},
+  {id:"cap",  name:"長い杖", note:"1 ラウンドに拾える札が 1 枚増える", apply:()=>{ S.cap++; }},
+  {id:"sift", name:"選り分け", note:"玉が止まる区画をひとつ選び直せる（1 ラウンド 1 回）",
+   apply:()=>{ S.sift = (S.sift||0) + 1; }},
+  {id:"tough",name:"厚い外套", note:"最大体力 +25 して全回復する", apply:()=>{ S.maxHp += 25; S.hp = S.maxHp; }}
+];
+function rewardPool(kind){
+  if (kind === "boss"){
+    const left = CORE.filter(c=>!S.core.includes(c.id));
+    if (left.length >= 3) return left;
+    // 取り尽くしたら繰り返し取れる強化で埋める（空になると詰む）
+    return left.concat(REPEATABLE);
+  }
+  const cards = Object.keys(CARDS).map(id=>({kind:"card", id}));
+  if (kind === "chest") return cards;
+  return cards.concat(REPEATABLE.map(u=>({kind:"up", u})));
+}
+function showReward(kind){
+  S.phase = "reward"; S.rkind = kind; S.rerolls = 1;
+  rollReward();
+}
+function rollReward(){
+  const pool = shuffle(rewardPool(S.rkind));
+  S.roffer = pool.slice(0, 3);
+  render();
+}
+function takeReward(k){
+  const o = S.roffer[k];
+  if (!o) return;
+  if (S.rkind === "boss"){ o.apply(); if (!REPEATABLE.includes(o)) S.core.push(o.id); nextFloor(); return; }
+  sfx("reward");
+  if (o.kind === "card") S.pool.push(o.id);
+  else { o.u.apply(); S.owned.push(o.u.id); }
+  S.hp = Math.min(S.maxHp, S.hp + 5);
+  S.note = (o.kind === "card" ? `${CARDS[o.id].name} を仕入れた` : `${o.u.name}`) + "　体力 +5";
+  toDungeon();
+}
+function nextFloor(){
+  S.floor++;
+  S.d = genFloor(S.floor);
+  S.hp = Math.min(S.maxHp, S.hp + 12);
+  S.note = `${S.floor} 階へ降りた`;
+  toDungeon();
+}
+
+/* ═══════ 戦闘の進行 ═══════ */
+
+
+/** 列の先頭（生きている敵のうち一番前）。攻撃はここに当たる */
+function frontFoe(st){ const a = alive(st || S); return a.length ? a[0] : -1; }
+const STEP_MS = {mod:240, fire:380, hit:340, kill:520, enemy:520, deb:260, psn:340, util:280, done:240};
+
+function cast(){
+  if (S.over || S.phase !== "fight" || S.anim) return;
+  // 1) 複製した盤面で解決手順だけを記録する
+  const clone = {foes:S.foes.map(f=>Object.assign({}, f)), flash:[],
+                 block:S.block, might:S.might||0};
+  const log = [];
+  REC = [];
+  if (!S.wand.length){ clone.block += 6; S.log = [{k:"mod", t:"構えた（防御 +6）"}];
+    REC.push({k:"util", name:"構え", block:6}); }
+  if (S.wand.length) runCast(clone, S.wand, log);
+  const evs = REC; REC = null;
+  // 2) 継続ダメージは敵の番の直前に入る。
+  //    毒は「毒の数だけ入って、毒が 1 減る」。溜めるほど総量が伸びる（4 なら 4+3+2+1）。
+  //    火傷は敵の番のはじめに 1 度だけ入って消える。持続しない。
+  clone.foes.forEach((f,i)=>{
+    if (f.hp<=0) return;
+    if (f.psn){ f.hp = Math.max(0, f.hp - f.psn);
+      f.psn = Math.max(0, f.psn - 1);
+      evs.push({k:"psn", i, dmg:f.psn+1, s:"毒", psn:f.psn}); }
+    if (f.brn && f.hp>0){
+      const d = f.brn;
+      f.hp = Math.max(0, f.hp - d);
+      f.brn = 0;
+      evs.push({k:"psn", i, dmg:d, s:"火傷", brn:0});
+    }
+    if (f.hp<=0) evs.push({k:"kill", i});
+  });
+  // 3) 生き残った敵の反撃を予定に加える
+  if (clone.foes.some(f=>f.hp>0)){
+    let blk = clone.block;
+    for (const f of clone.foes){
+      if (f.hp<=0) continue;
+      const abs = Math.min(blk, f.atk);
+      blk -= abs;
+      evs.push({k:"enemy", name:f.name, dmg:f.atk-abs, abs});
+    }
+  }
+  evs.push({k:"done"});
+  S.wand = []; S.log = [];
+  S.anim = {evs, i:0};
+  render();
+  playStep();
+}
+
+/** 演出を最後まで一気に流す */
+function skipAnim(){
+  if (!S.anim) return;
+  clearTimeout(S.anim.timer);
+  let guard = 0;
+  while (S.anim && guard++ < 400){ clearTimeout(S.anim.timer); playStepOnce(); }
+}
+function playStep(){ playStepOnce(true); }
+function playStepOnce(schedule){
+  if (!S.anim) return;
+  const a = S.anim;
+  if (a.i >= a.evs.length){ S.anim = null; return finishCast(); }
+  const e = a.evs[a.i++];
+  if (e.k === "mod")  S.log.push({k:"mod", t:`+ ${e.name}`});
+  if (e.k === "fire"){ S.log.push({k:"fire", t:`${e.name}${e.tags?" ["+e.tags+"]":""}`}); sfx("cast"); }
+  if (e.k === "hit"){
+    sfx("hit");
+    const f = S.foes[e.i];
+    if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i); }
+    S.log.push({k:"fire", t:`  ${f?f.name:""} −${e.dmg}`});
+  }
+  if (e.k === "util"){
+    sfx("block");
+    if (e.block){ S.block += e.block;
+      S.log.push({k:"mod", t:`${e.name} 防御 +${e.block}`}); }
+    if (e.might){ S.might = (S.might||0) + e.might;
+      S.log.push({k:"mod", t:`${e.name} 力 +${e.might}（計 ${S.might}）`}); }
+  }
+  if (e.k === "deb"){
+    const f = S.foes[e.i];
+    if (f){
+      if (e.s === "破鎧") f.vuln = (f.vuln||0) + e.v;
+      if (e.s === "弱体"){ f.weak = (f.weak||0) + e.v; f.atk = Math.max(1, f.atk - e.v); }
+      if (e.s === "毒")   f.psn  = (f.psn||0) + e.v;
+      if (e.s === "火傷") f.brn  = (f.brn||0) + e.v;
+      S.log.push({k:"mod", t:`  ${f.name} ${e.s}`});
+    }
+  }
+  if (e.k === "psn"){
+    sfx("burn");
+    const f = S.foes[e.i];
+    if (f){ f.hp = Math.max(0, f.hp - e.dmg); S.flash.push(e.i);
+      if (e.psn !== undefined) f.psn = e.psn;
+      if (e.brn !== undefined) f.brn = e.brn; }
+    S.log.push({k:"foe", t:`  ${f?f.name:""} ${e.s} −${e.dmg}`});
+  }
+  if (e.k === "kill"){
+    sfx("kill");
+    const f = S.foes[e.i];
+    S.log.push({k:"total", t:`  ${f?f.name:""} 撃破`});
+
+  }
+  if (e.k === "enemy"){
+    sfx(e.dmg > 0 ? "hurt" : "block");
+    S.block = Math.max(0, S.block - e.abs);
+    S.hp -= e.dmg;
+    S.hurt = true;
+    S.log.push({k:"foe", t:`${e.name} −${e.dmg}${e.abs?`（防御 ${e.abs}）`:""}`});
+  }
+  render();
+  if (schedule){
+    if (e.k === "hit")  popFloat(e.i, `−${e.dmg}`, "dmg");
+    if (e.k === "kill") popFloat(e.i, "撃破", "kill");
+  }
+  S.hurt = false;
+  if (schedule) a.timer = setTimeout(playStep, STEP_MS[e.k] || 300);
+}
+
+/** 敵カードの上に数値を出す。再描画で消えないよう専用レイヤに積む。 */
+function popFloat(i, text, cls){
+  const host = $("floats");
+  const el = document.querySelectorAll("#foes .foe")[i];
+  if (!host || !el) return;
+  const r = el.getBoundingClientRect(), h = host.getBoundingClientRect();
+  const sp = document.createElement("span");
+  sp.className = "float " + cls;
+  sp.textContent = text;
+  sp.style.left = (r.left - h.left + r.width/2) + "px";
+  sp.style.top  = (r.top  - h.top  + r.height*0.46) + "px";
+  host.appendChild(sp);
+  setTimeout(()=>sp.remove(), 1000);
+}
+
+function finishCast(){
+  if (!S.foes.some(f=>f.hp>0)) return winBattle();
+  if (S.hp <= 0) return lose();
+  S.round++; S.block = 0;
+  const keep = S.log.slice();
+  newRound();
+  S.log = keep;
+  startRoulette();
+}
+
+function winBattle(){
+  showReward(S.boss ? "boss" : "battle");
+}
+function lose(){
+  S.over = "lose";
+  veil(`<h2>探索は終わった</h2><div class="sub">${S.floor} 階 / 札 ${S.pool.length} 枚</div>
+    <p>倒れた札の順序がそのまま呪文になる。狙いを組み立て直して、もう一度。</p>
+    <button class="btn go" id="veilgo">最初から</button>`,
+    ()=>{ hideVeil(); newRun(); render(); });
+}
+function veil(html, cb){
+  document.getElementById("veilbox").innerHTML = html;
+  document.getElementById("veil").classList.remove("hidden");
+  const b = document.getElementById("veilgo");
+  if (b && cb){ b.onclick = cb; b.focus(); }
+}
+function hideVeil(){ document.getElementById("veil").classList.add("hidden"); }
+
+/* ═══════ 入力 ═══════ */
+window.addEventListener("keydown", ev=>{
+  if (!S || S.over) return;
+  for (const id of ["dexv","invv"]) if (!$(id).classList.contains("hidden")){
+    if (ev.key === "Escape") $(id).classList.add("hidden");
+    return;
+  }
+  if (ev.key === "f" || ev.key === "F"){ toggleFull(); ev.preventDefault(); return; }
+  if (ev.key === "m" || ev.key === "M"){ toggleMute(); ev.preventDefault(); return; }
+  if (ev.key === "i" || ev.key === "I"){ openInv(); ev.preventDefault(); return; }
+  if (ev.key === "d" || ev.key === "D"){ openDex(); ev.preventDefault(); return; }  // 開発用
+  if (ev.key === "Escape" && PSEUDO){ toggleFull(); ev.preventDefault(); return; }
+  if (S.phase === "roul"){
+    if (ev.key === " "){ spinBalls(); ev.preventDefault(); }
+    if (ev.key === "Enter" && !SPINNING){ S.phase = "fight"; render(); ev.preventDefault(); }
+    return;
+  }
+  if (S.phase === "dungeon"){
+    const m = {ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1],
+               a:[-1,0], d:[1,0], w:[0,-1], s:[0,1]}[ev.key];
+    if (m){ step(m[0], m[1]); ev.preventDefault(); }
+    return;
+  }
+  // 戦闘画面。Enter は盤へ（まだ回していなければ回す）、space は詠唱
+  if (ev.key === "Enter"){
+    if (!S.anim){ if (!S.roul) startRoulette(); else if (S.roul.left > 0){ S.phase = "roul"; render(); } }
+    ev.preventDefault(); return;
+  }
+  if (ev.key===" "){ cast(); ev.preventDefault(); }
+});
+// スワイプ（縦横のうち大きい方向へ 1 マス）
+(function(){
+  const w = document.querySelector(".dwrap");
+  let sx=0, sy=0, on=false;
+  w.addEventListener("pointerdown", e=>{ on=true; sx=e.clientX; sy=e.clientY; });
+  w.addEventListener("pointerup", e=>{
+    if (!on) return; on=false;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    if (Math.hypot(dx,dy) < 18) return;
+    if (Math.abs(dx) > Math.abs(dy)) step(Math.sign(dx), 0);
+    else step(0, Math.sign(dy));
+  });
+  w.addEventListener("pointercancel", ()=>{ on=false; });
+})();
+
+/* ═══════ 音 ═══════
+   音源のファイルは持たない。矩形波・三角波・ノイズをその場で合成する。
+   ドット絵に合わせて、波形も 8 bit 機の作り方に寄せてある（矩形と
+   三角とノイズだけ、包絡線は直線、音程は半音の格子から外さない）。
+   AudioContext は最初の操作まで作れないので、遅延して初期化する。 */
+let AC = null, MASTER = null, MUSGAIN = null, SFXGAIN = null;
+let MUTED = false, BGMTRACK = null, BGMTIMER = null, BGMSTEP = 0;
+
+function audioInit(){
+  if (AC) return AC;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  AC = new Ctx();
+  MASTER = AC.createGain(); MASTER.gain.value = MUTED ? 0 : 0.5;
+  MASTER.connect(AC.destination);
+  MUSGAIN = AC.createGain(); MUSGAIN.gain.value = 0.30; MUSGAIN.connect(MASTER);
+  SFXGAIN = AC.createGain(); SFXGAIN.gain.value = 0.55; SFXGAIN.connect(MASTER);
+  return AC;
+}
+/* 矩形波はデューティ比で音色が変わる。8 bit 機と同じく 12.5 / 25 / 50% を使う */
+const WAVES = {};
+function pulseWave(duty){
+  if (WAVES[duty]) return WAVES[duty];
+  const n = 32, re = new Float32Array(n), im = new Float32Array(n);
+  for (let k=1;k<n;k++) re[k] = 2/(k*Math.PI) * Math.sin(Math.PI*k*duty);
+  WAVES[duty] = AC.createPeriodicWave(re, im);
+  return WAVES[duty];
+}
+let NOISEBUF = null;
+function noiseBuf(){
+  if (NOISEBUF) return NOISEBUF;
+  const n = AC.sampleRate * 0.6;
+  NOISEBUF = AC.createBuffer(1, n, AC.sampleRate);
+  const d = NOISEBUF.getChannelData(0);
+  let r = 0xACE1;                      // 線形帰還シフトレジスタ。8 bit 機のノイズ
+  for (let i=0;i<n;i++){
+    const bit = ((r ^ (r>>1)) & 1);
+    r = (r>>1) | (bit<<14);
+    d[i] = (r & 1) ? 0.6 : -0.6;
+  }
+  return NOISEBUF;
+}
+/** 1 音。type は pulse12 / pulse25 / pulse50 / tri / noise */
+function tone(type, freq, t0, dur, vol, dest, slide){
+  if (!AC) return;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.004);
+  g.gain.setValueAtTime(vol, t0 + dur*0.55);
+  g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  g.connect(dest || SFXGAIN);
+  let src;
+  if (type === "noise"){
+    src = AC.createBufferSource(); src.buffer = noiseBuf(); src.loop = true;
+    const f = AC.createBiquadFilter();
+    f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.1;
+    src.connect(f); f.connect(g);
+  } else {
+    src = AC.createOscillator();
+    if (type === "tri") src.type = "triangle";
+    else src.setPeriodicWave(pulseWave(type === "pulse12" ? 0.125
+                                     : type === "pulse25" ? 0.25 : 0.5));
+    src.frequency.setValueAtTime(freq, t0);
+    if (slide) src.frequency.exponentialRampToValueAtTime(Math.max(20, slide), t0 + dur);
+    src.connect(g);
+  }
+  src.start(t0); src.stop(t0 + dur + 0.02);
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69)/12);   // MIDI 番号 → Hz
+
+/* ── 効果音 ── */
+let lastClack = 0;
+function sfx(name){
+  if (!audioInit() || MUTED) return;
+  const t = AC.currentTime;
+  switch(name){
+    case "click":  tone("pulse25", NOTE(84), t, 0.05, 0.20); break;
+    case "pick":   tone("pulse25", NOTE(79), t, 0.05, 0.22);
+                   tone("pulse25", NOTE(86), t+0.05, 0.06, 0.18); break;
+    case "throw":  tone("noise", 2600, t, 0.20, 0.28, null);
+                   tone("pulse12", NOTE(60), t, 0.22, 0.14, null, NOTE(84)); break;
+    case "clack":  if (t - lastClack < 0.035) return; lastClack = t;
+                   tone("noise", 3400 + rnd(900), t, 0.035, 0.30); break;
+    case "fret":   if (t - lastClack < 0.02) return; lastClack = t;
+                   tone("noise", 1800 + rnd(700), t, 0.028, 0.20); break;
+    case "settle": tone("pulse50", NOTE(72), t, 0.07, 0.26);
+                   tone("pulse50", NOTE(79), t+0.07, 0.10, 0.26);
+                   tone("tri",     NOTE(60), t, 0.18, 0.22); break;
+    case "cast":   tone("pulse12", NOTE(64), t, 0.09, 0.24, null, NOTE(76));
+                   tone("noise", 1400, t, 0.12, 0.18); break;
+    case "hit":    tone("noise", 900, t, 0.10, 0.34);
+                   tone("pulse50", NOTE(52), t, 0.10, 0.22, null, NOTE(40)); break;
+    case "kill":   [72,76,79,84].forEach((n,i)=>
+                     tone("pulse25", NOTE(n), t+i*0.055, 0.09, 0.24)); break;
+    case "hurt":   tone("noise", 420, t, 0.18, 0.34);
+                   tone("tri", NOTE(45), t, 0.20, 0.26, null, NOTE(33)); break;
+    case "block":  tone("pulse50", NOTE(67), t, 0.06, 0.20);
+                   tone("tri", NOTE(55), t, 0.14, 0.20); break;
+    case "walk":   tone("noise", 1100, t, 0.03, 0.12); break;
+    case "reward": [67,71,74,79,curTone(83)].forEach((n,i)=>
+                     tone("pulse25", NOTE(n), t+i*0.07, 0.12, 0.24)); break;
+    case "burn":   tone("noise", 2200, t, 0.14, 0.20); break;
+    case "open":   tone("pulse25", NOTE(70), t, 0.06, 0.18);
+                   tone("pulse25", NOTE(77), t+0.06, 0.08, 0.18); break;
+  }
+}
+const curTone = n => n;
+
+/* ── BGM ──
+   1 小節 16 歩。ベース（三角）・和音（矩形 25%）・ノイズの 3 声。
+   画面ごとに調と刻みを変える。楽譜は半音の格子から外さない。 */
+const TRACKS = {
+  dungeon:{ bpm:96, root:45, scale:[0,3,5,7,10],
+    bass:[0,null,0,null,7,null,0,null,3,null,3,null,7,null,10,null],
+    lead:[12,null,null,15,null,null,19,null,null,15,null,12,null,null,10,null],
+    perc:[1,0,0,0,1,0,0,0,1,0,0,1,1,0,0,0], duty:"pulse25", drive:0.7 },
+  roul:{ bpm:120, root:48, scale:[0,2,3,5,7,8,10],
+    bass:[0,0,7,0,3,3,10,3,5,5,12,5,3,3,7,7],
+    lead:[null,24,null,22,null,19,null,22,null,20,null,19,null,17,null,15],
+    perc:[1,0,1,0,1,0,1,0,1,0,1,0,1,1,0,1], duty:"pulse12", drive:0.85 },
+  fight:{ bpm:132, root:43, scale:[0,3,5,6,7,10],
+    bass:[0,0,null,0,10,null,0,null,5,5,null,5,3,null,7,null],
+    lead:[12,null,15,null,18,null,15,null,17,null,15,null,12,null,10,null],
+    perc:[1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0], duty:"pulse12", drive:1.0 },
+  reward:{ bpm:88, root:50, scale:[0,2,4,7,9],
+    bass:[0,null,null,null,7,null,null,null,4,null,null,null,7,null,9,null],
+    lead:[16,null,19,null,21,null,19,null,16,null,14,null,12,null,null,null],
+    perc:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], duty:"pulse50", drive:0.5 }
+};
+function bgm(name){
+  if (BGMTRACK === name) return;
+  BGMTRACK = name;
+  BGMSTEP = 0;
+  if (BGMTIMER){ clearTimeout(BGMTIMER); BGMTIMER = null; }
+  if (!name || !audioInit()) return;
+  bgmTick();
+}
+function bgmTick(){
+  const tr = TRACKS[BGMTRACK];
+  if (!tr || !AC){ BGMTIMER = null; return; }
+  const spb = 60 / tr.bpm / 4;              // 16 分音符
+  const t = AC.currentTime + 0.02;
+  const i = BGMSTEP % 16;
+  if (!MUTED){
+    const bn = tr.bass[i];
+    if (bn !== null && bn !== undefined)
+      tone("tri", NOTE(tr.root + bn), t, spb*1.7, 0.26*tr.drive, MUSGAIN);
+    const ln = tr.lead[i];
+    if (ln !== null && ln !== undefined)
+      tone(tr.duty, NOTE(tr.root + ln), t, spb*1.3, 0.13*tr.drive, MUSGAIN);
+    if (tr.perc[i]) tone("noise", i%4===0 ? 240 : 5200, t, i%4===0 ? 0.09 : 0.03,
+                         (i%4===0 ? 0.22 : 0.10)*tr.drive, MUSGAIN);
+  }
+  BGMSTEP++;
+  BGMTIMER = setTimeout(bgmTick, spb*1000);
+}
+function toggleMute(){
+  MUTED = !MUTED;
+  if (MASTER) MASTER.gain.value = MUTED ? 0 : 0.5;
+  const b = document.getElementById("btn-mute");
+  if (b) b.innerHTML = D(MUTED ? "音 切" : "音 入");
+  return MUTED;
+}
+/* 最初の操作で音を起こす。ブラウザは操作前に音を出させない */
+function wakeAudio(){
+  if (!audioInit()) return;
+  if (AC.state === "suspended") AC.resume();
+  if (S) bgm(S.phase === "fight" ? "fight" : S.phase === "roul" ? "roul"
+           : S.phase === "reward" || S.phase === "trash" ? "reward" : "dungeon");
+}
+addEventListener("pointerdown", wakeAudio, {once:false});
+addEventListener("keydown", wakeAudio, {once:false});
+
+/* ═══════ ルーレット（抽選） ═══════
+   円盤の区画は、いま持っている札そのもの。同じ札を 4 枚持っていれば区画も 4 つ。
+   玉は本物と同じ理屈で回す。出目は「先に決めて演出で辻褄を合わせる」のではなく、
+   物理の結果そのもの。
+
+   ── 物理 ──
+   極座標で解く。回転盤（ロータ）と玉はそれぞれ独立した角速度を持ち、
+   摩擦で落ちていく。玉は外周のトラックを逆向きに走り、
+   遠心力が足りなくなった時点で内側へ落ち始める。
+   落ちる途中でディフレクタ（菱形の突起）に当たると弾かれ、
+   ロータに入るとフレット（区画の仕切り）で跳ねて、
+   最後に相対速度が小さくなった区画で捕まる。捕まった玉は盤と一緒に回る。
+
+   ── 描画 ──
+   連続値で解いて、描くときだけドットに丸める。円盤はドット解像度の
+   ImageData に 1 ドットずつ書いて、整数倍で引き伸ばす。
+   arc() を使わないので縁がアンチエイリアスされない。 */
+
+const WR   = 46;      // 外周（トラックの外側）
+const WTRK = 42;      // トラックの半径（玉が最初に走る溝）
+const WDEF = 36;      // ディフレクタのある半径
+const WROT = 33;      // ロータの外周（ここから区画）
+const WPKT = 26;      // ポケットの底（玉が収まる半径）
+const WIN  = 17;      // ハブ
+const NDEF = 8;       // ディフレクタの数
+const DROP_G = 44;    // ここまで遠心力が落ちたらトラックから外れる（低いほど長く走る）
+const FRIC_B = 0.9955; // 玉の摩擦（1 に近いほど長く回る）
+const FRIC_W = 0.996;  // 盤の摩擦
+const DT_R   = 1/60;
+
+const wcv = document.getElementById("wheel");
+const wcx = wcv.getContext("2d");
+const wbuf = document.createElement("canvas");   // ドット解像度の下絵
+const wbx  = wbuf.getContext("2d");
+const WSZ  = WR*2 + 2;
+wbuf.width = WSZ; wbuf.height = WSZ;
+/* 升目ごとの極座標は毎フレーム変わらないので一度だけ作る */
+const G_R = new Float32Array(WSZ*WSZ), G_A = new Float32Array(WSZ*WSZ);
+(function(){
+  const c = WR + 1;
+  for (let y=0;y<WSZ;y++) for (let x=0;x<WSZ;x++){
+    const dx = x - c + .5, dy = y - c + .5, i = y*WSZ + x;
+    G_R[i] = Math.hypot(dx, dy);
+    G_A[i] = Math.atan2(dy, dx);
+  }
+})();
+const TAU = Math.PI*2;
+const norm = t => ((t % TAU) + TAU) % TAU;
+
+function wheelSectors(){
+  const order = Object.keys(CARDS);
+  const list = [];
+  for (const id of order)
+    for (let k=0, n=S.pool.filter(x=>x===id).length; k<n; k++) list.push(id);
+  return list;
+}
+
+function startRoulette(){
+  const secs = wheelSectors();
+  S.roul = {secs, wa:0, wv:1.15, balls:[], left:S.balls, spin:0};
+  S.phase = "roul";
+  render();
+}
+
+/** 玉を全部投げる。投げ方（初速）だけが揺らぎ、あとは物理が決める */
+function spinBalls(){
+  if (SPINNING || !S.roul || S.roul.left <= 0) return;
+  const R = S.roul, n = R.secs.length;
+  if (!n){ S.log.push({k:"foe", t:"盤に区画が無い"}); renderRoul(); return; }
+  R.wa = rnd(TAU);                             // 盤の向きも毎回変える
+  R.wv = 1.05 + rnd(0.35);                     // 盤を回し直す
+  R.balls = [];
+  // 一つの区画に二つの玉は入らない。玉が区画より多いと、最後の一つは
+  // 永遠に収まる場所が無く、打ち切りの保険に落ちる（＝止まった場所と
+  // 違う札が適用される、という不具合の正体）。投げる数を区画数で抑える。
+  const throwN = Math.min(R.left, n);
+  for (let i=0;i<throwN;i++){
+    R.balls.push({
+      a: rnd(TAU), av: -(3.2 + rnd(0.9)),      // 盤と逆向きに、速く投げる
+      r: WTRK, rv: 0, on:"track", sec:-1, rest:0,
+      t: -i*6                                   // 間隔を詰めて、追いつき・ぶつかりを起こす
+    });
+  }
+  if (throwN < R.left)
+    S.log.push({k:"foe", t:`区画が ${n} しかないので ${throwN} 個だけ投げた`});
+  R.left = 0;
+  R.spin = 0;
+  SPINNING = true;
+  sfx("throw");
+  renderRoul();
+  stepRoul();
+}
+
+function stepRoul(){
+  if (!S.roul){ SPINNING = false; return; }
+  const R = S.roul, n = R.secs.length;
+  rouletteStep(R, n);                          // 1 フレーム 1 歩。ゆっくり見せる
+  drawWheel();
+  R.spin++;
+  // 収まった後も、落ち着く場所まで転がりきるまでは回し続ける。
+  // ここで打ち切ると、最後の一つが隣の玉に重なったまま止まる
+  const moving = R.balls.some(b=>b.on !== "pocket" || Math.abs(b.offT - b.off) > 0.004);
+  if (moving && R.spin < 620) setTimeout(stepRoul, 16);
+  else finishSpin();
+}
+
+/** 収まった玉の角度。区画番号 + 区画内のどこに落ちたか、から必ず引く */
+function pocketAngle(R, b, sw){ return norm(R.wa + (b.sec + b.off)*sw); }
+/** 区画に収める。off は「いまいる場所」、offT は「落ち着く場所」。
+    隣の玉を避けてずらすとき、いきなり移すと 1 コマで飛ぶ。転がして寄せる。 */
+function setPocket(b, sec, off, target){
+  b.on = "pocket"; b.sec = sec; b.rest = 0;
+  b.off  = Math.min(0.96, Math.max(0.04, off));
+  b.offT = Math.min(0.80, Math.max(0.20, target === undefined ? off : target));
+}
+/** 同じ区画に既にいる玉と重ならない位置を探す。
+    区画を独占させると、3 玉 3 区画のとき最後の一つが空き 1 箇所を
+    引き当てるまで延々と弾かれ続け、しかも「必ず全部引く」ので抽選にならない。
+    ポケットは玉より広いので、横に並べて収める。 */
+function freeOffset(R, b, sec, sw){
+  const sep = Math.max(0.16, Math.min(0.34, 4 / Math.max(1, WPKT*sw)));
+  const others = R.balls.filter(o=>o!==b && o.on==="pocket" && o.sec===sec).map(o=>o.off);
+  if (others.length * sep > 0.62) return null;              // もう入らない
+  let off = Math.min(0.80, Math.max(0.20, norm(b.a - R.wa)/sw % 1));
+  for (let k=0; k<24; k++){
+    const bad = others.find(o=>Math.abs(o - off) < sep);
+    if (bad === undefined) return off;
+    off = bad < off ? Math.min(0.80, bad + sep) : Math.max(0.20, bad - sep);
+    if (off <= 0.20 || off >= 0.80){
+      // 端に詰まったら、空いている側から詰め直す
+      const sorted = others.slice().sort((x,y)=>x-y);
+      for (let c=0.20; c<=0.80; c+=sep/2)
+        if (!sorted.some(o=>Math.abs(o-c) < sep)) return c;
+      return null;
+    }
+  }
+  return null;
+}
+
+function rouletteStep(R, n){
+  R.wa = norm(R.wa + R.wv*DT_R);
+  R.wv *= FRIC_W;
+  if (R.wv < 0.18) R.wv = 0.18;                // 盤は最後までゆっくり回り続ける
+  const sw = TAU / n;                          // 1 区画の角幅
+  // 先に決まった玉があるほど、残りは早く落ち着かせる。
+  // 決着済みの玉が転がるのを待つ時間は、見ていて何も起きていない時間なので削る。
+  const done = R.balls.reduce((a,b)=>a + (b.on === "pocket" ? 1 : 0), 0);
+  const fb = FRIC_B - done*0.0035;
+
+  for (const b of R.balls){
+    if (b.t < 0){ b.t++; continue; }           // まだ投げていない
+    // 収まった玉の絵は、必ず区画番号から引く。角度を別に持つと、
+    // 絵と「適用される札」が食い違う（実際そうなっていた）
+    if (b.on === "pocket"){
+      if (Math.abs(b.offT - b.off) > 0.002) b.off += (b.offT - b.off)*0.22;
+      else b.off = b.offT;
+      b.a = pocketAngle(R, b, sw); continue;
+    }
+
+    // 角運動量：内側へ落ちるほど速く回る
+    const r0 = b.r;
+    b.av *= fb;
+
+    if (b.on === "track"){
+      // 遠心力 v²/r が足りなくなったらトラックから外れる
+      const v = Math.abs(b.av) * b.r;
+      if (v*v / b.r < DROP_G){ b.on = "fall"; b.rv = -0.22; }
+    } else if (b.on === "fall"){
+      b.rv -= 0.045;                           // 内側へ引かれる
+      b.r  += b.rv;
+      if (r0 > 0.001) b.av *= r0 / Math.max(6, b.r);   // 角運動量の保存
+      // ディフレクタ。菱形の突起に当たると角度と径が乱れる
+      if (b.r < WDEF + 1.4 && b.r > WDEF - 1.4 && !b.hitDef){
+        const da = norm(b.a) / (TAU/NDEF);
+        if (Math.abs(da - Math.round(da)) < 0.16){
+          b.hitDef = 1; sfx("clack");
+          b.av *= (0.55 + rnd(0.35)) * (rnd(1) < 0.22 ? -1 : 1);
+          b.rv = 0.10 + rnd(0.16);             // いったん跳ね上がる
+        }
+      }
+      if (b.r <= WROT){ b.on = "rotor"; b.rv = -0.06; }
+    } else if (b.on === "rotor"){
+      b.rv -= 0.024;
+      b.r  += b.rv;
+      if (b.r < WPKT){ b.r = WPKT; b.rv = -b.rv*0.32; }
+      // フレット（仕切り）。盤に対する相対速度で跳ねる
+      const rel = b.av - R.wv;
+      const pa  = norm(b.a - R.wa) / sw;
+      const near = Math.abs(pa - Math.round(pa));
+      if (near < 0.13 && Math.abs(rel) > 0.55){
+        b.av = R.wv - rel*0.42;                // 仕切りに当たって減速・反転
+        b.rv += 0.08;
+        sfx("fret");
+      }
+      // 相対速度が十分小さくなったら、その区画で捕まる
+      if (Math.abs(rel) < 0.45 && b.r <= WPKT + 1.2){
+        b.rest++;
+        if (b.rest > 14){
+          const rel = norm(b.a - R.wa) / sw;
+          const sec = ((Math.floor(rel) % n) + n) % n;
+          const off = freeOffset(R, b, sec, sw);
+          if (off === null){                       // 本当に入る隙が無いときだけ弾き返す
+            b.rest = 0; b.av = R.wv + (rnd(1) < 0.5 ? -0.9 : 0.9); b.rv = 0.10;
+            sfx("fret");
+          } else {
+            // いまいる場所から始めて、落ち着く場所まで転がす。
+            // 中心へ吸い寄せるとテレポートに見える
+            setPocket(b, sec, rel - Math.floor(rel), off);
+            b.a = pocketAngle(R, b, sw);           // この場で絵と番号を一致させる
+            sfx("settle");
+          }
+        }
+      } else b.rest = 0;
+    }
+    b.a = norm(b.a + b.av*DT_R);
+  }
+
+  // 玉どうしの衝突。トラック上でもロータ内でも、近づいたら弾き合う
+  for (let i=0;i<R.balls.length;i++) for (let j=i+1;j<R.balls.length;j++){
+    const p = R.balls[i], q = R.balls[j];
+    if (p.t < 0 || q.t < 0) continue;
+    if (Math.abs(p.r - q.r) > 4.2) continue;
+    let d = norm(p.a - q.a); if (d > Math.PI) d -= TAU;
+    const gap = Math.abs(d) * ((p.r + q.r)/2);
+    if (gap > 4.4) continue;
+    if (p.on === "pocket" || q.on === "pocket") continue;   // 収まった玉は動かさない
+    const t = p.av; p.av = q.av*0.92; q.av = t*0.92;    // 1 次元の弾性衝突
+    sfx("clack");
+    const push = (4.4 - gap) / ((p.r + q.r)/2) * 0.5 * Math.sign(d || 1);
+    p.a = norm(p.a + push); q.a = norm(q.a - push);
+
+  }
+}
+
+function finishSpin(){
+  const R = S.roul; SPINNING = false;
+  if (!R) return;
+  const n = R.secs.length, sw = TAU / n;
+  for (const b of R.balls){          // 保険。止まりきらなかった玉はその場に収める
+    if (b.on === "pocket" || b.t < 0) continue;
+    let sec = ((Math.floor(norm(b.a - R.wa)/sw) % n) + n) % n;
+    let off = freeOffset(R, b, sec, sw);
+    for (let k=0; k<n && off === null; k++){     // 詰まっていたら隣の区画へ
+      sec = (sec + 1) % n; off = freeOffset(R, b, sec, sw);
+    }
+    const rel0 = norm(b.a - R.wa) / sw;
+    setPocket(b, sec, rel0 - Math.floor(rel0), off === null ? 0.5 : off);
+    b.off = b.offT;                                // 打ち切りなので転がす猶予は無い
+    // 絵も一緒に動かす。ここで番号だけ変えていたので、
+    // 「止まって見える場所」と「適用される札」が食い違っていた
+    b.a = pocketAngle(R, b, sw);
+  }
+  // 玉が止まった順ではなく、盤の上での並び順でもなく、
+  // 「投げた玉が収まった区画」を、止まった順に杖へ積む
+  const got = R.balls.filter(b=>b.on === "pocket");
+  for (const b of got){
+    const c = mk(R.secs[b.sec]);
+    if (S.wand.length < S.cap) S.wand.push(c);
+    else S.log.push({k:"foe", t:`${c.name} は溢れた`});
+  }
+  drawWheel();                       // 保険で動かした玉を描き直す
+  renderRoul();
+}
+
+/** 円盤。連続値で解いて、描くときだけドットに丸める */
+function drawWheel(){
+  if (!S || !S.roul) return;
+  const R = S.roul, n = R.secs.length || 1;
+  // 盤は画面の高さに収める。固定倍率だと下のボタンが画面外へ出る
+  const st = document.getElementById("stage");
+  const upx = parseInt(getComputedStyle(st).getPropertyValue("--px")) || 4;
+  const room = st.clientHeight * 0.66;
+  const dp = Math.max(1, Math.min(upx, Math.floor(room / WSZ)));
+  wcv.width = WSZ*dp; wcv.height = WSZ*dp;
+  wcv.style.width = (WSZ*dp)+"px"; wcv.style.height = (WSZ*dp)+"px";
+  const img = wbx.createImageData(WSZ, WSZ);
+  const px = img.data;
+  const put = (i, hex)=>{
+    px[i*4  ] = (hex>>16)&255; px[i*4+1] = (hex>>8)&255;
+    px[i*4+2] = hex&255;       px[i*4+3] = 255;
+  };
+  const C0=0x05070E, C1=0x0C1020, C2=0x161C33, C3=0x28304F, C7=0xD9AE44, C8=0xF6DD92;
+  const PAL = {projectile:[0xD4512A,0x9E3A20], modifier:[0xD9AE44,0x9A7E28],
+               utility:[0x3E7CB4,0x2C5C8C]};
+  const sw = TAU / n;
+  for (let i=0;i<WSZ*WSZ;i++){
+    const r = G_R[i];
+    if (r > WR){ px[i*4+3] = 0; continue; }
+    let col;
+    if (r > WTRK)      col = C2;                       // 外の縁
+    else if (r > WROT) col = C1;                       // トラック（玉が走る溝）
+    else if (r > WIN){
+      if (!R.secs.length){ col = C1; put(i, col); continue; }   // 区画ゼロ
+      const k = Math.floor(norm(G_A[i] - R.wa) / sw) % n;
+      // 同じ札は同じ色。札の種類で濃淡を決めるので、
+      // 隣り合う同じ札は仕切り線だけで分かれる
+      col = PAL[CARDS[R.secs[k]].type][SHADE[R.secs[k]] || 0];
+      // フレット（区画の仕切り）を 1 ドットで引く
+      const f = norm(G_A[i] - R.wa) / sw;
+      if (Math.abs(f - Math.round(f)) * (r*sw) < 0.6) col = C0;
+      if (r > WROT - 1) col = C0;
+    }
+    else if (r > WIN-2) col = C3;
+    else col = C1;
+    put(i, col);
+  }
+  // ディフレクタ（菱形の突起）
+  const c = WR + 1;
+  for (let d=0; d<NDEF; d++){
+    const th = d*(TAU/NDEF) + R.wa*0.0;
+    const gx = c + Math.cos(th)*WDEF, gy = c + Math.sin(th)*WDEF;
+    for (let y=-3;y<=3;y++) for (let x=-3;x<=3;x++){
+      if (Math.abs(x)+Math.abs(y) > 3) continue;
+      const ix = Math.round(gx+x), iy = Math.round(gy+y);
+      if (ix<0||iy<0||ix>=WSZ||iy>=WSZ) continue;
+      put(iy*WSZ+ix, Math.abs(x)+Math.abs(y) === 3 ? C0 : C3);
+    }
+  }
+  wbx.putImageData(img, 0, 0);
+  wcx.imageSmoothingEnabled = false;
+  wcx.clearRect(0,0,wcv.width,wcv.height);
+  wcx.drawImage(wbuf, 0, 0, WSZ*dp, WSZ*dp);
+
+  // 区画の絵柄（盤と一緒に回る）
+  if (n <= 26) for (let k=0;k<n;k++){
+    const th = R.wa + (k + .5)*sw, rr = (WROT + WIN)/2;
+    const gx = Math.round(c + Math.cos(th)*rr), gy = Math.round(c + Math.sin(th)*rr);
+    const ic = ICONS[R.secs[k]];
+    if (!ic) continue;
+    ic.d.forEach((row,yy)=>{ for (let xx=0;xx<row.length;xx++){
+      if (row[xx]==="0") continue;
+      wcx.fillStyle = ic.p[+row[xx]];
+      wcx.fillRect((gx-4+xx)*dp, (gy-4+yy)*dp, dp, dp);
+    }});
+  }
+  // 玉
+  for (const b of R.balls){
+    if (b.t < 0) continue;
+    const rr = b.on === "pocket" ? WPKT : b.r;
+    const bx = Math.round(c + Math.cos(b.a)*rr), by = Math.round(c + Math.sin(b.a)*rr);
+    wcx.fillStyle = "#05070E";
+    wcx.fillRect((bx-2)*dp, (by-1)*dp, 4*dp, 3*dp);
+    wcx.fillRect((bx-1)*dp, (by-2)*dp, 3*dp, 5*dp);
+    wcx.fillStyle = b.on === "pocket" ? "#F6DD92" : "#E4E2DA";
+    wcx.fillRect((bx-1)*dp, (by-1)*dp, 3*dp, 3*dp);
+    wcx.fillStyle = "#F6DD92";
+    wcx.fillRect((bx-1)*dp, (by-1)*dp, dp, dp);
+  }
+}
+
+let SPINNING = false;
+
+function renderRoul(){
+  const R = S.roul; if (!R) return;
+  $("r-floor").innerHTML = D(`第 ${S.floor} 層`);
+  $("r-round").innerHTML = D(`ラウンド ${S.round}`);
+  $("r-hp").innerHTML    = hpBarHTML(); hpClass($("r-hp"));
+  $("r-block").innerHTML = D(`防御 ${S.block}`);
+  mightChip($("r-might"));
+  const cnt = {};
+  for (const id of S.pool) cnt[id] = (cnt[id]||0)+1;
+  $("rl-side").innerHTML =
+    `<div class="rlrow"><span class="nm">${D("盤の中身")}</span>`+
+    `<span class="ct">${D(S.pool.length+" 区画")}</span></div>`+
+    Object.keys(CARDS).filter(id=>cnt[id]).map(id=>
+      `<div class="rlrow">${spriteSVG(ICONS[id],"sw")}`+
+      `<span class="nm">${D(CARDS[id].name)}</span>`+
+      `<span class="ct">${D(String(cnt[id]))}</span></div>`).join("");
+  const thrown = R.balls.filter(b=>b.t >= 0).length;
+  $("rl-balls").innerHTML =
+    Array.from({length:S.balls},(_,i)=>
+      `<span class="ball ${i < R.left ? "" : "used"}"></span>`).join("")+
+    `<span style="color:var(--c4);margin-left:calc(var(--px)*2)">${D("玉 "+R.left)}</span>`;
+  const sp = $("btn-spin");
+  sp.innerHTML = D("投げる","m") + `<small>${D("space")}</small>`;
+  sp.disabled = SPINNING || R.left <= 0 || !R.secs.length;
+  sp.onclick = spinBalls;
+  const tb = $("btn-toarr");
+  tb.innerHTML = D("杖を組む","m") + `<small>${D("enter")}</small>`;
+  tb.disabled = SPINNING;
+  tb.onclick = ()=>{ if (!SPINNING){ S.phase = "fight"; render(); } };
+  $("rl-wand").innerHTML =
+    Array.from({length:S.cap},(_,i)=>{
+      const c = S.wand[i];
+      return c ? `<span class="rlw">${D(String(i+1))}${spriteSVG(ICONS[c.id],"sw")}`+
+                 `<span class="nm">${D(c.name)}</span></span>`
+               : `<span class="rlw empty"></span>`;
+    }).join("");
+  $("rl-tip").innerHTML = D(
+    !R.secs.length ? "盤に区画が無い。札を 1 枚でも持てば区画になる"
+    : SPINNING ? "…"
+    : R.left > 0 ? "玉を投げる。止まった区画の札が、止まった順に杖へ積まれる"
+                 : "玉を投げ終えた。杖を組む へ");
+  drawWheel();
+}
+
+/* ═══════ 描画（HTML側） ═══════ */
+const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $ = id => document.getElementById(id);
+
+/** 自分の体力帯。3 画面で同じものを使う */
+function hpBarHTML(){
+  const pct = S.maxHp > 0 ? Math.max(0, Math.min(100, Math.round(S.hp/S.maxHp*100))) : 0;
+  return `<span class="bar"><i style="width:${pct}%"></i>`+
+         `<span class="n">${D(`${Math.max(0,S.hp)} / ${S.maxHp}`)}</span></span>`;
+}
+function hpClass(el){
+  const pct = S.maxHp > 0 ? S.hp/S.maxHp : 0;
+  el.classList.toggle("low", pct <= 0.3);        // 残り 3 割で朱に変わる
+}
+function mightChip(el){
+  const m = S.might || 0;
+  el.className = "chip mig" + (m ? "" : " hidden");
+  el.innerHTML = m ? D(`力 +${m}`) : "";
+}
+
+function renderHud(){
+  $("f-floor").innerHTML = D(`第 ${S.floor} 層`);
+  $("f-round").innerHTML = D(`ラウンド ${S.round}`);
+  $("f-hp").innerHTML    = hpBarHTML(); hpClass($("f-hp"));
+  $("f-block").innerHTML = D(`防御 ${S.block}`);
+  mightChip($("f-might"));
+  if (S.hurt){ $("f-hp").classList.remove("hpflash");
+    void $("f-hp").offsetWidth; $("f-hp").classList.add("hpflash"); }
+}
+function renderDungeon(){
+  $("d-floor").innerHTML = D(`第 ${S.floor} 層`);
+  $("d-pool").innerHTML  = D(`札 ${S.pool.length}`);
+  $("d-hp").innerHTML    = hpBarHTML(); hpClass($("d-hp"));
+  $("d-gun").innerHTML = D(`玉 ${S.balls} ・容量 ${S.cap}`);
+
+  const stage = document.getElementById("stage");
+  // タイルは 8x8 のスプライトを --px*2 で描く箱。--px の倍数に丸める
+  const px = parseFloat(getComputedStyle(stage).getPropertyValue('--px')) || 3;
+  const ts = Math.max(px*8, Math.floor(Math.min(stage.clientWidth*0.042, stage.clientHeight*0.070)/(px*2))*(px*2));
+  const grid = $("dgrid");
+  grid.style.setProperty("--ts", ts + "px");
+  grid.style.gridTemplateColumns = `repeat(${DW}, ${ts}px)`;
+  grid.innerHTML = "";
+  for (let y=0;y<DH;y++) for (let x=0;x<DW;x++){
+    const v = S.d.g[y][x];
+    const d = document.createElement("div");
+    d.className = "dc " + (v===0 ? "wall" : v===3 ? "edge" : v===2 ? "room" : "floor")
+              + " v" + ((x*7 + y*13) % 4)
+              + ((v===1||v===2) && y>0 && !S.d.g[y-1][x] ? " tn" : "")
+              + ((v===1||v===2) && y<DH-1 && !S.d.g[y+1][x] ? " bn" : "");
+    if (v===1 || v===2){ d.style.cursor = "pointer"; d.onclick = ()=>walkTo(x,y); }
+    const rm = roomAt(x,y);
+    if (rm){
+      d.innerHTML = spriteSVG(ROOMSPR[rm.t], "ic", rm.done ? DEADPAL : null);
+      d.title = ROOM_JA[rm.t];
+      if (rm.done) d.classList.add("done");
+    }
+    grid.appendChild(d);
+  }
+  // 左右の帯：プールの内訳と、この階の残り。黒い余白を情報で埋める
+  const cnt = {};
+  for (const id of S.pool) cnt[id] = (cnt[id]||0) + 1;
+  const rows = Object.keys(CARDS).filter(id=>cnt[id])
+    .sort((a,b)=>cnt[b]-cnt[a])
+    .map(id=>`<div class="dsrow">${spriteSVG(ICONS[id],"sw")}`+
+             `<span class="nm">${D(CARDS[id].name)}</span>`+
+             `<span class="ct">${D(String(cnt[id]))}</span></div>`).join("");
+  $("dsl").innerHTML = `<h3>${D("杖のプール","m")}</h3>${rows}`;
+  const undone = S.d.rooms.filter(r=>!r.done);
+  $("dsr").innerHTML =
+    `<h3>${D("この階","m")}</h3>`+
+    `<div class="dsrow"><span class="nm">${D("のこり")}</span><span class="ct">${D(String(undone.length))}</span></div>`+
+    `<div class="dsrow"><span class="nm">${D("杖の容量")}</span><span class="ct">${D(String(S.cap))}</span></div>`+
+    `<div class="dsrow"><span class="nm">${D("玉")}</span><span class="ct">${D(String(S.balls))}</span></div>`+
+    (S.sift?`<div class="dsrow"><span class="nm">${D("選り分け")}</span><span class="ct">${D(String(S.sift))}</span></div>`:``);
+
+  // 盤面の中に入れ直す（grid.innerHTML で消えるので毎回付け直す）
+  let hero = $("hero");
+  if (!hero){ hero = document.createElement("div"); hero.id = "hero"; hero.className = "hero"; }
+  grid.appendChild(hero);
+  hero.style.width = hero.style.height = ts + "px";
+  hero.style.left = (S.d.px*ts) + "px";
+  hero.style.top  = (S.d.py*ts) + "px";
+  hero.innerHTML = spriteSVG(S.d.stepn & 1 ? HERO2 : HERO, "hspr");
+
+  const left = S.d.rooms.filter(r=>!r.done && r.t!=="boss").length;
+  $("dtip").innerHTML = D(S.note ||
+    (left ? `矢印キー / スワイプで歩く　のこり ${left} 部屋、奥にボス`
+          : "矢印キー / スワイプで歩く　ボスへ"));
+  S.note = "";
+}
+
+/** 札と同じ 5:7 の枠で、札以外の報酬も見せる */
+function fakeCard(kind, name, note, tone){
+  return `<div class="card t-${tone==="core"?"utility":"modifier"}">`+
+    `<span class="cname">${D(name)}</span>`+
+    `<span class="cart">${spriteSVG(ROOMSPR[tone==="core"?"boss":"battle"], "cicon")}</span>`+
+    `<span class="ckind">${D(kind)}</span>`+
+    `<span class="ctext">${DP(note, 88)}</span></div>`;
+}
+
+/** 焼却炉。プールの中身をそのまま並べて 1 枚選んで捨てる。 */
+function renderTrash(){
+  const host = $("t-picks"); host.innerHTML = "";
+  const cnt = {};
+  for (const id of S.pool) cnt[id] = (cnt[id]||0) + 1;
+  Object.keys(cnt).forEach(id=>{
+    const b = document.createElement("button");
+    b.className = "tk";
+    b.innerHTML = cardHTML(CARDS[id], {mini:true}) +
+      `<span class="tkn">${D(cnt[id]+" 枚")}</span>`;
+    b.onclick = ()=>{
+      const k = S.pool.indexOf(id);
+      if (k >= 0) S.pool.splice(k, 1);
+      S.note = `${CARDS[id].name} を 1 枚くべた`;
+      toDungeon();
+    };
+    host.appendChild(b);
+  });
+  $("t-title").innerHTML = D("焼却炉","l");
+  $("t-sub").innerHTML = D("いらない札を 1 枚くべる。杖は薄めるより締めたほうが強い");
+  const sk = $("t-skip"); sk.innerHTML = D("くべずに出る","m");
+  sk.onclick = ()=>{ S.note = "何もくべなかった"; toDungeon(); };
+}
+
+function renderReward(){
+  const boss = S.rkind === "boss", chest = S.rkind === "chest";
+  $("r-title").innerHTML = D(boss ? "ボスを退けた" : chest ? "宝箱" : "戦利品", "l");
+  $("r-sub").innerHTML = D(boss ? "根本的な強化をひとつ選ぶ"
+    : chest ? "札をひとつ選んで仕入れる" : "札か、杖の強化をひとつ選ぶ");
+  const host = $("r-picks"); host.innerHTML = "";
+  S.roffer.forEach((o,k)=>{
+    const b = document.createElement("button");
+    b.className = "pk";
+    // 3 つとも同じ札の形にする（片方だけ文字だけ、を避ける）
+    const face = boss
+      ? fakeCard("根本強化", o.name, o.note, "core")
+      : o.kind === "card" ? cardHTML(CARDS[o.id], {})
+      : fakeCard("杖の強化", o.u.name, o.u.note, "gun");
+    b.innerHTML = `<span class="pkh">${D(boss?"根本強化":o.kind==="card"?"札を仕入れる":"杖の強化")}</span>`
+      + `<span class="cwrap">${face}</span>`;
+    b.onclick = ()=>takeReward(k);
+    host.appendChild(b);
+  });
+  const rr = $("r-reroll");
+  rr.disabled = S.rerolls <= 0;
+  rr.innerHTML = D("引き直す","m") + `<small>${D("のこり "+S.rerolls)}</small>`;
+  rr.onclick = ()=>{ if (S.rerolls>0){ S.rerolls--; rollReward(); } };
+}
+
+/* 敵の背後の明かり。市松のディザで散らすので中間色を作らない */
+function drawGlow(){
+  const g = document.getElementById("glow"); if (!g) return;
+  const dp = Math.max(1, parseInt(getComputedStyle(document.getElementById("stage"))
+              .getPropertyValue("--px")) || 4);
+  const W = 90, H = 46;
+  g.width = W*dp; g.height = H*dp;
+  g.style.width = (W*dp)+"px"; g.style.height = (H*dp)+"px";
+  const cx = W/2, cy = H*0.62, cg = g.getContext("2d");
+  const B = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  cg.fillStyle = "#161C33";
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const d = Math.hypot((x-cx)/ (W/2), (y-cy)/(H/1.4));
+    const lv = Math.round(Math.pow(Math.max(0, 1 - Math.min(1,d)), 2.6) * 12);
+    if (lv > B[y&3][x&3]) cg.fillRect(x*dp, y*dp, dp, dp);
+  }
+}
+
+function render(){
+  for (const id of ["dungeon","roul","fight","reward","trash"])
+    $(id).classList.toggle("off", S.phase !== id);
+  bgm(S.phase === "fight" ? "fight" : S.phase === "roul" ? "roul"
+    : S.phase === "reward" || S.phase === "trash" ? "reward" : "dungeon");
+  if (S.phase === "dungeon") return renderDungeon();
+  if (S.phase === "reward")  return renderReward();
+  if (S.phase === "trash")   return renderTrash();
+  if (S.phase === "roul")    return renderRoul();
+  renderHud();
+  drawGlow();
+
+  const pv = preview();
+
+  // 敵。1 列に並んでいて、攻撃は必ず先頭に当たる
+  const front = frontFoe(S);
+  const foes = $("foes"); foes.innerHTML = "";
+  S.foes.forEach((f,i)=>{
+    const b = document.createElement("button");
+    b.className = "foe" + (f.hp<=0?" dead":"") + (S.flash.includes(i)?" hurt":"");
+    b.setAttribute("aria-pressed", String(front===i));   // 先頭が狙い
+    b.disabled = f.hp<=0;
+    const after = pv.hp[i], delta = f.hp - after;
+    const wNow = Math.max(0,f.hp/f.maxHp*100), wAfter = Math.max(0,after/f.maxHp*100);
+    const st = [];
+    if (f.vuln) st.push(`破鎧${(1+f.vuln).toFixed(1)}倍`);
+    if (f.weak) st.push(`弱体−${f.weak}`);
+    if (f.psn)  st.push(`毒${f.psn}`);
+    if (f.brn)  st.push(`火傷${f.brn}`);
+    b.innerHTML =
+      `<span class="lead">${D(`${i+1}番目`)}</span>`+
+      `<span class="tgt"></span>`+
+      (f.hp>0?`<span class="intent">${spriteSVG(UI.atk,"uic")}${D(String(f.atk))}</span>`
+             :`<span class="intent" style="visibility:hidden">—</span>`)+
+      `<span class="fname">${D(f.name)}</span>`+
+      `<span class="fbar"><i style="width:${wNow}%"></i>`+
+        (delta>0?`<span class="ghost" style="left:${wAfter}%;width:${wNow-wAfter}%"></span>`:``)+
+        `<span>${D(`${f.hp} / ${f.maxHp}`)}</span></span>`+
+      (st.length?`<span class="fname" style="color:var(--c7)">${D(st.join(" "))}</span>`:``)+
+      spriteAnim(SPRITES[f.spr], "glyph",
+        f.hp<=0 ? DEADPAL : S.flash.includes(i) ? HITPAL : null)+
+      (delta>0?`<span class="fdelta">${D("−"+delta,"m")}</span>`:``);
+    b.disabled = true;                 // 狙いは選べない。前から当たる
+    foes.appendChild(b);
+  });
+  S.flash = [];
+
+  // 修飾がどの発射体に乗るかを、札そのものに書く
+  const bindLabel = [];
+  {
+    let cur = "";
+    for (let i=S.wand.length-1;i>=0;i--){
+      if (S.wand[i].type === "projectile"){ cur = S.wand[i].name; bindLabel[i] = ""; }
+      else if (S.wand[i].type === "modifier") bindLabel[i] = cur || "不発";
+      else bindLabel[i] = "";
+    }
+  }
+
+  // 杖。並び替えは自由。1 枚選んで、もう 1 枚を選ぶと入れ替わる
+  const hand = $("hand"); hand.innerHTML = "";
+  // 小さい画面では空き枠を全部は並べない。札は字が読める大きさから下げられず、
+  // 空き枠まで並べると 3 枚の時点で横に流れて 1 枚目が切れる。
+  // 残り容量は左下に数字で出す。
+  const tiny = document.getElementById("stage").classList.contains("tiny");
+  const shown = tiny ? Math.min(S.cap, S.wand.length + 1) : S.cap;
+  for (let i=0;i<shown;i++){
+    const c = S.wand[i];
+    if (!c){
+      const e = document.createElement("div");
+      e.className = "slot";
+      e.onclick = ()=>{ if (S.pick !== null){ S.pick = null; sfx("click"); render(); } };
+      hand.appendChild(e);
+      continue;
+    }
+    const w = document.createElement("div");
+    w.innerHTML = cardHTML(c, {idx:i+1, bind:bindLabel[i]});
+    const d = w.firstChild;
+    if (S.pick === i) d.classList.add("picked");
+    d.onclick = ()=>{
+      if (S.anim) return;
+      sfx("pick");
+      if (S.pick === null || S.pick === undefined) S.pick = i;
+      else if (S.pick === i) S.pick = null;
+      else {
+        const [x] = S.wand.splice(S.pick, 1);
+        S.wand.splice(i, 0, x);
+        S.pick = null;
+      }
+      render();
+    };
+    hand.appendChild(d);
+  }
+
+  // ログ
+  // 小画面では空き枠を並べないので、残り容量はここで数字にして返す
+  const lines = S.log.slice(-5).concat(
+    tiny && shown < S.cap ? [{k:"foe", t:`杖 ${S.wand.length} / ${S.cap}`}] : [],
+    S.wand.length ? [{k:"total",
+      t:`合計 ${S.foes.reduce((a,f,i)=>a+Math.max(0,f.hp-pv.hp[i]),0)}`}] : []);
+  $("log").innerHTML = lines.map(l=>`<div class="l-${l.k}">${D(l.t)}</div>`).join("");
+
+  // 盤をまだ回していないラウンドでは「盤を回す」が主役。回した後は「詠唱」。
+  const fresh = !S.roul;
+  const bk = $("btn-back");
+  bk.innerHTML = D(fresh ? "盤を回す" : "盤に戻る","m") +
+                 `<small>${D(fresh ? "enter" : "")}</small>`;
+  bk.className = "btn" + (fresh ? " go" : "");
+  bk.disabled = !!S.anim || !!S.over || (!fresh && S.roul.left <= 0);
+  bk.onclick = ()=>{
+    if (S.anim || S.over) return;
+    if (fresh) startRoulette();
+    else { S.phase = "roul"; render(); }
+  };
+  const cb = $("btn-cast");
+  cb.disabled = !!S.over || !!S.anim;
+  cb.className = "btn" + (fresh ? "" : " go");
+  cb.innerHTML = D(S.wand.length ? "詠唱" : "敵の番へ","m") + `<small>${D("space")}</small>`;
+  cb.onclick = cast;
+}
+
+$("btn-dex").innerHTML = D("持ち物");
+$("btn-dex").onclick = openInv;
+$("btn-mute").innerHTML = D("音 入");
+$("btn-mute").onclick = ()=>{ toggleMute(); };
+$("btn-full").innerHTML = spriteSVG(UI.full, "uic");
+$("btn-full").onclick = toggleFull;
+
+/* ═══════ 持ち物 ═══════
+   図鑑は開発用の全要素一覧。こちらは遊ぶための一覧で、
+   いま自分が持っているものだけを出す。 */
+function openInv(){
+  sfx("open");
+  const v = $("invv");
+  const cnt = {};
+  for (const id of S.pool) cnt[id] = (cnt[id]||0) + 1;
+  const deck = Object.keys(CARDS).filter(id=>cnt[id]).map(id=>{
+    const c = CARDS[id];
+    const w = document.createElement("div");
+    w.innerHTML = cardHTML(c, {});
+    // 札の上には 2 行しか書けないので、正確な規則はここで読ませる
+    return `<div class="invitem">${w.innerHTML}`+
+           `<div class="invtxt"><b>${D(`${c.name} ×${cnt[id]}`)}</b>`+
+           `<span>${DP(c.rule || c.text, 150)}</span></div></div>`;
+  }).join("");
+  const line = (spr, name, note) =>
+    `<div class="dexi">${spriteSVG(spr,"dexs")}`+
+    `<span class="dt2"><b>${D(name)}</b><span>${D(note)}</span></span></div>`;
+  const ups = S.owned.map(id=>{
+    const u = REPEATABLE.find(x=>x.id===id);
+    return u ? line(UI.aim, u.name, u.note) : "";
+  }).join("");
+  const cores = S.core.map(id=>{
+    const c = CORE.find(x=>x.id===id);
+    return c ? line(ROOMSPR.boss, c.name, c.note) : "";
+  }).join("");
+  const proj = S.pool.filter(id=>CARDS[id].type==="projectile").length;
+  const mods = S.pool.filter(id=>CARDS[id].type==="modifier").length;
+  const util = S.pool.filter(id=>CARDS[id].type==="utility").length;
+  v.innerHTML =
+    `<button class="btn" id="invclose">${D("閉じる","m")}</button>`+
+    `<h2>${D("持ち物","l")}</h2>`+
+    `<div class="sub">${D(`第 ${S.floor} 層　体力 ${Math.max(0,S.hp)} / ${S.maxHp}`)}</div>`+
+    `<div class="dexlist" style="margin-bottom:calc(var(--px)*4)">`+
+      line(ICONS.split3, "杖", `容量 ${S.cap} ・玉 ${S.balls} ・発射体の威力 +${S.dmgUp||0}`)+
+      line(ICONS.fireball, "盤の中身", `${S.pool.length} 区画　発射体 ${proj}・修飾 ${mods}・汎用 ${util}`)+
+    `</div>`+
+    `<h2>${D("札","m")}</h2><div class="invrow">${deck}</div>`+
+    (ups ? `<h2>${D("杖の強化","m")}</h2><div class="dexlist">${ups}</div>` : "")+
+    (cores ? `<h2 style="margin-top:calc(var(--px)*4)">${D("根本強化","m")}</h2>`+
+             `<div class="dexlist">${cores}</div>` : "");
+  v.classList.remove("hidden");
+  $("invclose").onclick = ()=>{ v.classList.add("hidden"); sfx("click"); };
+}
+
+/* ═══════ 図鑑（開発用） ═══════ */
+function openDex(){
+  sfx("open");
+  const v = $("dexv");
+  const count = id => S.pool.filter(x=>x===id).length;
+  const cards = Object.keys(CARDS).map(id=>{
+    const w = document.createElement("div");
+    w.innerHTML = cardHTML(CARDS[id], {});
+    return `<div class="dexcell">${w.innerHTML}<span class="n">プール ${count(id)} 枚</span></div>`;
+  }).join("");
+  // 行の左端に必ず絵を置く。文字だけのリストはこの世界の文法ではない
+  const row = (spr, name, note, got, pal) =>
+    `<div class="dexi${got?" got":""}">${spriteSVG(spr,"dexs",pal)}`+
+    `<span class="dt"><b>${esc(name)}</b><span>${esc(note)}</span></span></div>`;
+  const guns = REPEATABLE.map(u=>
+    row(UI.aim, u.name, u.note, false)).join("");
+  const cores = CORE.map(c=>
+    row(ROOMSPR.boss, c.name, c.note + (S.core.includes(c.id)?" ・取得済み":""),
+        S.core.includes(c.id))).join("");
+  const reps = REPEATABLE.map(c=> row(ROOMSPR.chest, c.name, c.note, false)).join("");
+  const foes = FOEDEX.map(f=>
+    row(SPRITES[f.spr], f.name,
+        `体力 ${f.hp} ・攻撃 ${f.atk}（第${S.floor}層では ${foeHp(f,S.floor,false)} / ${foeAtk(f,S.floor)}）`,
+        false)).join("");
+  v.innerHTML =
+    `<button class="btn" id="dexclose">閉じる</button>`+
+    `<h2>図鑑</h2><div class="sub">開発用 — 実装済みの全要素</div>`+
+    `<h2 style="font-size:1em">札 ${Object.keys(CARDS).length} 種 / プール ${S.pool.length} 枚</h2>`+
+    `<div class="dexrow">${cards}</div>`+
+    `<h2 style="font-size:var(--t2)">繰り返し取れる強化</h2><div class="dexlist">${guns}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">根本的な強化（ボス報酬）</h2><div class="dexlist">${cores}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">繰り返し取れる強化</h2><div class="dexlist">${reps}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">敵</h2><div class="dexlist">${foes}</div>`+
+    `<h2 style="font-size:var(--t2);margin-top:1em">いまの状態</h2><div class="dexlist">`+
+    row(ICONS.split3, "杖", `玉 ${S.balls} ・容量 ${S.cap} ・発射体 +${S.dmgUp||0}`, false)+
+    `</div>`;
+  v.classList.remove("hidden");
+  $("dexclose").onclick = ()=>v.classList.add("hidden");
+}
+/** ステージを 192x108 の整数倍に吸着させる。1 ゲーム単位 = --u px（整数）。 */
+function snapStage(){
+  const st = document.getElementById("stage");
+  const full = isFull();
+  const availW = (full ? window.innerWidth  : window.innerWidth - 28);
+  const availH = (full ? window.innerHeight : window.innerHeight - 150);
+  // --u は 4 の倍数に丸める。--px = --u/2 が偶数になり、
+  // 文字が DotGothic16 の設計サイズ 16px の整数倍（--t2 = --u*2）に乗る。
+  // 半端なサイズだと縦棒が 0.56px などになり、そこだけ灰色に滲んで
+  // 「16 色」の宣言が文字だけで破れる。
+  let u = Math.max(4, Math.min(Math.floor(availW / 192), Math.floor(availH / 108)));
+  u -= u % 4;
+  // 字は --dp（整数 px）で縮まないので、u が小さいときは札を大きめに取る
+  st.classList.toggle("tiny", u < 8);
+  st.style.width = (u * 192) + "px";
+  st.style.setProperty("--u", u + "px");
+  return u;
+}
+/* 全画面。artifact は iframe の中で動くため、allowfullscreen が付いていないと
+   requestFullscreen() は拒否される。その場合は擬似全画面（position:fixed で
+   枠を覆う）に落として、どの環境でも必ず拡大できるようにする。 */
+let PSEUDO = false;
+function isFull(){ return !!fullEl() || PSEUDO; }
+function applyFull(){
+  document.body.classList.toggle("isfull", isFull());
+  const b = document.getElementById("btn-full");
+  if (b) b.title = isFull() ? "元に戻す（F / Esc）" : "全画面（F）";
+  snapStage(); if (S) render();
+}
+/* 本物の全画面を優先する。<html> ごと全画面にすると、
+   ブラウザの UI もタスクバーも消えて、本当に画面いっぱいになる。
+   iframe の中（artifact）では allowfullscreen が無いと拒否されるので、
+   そのときだけ擬似全画面に落ちる。GitHub Pages では本物が使える。 */
+function reqFull(el){
+  const f = el.requestFullscreen || el.webkitRequestFullscreen
+         || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (!f) return null;
+  try { return f.call(el, {navigationUI:"hide"}); } catch(e){
+    try { return f.call(el); } catch(e2){ return null; }
+  }
+}
+function exitFull(){
+  const f = document.exitFullscreen || document.webkitExitFullscreen
+         || document.mozCancelFullScreen || document.msExitFullscreen;
+  if (f) try { f.call(document); } catch(e){}
+}
+function fullEl(){
+  return document.fullscreenElement || document.webkitFullscreenElement
+      || document.mozFullScreenElement || document.msFullscreenElement;
+}
+function toggleFull(){
+  if (fullEl()){ exitFull(); return; }
+  if (PSEUDO){ PSEUDO = false; applyFull(); return; }
+  // まず <html> を試し、駄目なら stagebox、それも駄目なら擬似
+  let pr = reqFull(document.documentElement);
+  if (!pr) pr = reqFull(document.getElementById("stagebox"));
+  if (pr && pr.then){
+    pr.then(()=>{ setTimeout(applyFull, 30); })
+      .catch(()=>{ PSEUDO = true; applyFull(); });
+  } else if (!pr){ PSEUDO = true; applyFull(); }
+  else setTimeout(applyFull, 30);
+}
+window.addEventListener("resize", ()=>{ snapStage(); if (S) render(); });
+for (const ev of ["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"])
+  document.addEventListener(ev, ()=>{ if (fullEl()) PSEUDO = false; applyFull(); });
+
+snapStage();
+newRun();
+render();
+</script>
+
+</body>
+</html>

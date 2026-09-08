@@ -24,7 +24,7 @@
 | | |
 |---|---|
 | `index.html` | `build.sh` が生成する。**中身は `game/battle/`。直接編集しない** |
-| `game/battle/` | 戦闘画面（案E「二段」）。`head.html` ＋ `app.html` を組んで作る |
+| `game/battle/` | 戦闘画面の中身。`src/` `cards/` `wheel.png` から `build.py` が組む |
 | `game/README.md` | 試作版の決めごと |
 | `old/index.html` | 元のゲーム。`build.sh` が `prototype/` から生成する |
 | `prototype/` | 元のゲームの原本（HTML 断片）。参考用 |

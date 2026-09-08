@@ -1,0 +1,67 @@
+<title>戦闘画面</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   射的の杖・試作版 — 戦闘画面（案E「二段」）
+   見た目だけ。機能は入っていない。
+
+   いちばん大事な決めごと：
+   画面ぜんぶを「仮想 640×360 のドット」で組んで、最後に整数倍で拡大する。
+   盤の裏画面が 300×250 なので、仮想画面ではそれが等倍で置ける。
+   こうすると、盤のドット・人物のドット・枠線・文字が
+   <b>ぜんぶ同じ大きさの升目に乗る</b>。素人くさく見える最大の原因は、
+   ここが揃っていないこと（＝解像度の違うものを貼り合わせて見える）。
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  /* 影は下＋右。光は左上から。全部の凹凸をこの向きにそろえる */
+  --u: 2px;                       /* 仮想 1 ドットの実寸 */
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#07090b}
+body{color:#d2c8b2;font-family:"DotGothic16",ui-monospace,monospace;
+  -webkit-font-smoothing:none;image-rendering:pixelated}
+
+.hold{position:relative;width:100%;overflow:hidden;background:#07090b}
+/* 仮想画面。ここに 640×360 で描いて、整数倍で拡大する */
+#scr{position:absolute;left:0;top:0;width:640px;height:360px;
+  transform-origin:0 0;overflow:hidden;image-rendering:pixelated;
+  /* ★ ここが無いと、置いた箱が body の 14px を継いで行の高さが 17px になり、
+     中の 8px の字がその行の基準線まで押し下げられて、箱から下にずれる。
+     見た目は「文字だけ位置がおかしい」になるが、原因は箱のほうにある。
+     flex で並べた所だけ正しく見えていたのは、flex だと行の基準線を使わないため。 */
+  font-size:8px;line-height:10px}
+#scr *{image-rendering:pixelated}
+
+/* 文字。DotGothic16 は 16px 設計なので、仮想 8（＝実寸 16）で焼くと崩れない */
+.t{font-size:8px;line-height:10px}
+/* 絵の上に乗る文字は 1 ドットの硬い影を付ける。ぼかさない */
+.t.sh,.lbl.sh{text-shadow:1px 1px 0 #07090b}
+.t2{font-size:16px;line-height:18px}
+
+/* 面。光は左上：上と左が明るく、下と右が暗い */
+.plate{position:absolute}
+.plate>.f{position:absolute;inset:0}
+.plate>.hi{position:absolute;left:0;top:0;right:1px;height:1px}
+.plate>.hl{position:absolute;left:0;top:0;bottom:1px;width:1px}
+.plate>.lo{position:absolute;left:1px;right:0;bottom:0;height:1px}
+.plate>.lr{position:absolute;top:1px;right:0;bottom:0;width:1px}
+.plate.sunk>.hi,.plate.sunk>.hl{opacity:0}
+.plate.sunk>.dk{position:absolute;left:0;top:0;right:1px;height:1px}
+
+.lbl{font-size:8px;line-height:10px;letter-spacing:0;color:#7a7264}
+
+/* 画面は縦横とも真ん中に置く。まわりは余白（整数倍で入りきらないぶん） */
+#wrap{min-height:100vh;display:flex;align-items:center;justify-content:center}
+/* 3 層。#whl だけは組み直さない（組み直すと canvas の絵が消える） */
+#bg,#fg,#dim{position:absolute;left:0;top:0;width:640px;height:360px}
+#bg{z-index:1} #dim{z-index:2;background:#07090b;opacity:0;pointer-events:none;
+  transition:opacity .14s linear}
+#whl{position:absolute;z-index:3;transform-origin:0 0;transition:transform .17s ease-out}
+#frm{position:absolute;left:0;top:0}
+#fg{z-index:5}
+#wheel{position:absolute;display:block;image-rendering:pixelated}
+.hit:hover{filter:brightness(1.2)}
+.throwhit:active{filter:brightness(1.3)}
+</style>

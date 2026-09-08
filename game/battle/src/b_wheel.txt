@@ -1,0 +1,678 @@
+/* ═══════════════════════════════════════════════════════════════════
+   A. 盤の中身
+   区画は「ラベルと色」の並び。数も中身も色も走らせたまま変えられる。
+   数が変わると回るもの（角度・フレット・帯の絵・統計の器）は、
+   ぜんぶ rebuild() から呼ぶ。ここを通さずに N を書き換えると必ず壊れる。
+   ═══════════════════════════════════════════════════════════════════ */
+const TAU = Math.PI * 2, G = 9.81;
+const norm = a => ((a % TAU) + TAU) % TAU;
+
+/** 区画の並び。{label, colour} の配列。これが唯一の中身。 */
+let POCKETS = [];
+let N = 0, SLOT = 0;
+
+/* 色の見本。丸め先の表（PAL）に入っている色から選んであるので、
+   ドットに丸めても選んだ色のまま出る。 */
+const BALL_D = 0.0105 * 2;
+const MIN_W_RATIO = 1.25;                 // これを割ると玉が収まらない
+const SAFE_W_RATIO = 1.45;               // これを割ると詰まりやすくなる（注意だけ）
+const innerArc = n => TAU * 0.196 / n;
+const MAX_N = Math.floor(TAU * 0.196 / (BALL_D * MIN_W_RATIO));
+const SAFE_N = Math.floor(TAU * 0.196 / (BALL_D * SAFE_W_RATIO));
+const MIN_N = 2;
+
+/** 色を、ドットに丸めたあとの色そのものへ寄せる。
+    絵は決めた色数へ丸めてから出すので、丸めて別の色になる色を持たせると
+    「選んだ色」と「出ている色」が食い違う。持つ前に寄せておけば食い違わない。 */
+function snapColour(hex){
+  if (!/^#[0-9a-f]{6}$/i.test(hex||"")) return "#1c1c22";
+  if (typeof LUT === "undefined") return hex;          // 起動前は素通し
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16),
+        b = parseInt(hex.slice(5,7),16);
+  return PAL[LUT[((r>>3)<<10) | ((g>>3)<<5) | (b>>3)]];
+}
+
+/** 色を、ドットに丸めたあとの色そのものへ寄せる。
+    絵は 44 色へ丸めてから引き伸ばすので、丸めて別の色になる色を持たせると
+    「選んだ色」と「出ている色」が食い違う。持つ前に寄せておけば食い違わない。
+    見本に入れた色でも起きる：#101013 は丸めると #171310 になる
+    （32 段に落とした升目の中心が、そちらに近い）。 */
+function setPockets(list){
+  const a = list.slice(0, MAX_N).map(p => ({
+    label: String(p.label == null ? "" : p.label).slice(0, 6),
+    colour: snapColour(p.colour),
+  }));
+  while (a.length < MIN_N) a.push({label:String(a.length+1), colour:"#1c1c22"});
+  POCKETS = a;
+  N = POCKETS.length;
+  SLOT = TAU / N;
+  rebuild();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   B. 盤の断面（SI・メートル）
+   2D 版は (角度, 半径) しか持たず、離脱条件を式で書いていた。
+   こちらは玉を 3 次元の質点として扱い、面との接触だけを解く。
+   「いつトラックを離れるか」は条件文ではなく、接触が切れた結果として出る。
+   ═══════════════════════════════════════════════════════════════════ */
+const W = {
+  rTurret:  0.038,   // 中央の真鍮ハンドル
+  rCone:    0.098,   // 円錐の外縁
+  rPocketIn:0.196,   // ポケット帯の内側
+  rRotor:   0.250,   // ロータ外縁
+  rTrack:   0.300,   // すり鉢とトラックの境
+  rRim:     0.330,   // トラックの上端
+  rWall:    0.340,   // 垂直の壁。速い玉はここに押しつけられて走る
+  rBowl:    0.4065,  // 32 インチ盤の外周
+  rDefl:    0.290,   // ディフレクタの輪
+  nDefl:    8,
+  aCone:    18*Math.PI/180,
+  aSlope:   19*Math.PI/180,
+  aTrack:   32*Math.PI/180,
+  ball:     0.0105,  // 玉の半径（直径 21mm）
+  hFret:    0.008,   // フレット（仕切り）の高さ
+  rDeflR:   0.014,   // ディフレクタを球で近似した半径
+  hDefl:    0.009,   // 面からの出っぱり
+};
+const TAN_C = Math.tan(W.aCone), TAN_S = Math.tan(W.aSlope), TAN_T = Math.tan(W.aTrack);
+const Z_SLOPE = (W.rTrack - W.rRotor) * TAN_S;      // すり鉢の上端の高さ
+const Z_TRACK = Z_SLOPE + (W.rRim - W.rTrack) * TAN_T;
+const Z_CONE  = W.rPocketIn * TAN_C;                 // 円錐の頂点の高さ
+
+/** ポケット帯の外の縁を z=0 とした、半径 r における面の高さ。
+    帯はわずかに外下がり（3 mm）にしてある。実物のポケットも底が外へ傾いていて、
+    玉は外側の壁に寄りかかって止まる。ここを真っ平らにすると、玉が帯の内の縁に
+    たまり、後から降りてきた玉が円錐の上で行き場を失って収まらなくなる。 */
+const POCKET_DROP = 0.003;
+const BAND_W = W.rRotor - W.rPocketIn;
+const TAN_B = POCKET_DROP / BAND_W;            // 帯の傾き（約 3.2°）
+function surfZ(r){
+  if (r <= W.rPocketIn) return POCKET_DROP + (W.rPocketIn - r) * TAN_C;
+  if (r <= W.rRotor)    return POCKET_DROP * (W.rRotor - r) / BAND_W;
+  if (r <= W.rTrack)    return (r - W.rRotor) * TAN_S;
+  return Z_SLOPE + (r - W.rTrack) * TAN_T;
+}
+/** dz/dr */
+function surfSlope(r){
+  if (r <= W.rPocketIn) return -TAN_C;
+  if (r <= W.rRotor)    return -TAN_B;
+  if (r <= W.rTrack)    return TAN_S;
+  return TAN_T;
+}
+/** 参考値：点として滑る玉がトラックを離れる角速度（Small & Tse の式）。
+    この実装では条件として使っていない。接触が切れれば勝手に落ちる。 */
+const OMEGA_REF = Math.sqrt(G * TAN_T / W.rRim);
+
+/* 乱数 */
+let rngState = (Math.random()*4294967296)>>>0;
+function rnd(){
+  rngState |= 0; rngState = (rngState + 0x6D2B79F5) | 0;
+  let t = Math.imul(rngState ^ (rngState >>> 15), 1 | rngState);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+const rr = (a,b) => a + rnd()*(b-a);
+const band = (a,b,k) => { const m=(a+b)/2, h=(b-a)/2*k; return rr(m-h, m+h); };
+
+/* ═══════════════════════════════════════════════════════════════════
+   C. 投げ方。ここだけが乱数で、以降は接触と重力が決める
+   ═══════════════════════════════════════════════════════════════════ */
+function launch(tight, nBalls){
+  const k = tight ? 0.02 : 1;
+  const n = Math.max(1, nBalls || 1);
+  // 玉ごとの初速と投げ始めの角度。まとめて投げるので、
+  // 同じ場所に重ねないよう円周に散らして、速さも少しずつ変える。
+  const each = [];
+  for (let i=0;i<n;i++){
+    each.push({
+      w0:  band(18, 26, k) * (1 + (i - (n-1)/2) * 0.035),
+      ph0: (tight ? 0 : rnd()*TAU) + i * TAU / n,
+    });
+  }
+  return {
+    each,
+    ab:  band(1.05, 1.40, k),    // トラック上の角減速（転がり摩擦）
+    wr0: band(1.15, 2.35, k),    // ロータ
+    ar:  band(0.010, 0.018, k),
+    tr0: tight ? 0 : rnd()*TAU,
+  };
+}
+
+function newSpin(ic, tr){
+  const r = W.rWall - W.ball;
+  const z = surfZ(r) + W.ball / Math.cos(Math.atan(surfSlope(r)));
+  return {
+    ic, phase:"track", t:0,
+    tr: tr === undefined ? ic.tr0 : tr, wr: ic.wr0, ar: ic.ar, ab: ic.ab,
+    balls: ic.each.map(e => ({
+      p:[Math.cos(e.ph0)*r, Math.sin(e.ph0)*r, z],
+      v:[-Math.sin(e.ph0)*e.w0*r, Math.cos(e.ph0)*e.w0*r, 0],
+      phase:"track", done:false,
+      defHits:0, fretHits:0, air:0, rev:0, settleT:0, deflCool:0, inRotor:0,
+      pocket:-1, number:-1,
+    })),
+    hold:undefined,
+  };
+}
+
+const DT = 1/1500;                             // 衝突を取りこぼさない刻み
+const len3 = v => Math.hypot(v[0],v[1],v[2]);
+
+/** 収まった玉を、その瞬間の位置のままロータに固定する。
+    ロータと一緒に回る座標（角度差・半径・高さ）だけを覚えておき、
+    以降はそれを回して描く。ポケットの中心へ寄せ直さない。
+    寄せると、決まった瞬間に玉が数センチ跳ぶ。ここを覚えておく角度は
+    区画を決めたときと同じ `ph - tr` なので、描く場所は必ず発表と同じ区画に入る。 */
+function fixRest(s, b){
+  b.restA = norm(Math.atan2(b.p[1], b.p[0]) - s.tr);
+  b.restR = Math.hypot(b.p[0], b.p[1]);
+  b.restZ = b.p[2];
+  b.v = [0,0,0];
+}
+
+/** 収まった玉の置き場所。ロータの向き tr を与えると、玉ごとの座標を返す。
+    描画も物理もここだけを通す。ここを 2 か所に書くと、必ずどちらかがずれる。 */
+function restPositions(rest, tr){
+  return rest.map(x => {
+    const a = norm(tr + x.a);
+    return [Math.cos(a)*x.r, Math.sin(a)*x.r, x.z];
+  });
+}
+
+/** 玉が休む場所の記録（ロータに固定した座標）。玉ごとに 1 つ。 */
+const restOf = b => ({a:b.restA, r:b.restR, z:b.restZ, pocket:b.pocket});
+
+/** 1 玉ぶんを 1 ステップ進める */
+function stepBall(s, b){
+  const p = b.p, v = b.v;
+  v[2] -= G*DT;                                // 重力
+  p[0] += v[0]*DT; p[1] += v[1]*DT; p[2] += v[2]*DT;
+
+  let r = Math.hypot(p[0], p[1]);
+  const ph = Math.atan2(p[1], p[0]);
+  const er = [Math.cos(ph), Math.sin(ph), 0];
+  const et = [-Math.sin(ph), Math.cos(ph), 0];
+  if (r > W.rTrack) b.rev += Math.abs(v[0]*et[0]+v[1]*et[1]) * DT / (TAU*r);
+  let touched = false;
+
+  /* ① 垂直の壁。速い玉はここに押しつけられて走る */
+  const rMax = W.rWall - W.ball;
+  if (r > rMax){
+    const vr = v[0]*er[0] + v[1]*er[1];
+    p[0] = er[0]*rMax; p[1] = er[1]*rMax;
+    if (vr > 0){ v[0] -= er[0]*vr*1.35; v[1] -= er[1]*vr*1.35; }
+    r = rMax; touched = true;
+  }
+
+  /* ② 回転面（トラック・すり鉢・ポケットの床・円錐） */
+  const sl = surfSlope(r), inv = 1/Math.sqrt(1+sl*sl);
+  const n = [-sl*er[0]*inv, -sl*er[1]*inv, inv];
+  const gap = (p[2] - surfZ(r))*inv - W.ball;
+  if (gap < 0){
+    p[0] -= n[0]*gap; p[1] -= n[1]*gap; p[2] -= n[2]*gap;
+    const vn = v[0]*n[0] + v[1]*n[1] + v[2]*n[2];
+    const hard = Math.abs(vn) > 0.25;          // 叩きつけか、載っているだけか
+    if (vn < 0){
+      const e = hard ? 0.42 : 0.05;
+      const dvn = -(1+e)*vn;
+      v[0] += n[0]*dvn; v[1] += n[1]*dvn; v[2] += n[2]*dvn;
+      // 叩きつけ（滑る）はクーロン摩擦、載っているだけ（転がる）はほぼ効かない。
+      // 転がっている玉に滑り摩擦を毎ステップかけると 3 秒で止まる。実物は 10 秒以上走る。
+      const mu = hard ? 0.25 : 0.010;
+      const vd = v[0]*n[0]+v[1]*n[1]+v[2]*n[2];
+      const vt = [v[0]-n[0]*vd, v[1]-n[1]*vd, v[2]-n[2]*vd];
+      const vtl = len3(vt);
+      if (vtl > 1e-9){
+        const drop = Math.min(vtl, mu*dvn);
+        v[0] -= vt[0]/vtl*drop; v[1] -= vt[1]/vtl*drop; v[2] -= vt[2]/vtl*drop;
+      }
+    }
+    touched = true;
+    // 転がり抵抗。角減速が ab 一定になるよう接線方向に効かせる
+    if (r > 1e-6){
+      const vtan = v[0]*et[0] + v[1]*et[1];
+      const dec = (r > W.rTrack ? s.ab : 2.6) * r * DT;
+      const nv = Math.abs(vtan) <= dec ? 0 : vtan - Math.sign(vtan)*dec;
+      v[0] += et[0]*(nv - vtan); v[1] += et[1]*(nv - vtan);
+    }
+  }
+  if (!touched) b.air += DT;
+
+  /* ③ ディフレクタ。盤に固定された 8 個の突起。散らばりの主因 */
+  if (b.deflCool > 0) b.deflCool -= DT;
+  if (r > W.rRotor && r < W.rTrack + 0.02 && b.deflCool <= 0){
+    for (let k=0;k<W.nDefl;k++){
+      const a = k*TAU/W.nDefl, dz = surfZ(W.rDefl) + W.hDefl;
+      const dx = p[0]-Math.cos(a)*W.rDefl, dy = p[1]-Math.sin(a)*W.rDefl, dzz = p[2]-dz;
+      const d = Math.hypot(dx,dy,dzz), R = W.rDeflR + W.ball;
+      if (d < R && d > 1e-9){
+        const nn = [dx/d, dy/d, dzz/d], push = R - d;
+        p[0] += nn[0]*push; p[1] += nn[1]*push; p[2] += nn[2]*push;
+        const vn = v[0]*nn[0]+v[1]*nn[1]+v[2]*nn[2];
+        if (vn < 0){
+          const dvn = -(1+0.45)*vn;
+          v[0] += nn[0]*dvn; v[1] += nn[1]*dvn; v[2] += nn[2]*dvn;
+          v[0] *= 0.72; v[1] *= 0.72;
+          b.defHits++; b.deflCool = 0.06;
+        }
+        break;
+      }
+    }
+  }
+
+  /* ④ フレット。ロータと一緒に回る仕切り壁。
+     仕切りの位置は pocketStart と同じ位相（ROTOR_PHASE 込み）で取る。
+     ここを norm(ph - s.tr) だけで取ると、玉がぶつかる壁と、絵に描いてある
+     仕切りが SLOT の端数ぶんずれる。37 区画では 1/4 区画ぶん離れた
+     見えない壁に玉が寄りかかって止まっていた（出目は判定が一貫していたので
+     合っていたが、絵として嘘）。 */
+  if (r > W.rPocketIn - 0.01 && r < W.rRotor + 0.01 && p[2] < W.hFret + W.ball){
+    const rel = norm(ph - s.tr - ROTOR_PHASE);
+    const k = Math.round(rel/SLOT);
+    const dist = (rel - k*SLOT) * r;
+    if (Math.abs(dist) < W.ball){
+      const sgn = Math.sign(dist) || 1;
+      const push = (W.ball - Math.abs(dist)) * sgn;
+      p[0] += et[0]*push; p[1] += et[1]*push;
+      const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+      const relT = (v[0]-vw[0])*et[0] + (v[1]-vw[1])*et[1];
+      if (relT*sgn < 0){
+        const dv = -(1+0.32)*relT;
+        v[0] += et[0]*dv; v[1] += et[1]*dv;
+        b.fretHits++;
+      }
+    }
+  }
+
+  /* ⑤ 収まり判定。ロータに対して止まったら、その区画 */
+  if (r > W.rPocketIn - 0.005 && r < W.rRotor + 0.005 && p[2] < W.ball*1.6){
+    const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+    if (Math.hypot(v[0]-vw[0], v[1]-vw[1], v[2]) < 0.22){
+      b.settleT += DT;
+      if (b.settleT > 0.12){
+        b.phase = "done"; b.done = true;
+        b.pocket = pocketAt(ph, s.tr);
+        b.number = POCKETS[b.pocket].label;
+        fixRest(s, b);
+      }
+    } else b.settleT = 0;
+  } else b.settleT = 0;
+
+  if (!b.done)
+    b.phase = r > W.rTrack ? "track" : (r > W.rRotor ? "fall" : "scatter");
+
+  // トラックを降りてから長く収まらない玉は、少しずつ勢いを抜く。
+  // 玉が複数あると互いに突き合って永久に収まらないことがあるため。
+  // 押し戻されて段階が fall に戻ることがあるので、この時計は巻き戻さない
+  //（巻き戻すと 6 玉で 600 回に 4 回、打ち切りに落ちた）。
+  if (r < W.rTrack){
+    b.inRotor += DT;
+    if (b.inRotor > 5){
+      const k = 1 - Math.min(0.9, (b.inRotor - 5) * 0.6) * DT * 6;
+      const vw = [-Math.sin(ph)*s.wr*r, Math.cos(ph)*s.wr*r, 0];
+      b.v[0] = vw[0] + (b.v[0]-vw[0])*k;
+      b.v[1] = vw[1] + (b.v[1]-vw[1])*k;
+      b.v[2] *= k;
+    }
+  }
+}
+
+/** 玉どうしの当たり。等質量の球なので、法線方向の速度を反発係数で入れ替える */
+function ballCollide(s){
+  const B = s.balls, D = W.ball*2;
+  for (let i=0;i<B.length;i++) for (let j=i+1;j<B.length;j++){
+    const a = B[i], c = B[j];
+    if (a.done && c.done) continue;
+    const dx = c.p[0]-a.p[0], dy = c.p[1]-a.p[1], dz = c.p[2]-a.p[2];
+    const d = Math.hypot(dx,dy,dz);
+    if (d >= D || d < 1e-9) continue;
+    // 収まった玉に転がっている玉が重なったら、収まったほうを起こす。
+    // 収まった玉を「動かない壁」のままにすると、そこへ押しつけられた玉が
+    // 円錐の上（帯のすぐ内側）で釣り合ってしまい、永久に収まらない。
+    // 実測：30 秒たっても決まらない回が 6 玉 400 回中 29 → 5 に減る。
+    // 同じ場所に 2 つは居られない、というだけのことなので物理としても素直。
+    if (a.done !== c.done){
+      const st = a.done ? a : c, rl = a.done ? c : a;
+      // 転がっているほうが円錐（帯より内側）へ押し込まれているときだけ起こす。
+      // 触れたら必ず起こすことにすると、区画が少なくて 1 区画に何個も入る盤で、
+      // 並んで止まっている玉を延々と起こし続けて決まらなくなる
+      //（6 玉・2 区画で 250 回中 111 回が 30 秒たっても未決）。
+      if (Math.hypot(rl.p[0], rl.p[1]) < W.rPocketIn){
+        st.done = false; st.phase = "fall"; st.settleT = 0;
+      }
+    }
+    const n = [dx/d, dy/d, dz/d];
+    // めり込みを半分ずつ押し戻す（止まっている玉は動かさない）
+    const push = D - d;
+    if (a.done)      { c.p[0]+=n[0]*push; c.p[1]+=n[1]*push; c.p[2]+=n[2]*push; }
+    else if (c.done) { a.p[0]-=n[0]*push; a.p[1]-=n[1]*push; a.p[2]-=n[2]*push; }
+    else {
+      a.p[0]-=n[0]*push/2; a.p[1]-=n[1]*push/2; a.p[2]-=n[2]*push/2;
+      c.p[0]+=n[0]*push/2; c.p[1]+=n[1]*push/2; c.p[2]+=n[2]*push/2;
+    }
+    const va = a.v[0]*n[0]+a.v[1]*n[1]+a.v[2]*n[2];
+    const vc = c.v[0]*n[0]+c.v[1]*n[1]+c.v[2]*n[2];
+    const rel = vc - va;
+    // 近づいていない（触れているだけの）ペアは弾かない。押し合ったまま
+    // 微振動する 2 玉が永久に収まらなくなる（6 玉で 600 回に 3 回、打ち切りに落ちていた）。
+    if (rel > -0.02) continue;
+    const e = 0.55;
+    // 止まっている玉は動かない壁として扱う（無限質量）
+    const ja = c.done ? -(1+e)*rel : -(1+e)*rel/2;
+    const jc = a.done ?  (1+e)*rel :  (1+e)*rel/2;
+    // settleT はここでは触らない。収まり判定が「ロータに対する速さ」を見ていて、
+    // 本当に弾かれれば判定側が自分で 0 に戻す。
+    if (!a.done){ a.v[0]-=n[0]*ja; a.v[1]-=n[1]*ja; a.v[2]-=n[2]*ja; }
+    if (!c.done){ c.v[0]-=n[0]*jc; c.v[1]-=n[1]*jc; c.v[2]-=n[2]*jc; }
+  }
+}
+
+/** 1 ステップ。画面にも統計にも同じものを使う。 */
+function step(s){
+  if (s.phase === "done") return;
+  s.t += DT;
+  s.wr = Math.max(0.18, s.wr - s.ar*DT);
+  s.tr = norm(s.tr + s.wr*DT);
+  for (const b of s.balls) if (!b.done) stepBall(s, b);
+  // 収まった玉はロータに乗って一緒に回る。置き去りにすると、盤だけが下で回って
+  // 別の区画に乗っているように見え、最後の玉が決まった瞬間に追いつくため跳ぶ。
+  // 速度もロータのぶんを持たせる。位置だけ動かして速度を 0 にしておくと、
+  // 玉どうしの当たりが「止まっている壁」として計算され、ロータと一緒に流れている
+  // だけの転がり玉にも毎回はじき返しが入る。6 玉の 8.5% が永久に収まらなかった。
+  for (const b of s.balls) if (b.done){
+    b.p = restPositions([restOf(b)], s.tr)[0];
+    const a = Math.atan2(b.p[1], b.p[0]);
+    b.v = [-Math.sin(a)*s.wr*b.restR, Math.cos(a)*s.wr*b.restR, 0];
+  }
+  if (s.balls.length > 1) ballCollide(s);
+
+  // 打ち切り。玉が多いと稀に押し合って何十秒も収まらないので、
+  // 18 秒で残りをその場の区画に落とす。実測では 6 玉で 1000 回に数回。
+  if (s.t > 18){
+    for (const b of s.balls) if (!b.done){
+      const r = Math.min(W.rRotor - 0.002,
+                Math.max(W.rPocketIn + 0.002, Math.hypot(b.p[0], b.p[1])));
+      const ph = Math.atan2(b.p[1], b.p[0]);
+      b.p = [Math.cos(ph)*r, Math.sin(ph)*r, surfZ(r) + W.ball];
+      b.v = [0,0,0];
+      b.pocket = pocketAt(ph, s.tr); b.number = POCKETS[b.pocket].label;
+      b.done = true; b.phase = "done"; s.forced = (s.forced||0) + 1;
+      fixRest(s, b);
+    }
+  }
+
+  if (s.balls.every(b => b.done)) s.phase = "done";
+  else {
+    // 表示用に、いちばん外にいる玉の段階を代表にする
+    const order = {track:3, fall:2, scatter:1, done:0};
+    let best = "scatter";
+    for (const b of s.balls) if (!b.done && order[b.phase] > order[best]) best = b.phase;
+    s.phase = best;
+  }
+}
+
+/* ── 区画の位置は、ここだけで決める ──
+   描画と物理がそれぞれ計算すると必ず食い違う。2D 版で実際にそれをやって
+   9 区画ずれた。角度→区画 と 区画→角度 を 1 組にして両方から通す。 */
+const ROTOR_PHASE = -Math.PI/2;                 // 区画 0 を真上に置く
+/* SLOT と N は差し替えのたびに変わる。だから区画の位置は const に焼かず、
+   毎回この 3 つを通して読む。焼くと、区画の数を変えた瞬間に
+   「玉が乗っている区画」と「発表」がずれる。 */
+const pocketStart  = i => i*SLOT + ROTOR_PHASE;
+const pocketAt     = (a, tr) => ((Math.floor(norm(a - tr - ROTOR_PHASE)/SLOT) % N) + N) % N;
+const pocketCentre = (i, tr) => norm(tr + ROTOR_PHASE + (i + 0.5)*SLOT);
+
+/** 画面を使わずに 1 回転を最後まで解く。統計用。 */
+function runSpin(tight, nBalls){
+  const s = newSpin(launch(tight, nBalls));
+  let g = 0;
+  while (s.phase !== "done" && g++ < 1500*60) step(s);
+  if (s.phase !== "done"){                    // 保険（実測では発生しない）
+    for (const b of s.balls) if (!b.done){
+      b.pocket = pocketAt(Math.atan2(b.p[1], b.p[0]), s.tr);
+      b.number = POCKETS[b.pocket].label; b.done = true; b.phase = "done";
+      fixRest(s, b);
+    }
+    s.phase = "done"; s.stuck = true;
+  }
+  return s;
+}
+/* ═══════════════════════════════════════════════════════════════════
+   I. 描画 — 物理は 3 次元、絵は低解像度に落として色を絞ったドット
+   仕組みは俯瞰版と同じ斜投影。違うのは仕上げの 2 手。
+     ① 小さい裏画面に描いてから、補間なしで引き伸ばす（＝画素が四角く出る）
+     ② 引き伸ばす前に、決めた色数に丸める（＝階調が段になる）
+   数字だけは丸めた後に等倍で書く。ドットにすると読めないので。
+   ═══════════════════════════════════════════════════════════════════ */
+const cv = $("wheel"), cx = cv.getContext("2d");
+let CXp = 0, CYp = 0, SCL = 1;
+
+/** 視線の仰角。90°＝真上。固定。 */
+const ELEV = 56 * Math.PI/180;
+const SIN_E = Math.sin(ELEV), COS_E = Math.cos(ELEV);
+
+/** 裏画面の横幅（ドットの数）。ここが粗さを決める */
+/* 裏画面の横幅（＝盤のドット数）。ふだんは 168、拡大したときは 336 に切り替える。
+   拡大を CSS の scale(2) だけでやると、168 ドットの絵が 2 倍に太るだけで
+   情報量は増えない。裏画面ごと焼き直せば、拡大したぶんだけ実際に細かくなる。
+   縮尺 SCL も枠も BW から出しているので、ここを変えるだけで全部ついてくる。 */
+let DOTS_W = 168;
+
+/* 裏画面。ここに描いてから引き伸ばす */
+const bufCv = document.createElement("canvas"), bufCx = bufCv.getContext("2d", {willReadFrequently:true});
+let BW = DOTS_W, BH = 280;
+
+/** 世界座標 → 裏画面の座標。
+    水平成分は canvas の向きに合わせる（+y が画面下）。反転させると区画の並びが
+    左回りになり、回して貼るポケット帯と玉も逆向きに回ってずれる。 */
+const px = (x, y, z) => [CXp + x*SCL, CYp + (y*SIN_E - z*COS_E)*SCL];
+const ringOf = (r, z) => [CXp, CYp - z*COS_E*SCL, r*SCL, r*SCL*SIN_E];
+
+/** 画面の高さは仰角から決める。傾けるほど縦は詰まり、高さのぶん上へ伸びる。
+    手で詰めると ELEV を変えるたびに合わせ直しになるので、幾何から出す。 */
+/** 盤の大きさ。戦闘画面では<b>裏画面をそのまま等倍で置く</b>。
+    canvas を CSS で伸ばすと画素が割れるので、canvas の画素数＝仮想ドット数にする。
+    拡大は画面ぜんぶと同じで整数倍だけ（拡大表示のときは ×2）。 */
+function sizeWheel(){
+  BW = DOTS_W;
+  SCL  = (BW/2 - 2) / W.rBowl;
+  CXp = BW/2;
+  const zTop = Z_TRACK + 0.052, zBot = Z_TRACK + 0.040;
+  const top    = -(zTop*COS_E*SCL) - (W.rBowl-0.020)*SCL*SIN_E;
+  const bottom = -(zBot*COS_E*SCL) + W.rBowl*SCL*SIN_E;
+  const pad = 3;
+  BH  = Math.ceil(bottom - top) + pad*2;
+  CYp = pad - top;
+  cv.width = BW; cv.height = BH;
+  cv.style.width = BW + "px"; cv.style.height = BH + "px";
+  bufCv.width = BW; bufCv.height = BH;
+  paintRotorFace();
+}
+
+/* ═══ 色。ゲーム本体とは別物として、この画面のためだけに選んだ 34 色 ═══
+   丸め先をこの表に固定すると、階調が段になってドットらしく見える。 */
+const PAL = [
+  "#080c0a","#0f1512","#161d19","#1e2622",                  // 地
+  "#2a1710","#3d2216","#55311c","#6d3f24","#8a5530",        // 木（暗→明）
+  "#a86b3e","#c8874f","#dda06a","#efbe8b",
+  "#171310","#22262c","#31363e","#434952","#585f69","#6f7681", // 鉢の底・円錐
+  "#5e0f13","#8a1a20","#b8262c","#d94a4a",                  // 赤
+  "#050506","#101013","#1c1c22",                            // 黒の区画
+  "#0b3a24","#1a7048","#2fa066",                            // 緑
+  "#6d5410","#a5851d","#c9a227","#e6c757","#f8ecb8",        // 真鍮
+  "#6a707a","#98a0aa","#c6ccd4","#eef2f6",                  // 金具
+  "#8e8674","#c3baa2","#f2ece0","#ffffff",                  // 象牙（玉）
+];
+const PAL_RGB = PAL.map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);
+/** 32×32×32 の引き当て表。毎フレーム全画素で最近色を探すと重いので一度だけ作る */
+const LUT = new Uint8Array(32*32*32);
+(function(){
+  for (let r=0;r<32;r++) for (let g=0;g<32;g++) for (let b=0;b<32;b++){
+    const R=r*8+4, G=g*8+4, B=b*8+4;
+    let best=0, bd=1e9;
+    for (let i=0;i<PAL_RGB.length;i++){
+      const p=PAL_RGB[i];
+      // 人の目は緑に敏感なので重みを付ける
+      const d=(R-p[0])*(R-p[0])*0.30 + (G-p[1])*(G-p[1])*0.59 + (B-p[2])*(B-p[2])*0.11;
+      if (d<bd){bd=d;best=i;}
+    }
+    LUT[(r<<10)|(g<<5)|b] = best;
+  }
+})();
+
+/** 裏画面の色を、決めた表の色に丸める */
+function posterise(){
+  const img = bufCx.getImageData(0,0,BW,BH), d = img.data;
+  for (let i=0;i<d.length;i+=4){
+    if (d[i+3] < 8) continue;
+    const k = LUT[((d[i]>>3)<<10) | ((d[i+1]>>3)<<5) | (d[i+2]>>3)];
+    const p = PAL_RGB[k];
+    d[i]=p[0]; d[i+1]=p[1]; d[i+2]=p[2]; d[i+3]=255;
+  }
+  bufCx.putImageData(img,0,0);
+}
+
+/* ── ポケット帯。z=0 の水平面なので、真上から焼いて潰して回して貼る ──
+   数字はここには入れない（丸めた後に等倍で書く） ── */
+const faceCv = document.createElement("canvas"), faceCx = faceCv.getContext("2d");
+
+function paintRotorFace(){
+  const size = Math.max(8, Math.ceil(W.rRotor*SCL*2) + 4);
+  faceCv.width = faceCv.height = size;
+  const fs = (size/2 - 2) / W.rRotor, g = faceCx, C = size/2, m = v => v*fs;
+  g.clearRect(0,0,size,size);
+  for (let i=0;i<N;i++){
+    const a0 = pocketStart(i), a1 = a0 + SLOT;
+    g.beginPath();
+    g.arc(C,C,m(W.rRotor),a0,a1);
+    g.arc(C,C,m(W.rPocketIn),a1,a0,true);
+    g.closePath();
+    g.fillStyle = POCKETS[i].colour;
+    g.fill();
+  }
+  for (let i=0;i<N;i++){
+    const a = pocketStart(i);
+    g.save(); g.translate(C,C); g.rotate(a);
+    g.strokeStyle = "#c6ccd4"; g.lineWidth = Math.max(1.6, m(0.006));
+    g.beginPath(); g.moveTo(m(W.rPocketIn-0.003),0); g.lineTo(m(W.rRotor),0); g.stroke();
+    g.restore();
+  }
+  g.strokeStyle = "#050506"; g.lineWidth = Math.max(1, m(0.004));
+  g.beginPath(); g.arc(C,C,m(W.rPocketIn),0,TAU); g.stroke();
+}
+
+function ell(g, r, z, fill, stroke, lw){
+  const [ex, ey, rx, ry] = ringOf(r, z);
+  g.beginPath(); g.ellipse(ex, ey, rx, ry, 0, 0, TAU);
+  if (fill){ g.fillStyle = fill; g.fill(); }
+  if (stroke){ g.strokeStyle = stroke; g.lineWidth = lw||1; g.stroke(); }
+}
+
+/** 高さ違いの輪を外から内へ。段差がそのままドットの階調になる */
+/* 鉢の木は、ポケットの茶より 1 段暗くしてある。
+   同じ明るさだと、無属性（茶）の区画が鉢に溶けて区画の切れ目が読めない。
+   区画がいちばん明るい、という関係を崩さない。 */
+const BOWL_RINGS = [
+  [W.rBowl,       Z_TRACK+0.040, "#2a1710"],
+  [W.rBowl-0.020, Z_TRACK+0.052, "#55311c"],
+  [W.rWall+0.014, Z_TRACK+0.040, "#3d2216"],
+  [W.rWall,       Z_TRACK+0.014, "#6d3f24"],
+  [W.rRim,        Z_TRACK,       "#8a5530"],   // ボールトラック
+  [W.rTrack,      Z_SLOPE,       "#2a1710"],   // すり鉢
+  [W.rRotor,      0,             "#171310"],
+];
+
+function drawWheel(tr, balls, showBall){
+  const g = bufCx;
+  g.clearRect(0,0,BW,BH);
+  g.fillStyle = "#0f1512"; g.fillRect(0,0,BW,BH);
+
+  for (const [r,z,c] of BOWL_RINGS) ell(g, r, z, c);
+  ell(g, W.rTrack, Z_SLOPE, null, "#2a1710", Math.max(1, 0.004*SCL));
+  ell(g, W.rRim,   Z_TRACK, null, "#a86b3e", Math.max(1, 0.002*SCL));
+
+  // ディフレクタ 8 個
+  for (let k=0;k<W.nDefl;k++){
+    const a = k*TAU/W.nDefl;
+    const [dx,dy] = px(Math.cos(a)*W.rDefl, Math.sin(a)*W.rDefl, surfZ(W.rDefl)+W.hDefl);
+    const long = (k%2 ? 0.030 : 0.021)*SCL, wide = (k%2 ? 0.012 : 0.016)*SCL;
+    g.save(); g.translate(dx, dy); g.scale(1, SIN_E); g.rotate(a + (k%2 ? 0 : Math.PI/2));
+    g.fillStyle = "#c6ccd4";
+    g.beginPath(); g.moveTo(-long,0); g.lineTo(0,-wide);
+    g.lineTo(long,0); g.lineTo(0,wide); g.closePath(); g.fill();
+    g.fillStyle = "#6a707a";
+    g.beginPath(); g.moveTo(0,0); g.lineTo(0,wide); g.lineTo(long,0); g.closePath(); g.fill();
+    g.restore();
+  }
+
+  // ポケット帯
+  const [fx, fy] = px(0,0,0);
+  g.save(); g.translate(fx, fy); g.scale(1, SIN_E); g.rotate(tr);
+  g.drawImage(faceCv, -faceCv.width/2, -faceCv.height/2);
+  g.restore();
+
+  // 円錐とタレット
+  // 円錐。同心に塗ると的に見えるので、内側の輪ほど左上へずらして光の向きを出す
+  const CN = 5;
+  const CONE = ["#585f69","#434952","#31363e","#22262c","#171310"];
+  for (let i=1;i<=CN;i++){
+    const t = i/CN;
+    const r = W.rPocketIn + (W.rTurret - W.rPocketIn)*t;
+    const [ex,ey,rx,ry] = ringOf(r, (W.rPocketIn - r)*TAN_C);
+    const off = t * 0.055 * W.rPocketIn * SCL;
+    g.beginPath(); g.ellipse(ex - off*0.7, ey - off, rx, ry, 0, 0, TAU);
+    g.fillStyle = CONE[CN-i]; g.fill();
+  }
+  {
+    const zt = (W.rPocketIn - W.rTurret)*TAN_C;
+    const [tx,ty,trx,try_] = ringOf(W.rTurret, zt);
+    const o = 0.055 * W.rPocketIn * SCL;
+    const dot = (rf, dx, dy, col) => {
+      g.beginPath(); g.ellipse(tx - o*0.7 + dx, ty - o + dy, trx*rf, try_*rf, 0, 0, TAU);
+      g.fillStyle = col; g.fill();
+    };
+    dot(1,    0, 0, "#a5851d");
+    dot(0.68, -trx*0.10, -try_*0.14, "#c9a227");
+    dot(0.34, -trx*0.16, -try_*0.22, "#e6c757");
+  }
+
+  // 玉と影。影を全部先に敷いてから玉を置く（玉が影に隠れないように）
+  if (showBall && balls && balls.length){
+    for (const ball of balls){
+      const r = Math.hypot(ball[0], ball[1]);
+      const zs = surfZ(Math.min(r, W.rWall));
+      const [sx, sy] = px(ball[0], ball[1], zs + 0.0005);
+      const hgt = Math.max(0, ball[2] - zs - W.ball);
+      const soft = 1 + hgt*14;
+      g.fillStyle = "#080c0a";
+      g.beginPath();
+      g.ellipse(sx, sy, W.ball*SCL*soft, Math.max(0.6, W.ball*SCL*SIN_E*soft), 0, 0, TAU);
+      g.fill();
+    }
+    // 画面の上（＝奥）にある玉から順に置くと、手前の玉が上に重なる
+    const order = balls.map((b,i)=>[i, px(b[0],b[1],b[2])[1]]).sort((a,c)=>a[1]-c[1]);
+    for (const [i] of order){
+      const ball = balls[i];
+      const [bx, by] = px(ball[0], ball[1], ball[2]);
+      const R = Math.max(1.6, W.ball*SCL);
+      g.fillStyle = "#c3baa2";
+      g.beginPath(); g.arc(bx,by,R,0,TAU); g.fill();
+      g.fillStyle = "#f2ece0";
+      g.beginPath(); g.arc(bx - R*0.25, by - R*0.25, R*0.62, 0, TAU); g.fill();
+    }
+  }
+
+  // ── 色を丸めてから、補間なしで引き伸ばす ──
+  posterise();
+  cx.imageSmoothingEnabled = false;
+  cx.clearRect(0,0,BW,BH);
+  cx.drawImage(bufCv, 0, 0);
+}
+
+/** 下地の明るさで、文字を白と黒のどちらにするか決める。
+    金色や薄い灰色の区画に白で書くと読めない。 */
+function textOn(hex){
+  const r = parseInt(hex.slice(1,3),16), g2 = parseInt(hex.slice(3,5),16),
+        b = parseInt(hex.slice(5,7),16);
+  return (0.30*r + 0.59*g2 + 0.11*b) > 140 ? "#0b0f0d" : "#f2ece0";
+}

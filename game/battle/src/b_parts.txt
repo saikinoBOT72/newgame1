@@ -1,0 +1,293 @@
+/* ── 頭の上に出す数字 ──────────────────────────────────────
+   数字だけ大きく出す。字は 16 ドット（書体の設計サイズの 2 倍）で、
+   仮想の升目にちょうど乗る。半端な大きさにすると格子が壊れる。 */
+/** 16 ドットの字の幅。全角は 16、半角は 8。
+    文字数 × 決め打ちで箱を作ると、全角が入ったとたんに溢れて折り返す。 */
+const textW16 = t => [...t].reduce((a,ch)=> a + (ch.charCodeAt(0) < 0x100 ? 8 : 16), 0);
+
+function pop(o){
+  const w = textW16(o.text) + 16, x = Math.max(2, Math.min(VW-w-2, o.x - (w >> 1))), y = o.y;
+  let h = "";
+  h += shadowOf(x, y, w, 22, 2);
+  h += plate(x, y, w, 22, {fill:C(o.ramp,1), hi:C(o.ramp,3), lo:C(o.ramp,0)});
+  h += box(x, y, w, 22, "display:flex;align-items:center;justify-content:center;white-space:nowrap",
+    `<span class="t2 sh" style="color:${C("bone",4)}">${o.text}</span>`);
+  return h;
+}
+
+/* ── 手札 ────────────────────────────────────────────────────
+   扇に「傾けて」持つのはやめた。傾けると札に載せる名前と効果まで傾く。
+   文字を絵に焼き込むと 8 ドットに潰れて読めないので、文字は札の上に
+   HTML で重ねている。重ねる以上、札は立てておくしかない。
+   代わりに、真ん中を少し持ち上げた弧で「持っている」形にする。 */
+const CW = 110, CH = 154;
+const HAND_X = 436, HAND_L = 236, HAND_R = 636;   // 置ける範囲
+const HAND_STEP = 130, HAND_Y = 344, HAND_LIFT = 6;
+
+function handCard(x, y, c, on){
+  let h = "";
+  h += shadowOf(x, y, CW, CH, 3);
+  if (on)                                        // いま効いている札を縁で光らせる
+    h += box(x-3, y-3, CW+6, CH+6, `background:${C("brass",3)}`);
+  h += box(x, y, CW, CH, "overflow:hidden",
+    `<img src="${c.img}" width="${CW}" height="${CH}" alt="${c.nm}">`);
+  /* 名前。台紙の帯にぴったり載せる（帯は絵のほうに描いてある） */
+  h += box(x+6, y+11, 96, 10, "display:flex;align-items:center;justify-content:center",
+    `<span class="t" style="color:#2a2118">${c.nm}</span>`);
+  /* 効果。帯の幅で折り返す */
+  h += box(x+11, y+109, 88, 34, "display:flex;align-items:center;justify-content:center;text-align:center",
+    `<span class="t" style="color:#2a2118;line-height:10px">${c.fx}</span>`);
+  return h;
+}
+
+/** 手札を並べる。
+    枚数が増えても<b>置ける範囲からはみ出さない</b>ように間隔を詰める。
+    詰めると重なるが、名前の帯は札の左寄りにあるので、重なっても名前は読める。
+    いちばん新しい 1 枚だけ持ち上げて、いま引いたのがどれか分かるようにする。 */
+const HAND_MAX = 4;                               // 出す枚数の上限。これ以上は数で出す
+function hand(all, active){
+  if (!all.length) return "";
+  /* 詰めすぎると名前も効果も読めなくなる。古いほうは切って「＋n」で出す */
+  const cut = Math.max(0, all.length - HAND_MAX);
+  const list = all.slice(cut);
+  const n = list.length;
+  const span = HAND_R - HAND_L;
+  const step = n > 1 ? Math.min(HAND_STEP, Math.floor((span - CW) / (n-1))) : 0;
+  const x0 = Math.round(HAND_X - ((n-1)*step)/2 - CW/2);
+  let h = "";
+  list.forEach((ci,i)=>{
+    const on = (cut + i) === active;
+    const last = i === n-1;
+    const lift = on ? HAND_LIFT + 12
+      : last ? HAND_LIFT + 4
+      : (n > 1 ? Math.round(HAND_LIFT * (1 - Math.abs(i-(n-1)/2)/((n-1)/2 || 1))) : HAND_LIFT);
+    h += handCard(x0 + i*step, HAND_Y - CH - lift, DECK[ci], on);
+  });
+  if (cut)
+    h += box(HAND_L - 32, HAND_Y - 40, 30, 12,
+      "display:flex;align-items:center;justify-content:flex-end",
+      `<span class="t sh" style="color:${C("bone",2)}">＋${cut}</span>`);
+  return h;
+}
+
+/* ── 壁の松明 ────────────────────────────────────────────────
+   盤を小さくして世界が広がったぶん、壁が空いた。
+   ただ模様を足すのではなく、<b>光源そのもの</b>を置く。
+   画面じゅうの凹凸を「左上から」の光で作っているので、
+   その光がどこから来ているのかが絵の中にあったほうがよい。 */
+function torch(x, y){
+  let h = "";
+  /* 光の粒（ディザの丸い光）は入れない。
+     暗い壁の上だと、黄色い点がただの汚れに見えてしまう。 */
+  /* 壁に留める板 → 腕木 → 受け皿。面の作り方は筐体と同じ（光は左上） */
+  h += plate(x-4, y+14, 16, 12, {fill:C("steel",2), hi:C("steel",4), lo:C("steel",0)});
+  h += plate(x+1, y+6,  6, 10, {fill:C("steel",1), hi:C("steel",3), lo:C("steel",0)});
+  h += plate(x-6, y-2, 20, 9,  {fill:C("brass",2), hi:C("brass",4), lo:C("brass",0)});
+  /* 炎。外は赤、中は真鍮、芯は白。外から順に重ねる。
+     左右対称に積むと三角のコーンに見えるので、上へいくほど右に寄せる */
+  [[x-4,y-11,15,10,C("red",3)],[x-2,y-18,12,9,C("red",3)],[x+1,y-24,6,8,C("red",2)],
+   [x-2,y-10,11,8,C("brass",4)],[x,y-16,8,7,C("brass",4)],[x+2,y-21,4,6,C("brass",3)],
+   [x,y-9,7,6,C("bone",4)]].forEach(([bx,by,bw,bh,c])=> h += box(bx,by,bw,bh,`background:${c}`));
+  return h;
+}
+
+/* ── レバー。丸ボタンではなく、床に立って機械につながる物にする ──
+   実行の操作を世界の中の物にすると、UI が世界から浮かない。
+   len を外から渡せるようにした（下段の高さが場所によって違うため）。 */
+function lever(x, top, len){
+  len = len || 80;
+  const sw = 11;
+  let h = `<div class="throwhit" style="position:absolute;left:${x-12}px;top:${top-16}px;
+    width:52px;height:${len+68}px;cursor:pointer;z-index:6"></div>`;
+  /* 受け金具。ここから生えていることを見せる */
+  h += shadowOf(x, top-14, 28, 24, 3);
+  h += plate(x, top-14, 28, 24, {fill:C("steel",2), hi:C("steel",4), lo:C("steel",0)});
+  h += plate(x+3, top-11, 22, 18, {fill:C("steel",1), hi:C("steel",0), lo:C("steel",3), sunk:true});
+  [[x+5,top-9],[x+19,top-9],[x+5,top+1],[x+19,top+1]].forEach(([bx,by])=>
+    h += plate(bx,by,3,3,{fill:C("brass",2), hi:C("brass",4), lo:C("brass",0)}));
+  /* 軸。面の作り方は他と同じ（左が明るく右が暗い） */
+  h += box(x+8, top, sw, len, `background:${C("steel",2)}`);
+  h += box(x+8, top, 2, len, `background:${C("steel",4)}`);
+  h += box(x+17, top, 2, len, `background:${C("steel",0)}`);
+  for (let i=1; i*18 < len-6; i++)                        // 段。長い棒が板に見えないように
+    h += box(x+7, top+i*18, 13, 2, `background:${C("steel",0)}`);
+  /* 握り。丸は自動陰影がいちばん効く */
+  h += box(x+2, top+len-6, 24, 24, "", sprite("knob"));
+  /* 引く向き */
+  for (let i=0;i<5;i++)
+    h += box(x+11, top+len+21+i, 7-Math.floor(i*1.4), 1, `background:${C("brass",2)};opacity:.75`);
+  /* 銘板。操作の名前は握りのすぐ下。床に離して置くと何の名前か分からない */
+  h += shadowOf(x-9, top+len+29, 46, 18, 3);
+  h += plate(x-9, top+len+29, 46, 18, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
+  h += box(x-9, top+len+29, 46, 18, `display:flex;align-items:center;justify-content:center`,
+    `<span class="t sh" style="color:${C("brass",4)}">投げる</span>`);
+  return h;
+}
+
+/* ── いま何階か。筐体に彫った札 ── */
+function depth(x, y){
+  let h = "";
+  h += plate(x, y, 108, 20, {fill:C("wood",1), hi:C("wood",3), lo:C("wood",0)});
+  h += box(x+7, y, 46, 20, `display:flex;align-items:center`,
+    `<span class="lbl" style="color:${C("bone",2)}">地下</span>`);
+  h += box(x+46, y, 54, 20, `display:flex;align-items:center;justify-content:flex-end`,
+    `<span class="t" style="color:${C("bone",3)}">${GS.self.floor} / ${GS.self.floors}</span>`);
+  return h;
+}
+
+/* ── 右上。所持金と持ち物だけ。小さく、壁に留めた札のように ──
+   上段が 100 ドットしかないので、前より 8 ドット薄くした。
+   これ以上厚くすると、いちばん右の敵の「次の一手」とぶつかる。 */
+function topRight(){
+  const w = 118, x = VW - w - 8, y = 20;
+  let h = "";
+  h += shadowOf(x, y, w, 18, 2);
+  h += plate(x, y, w, 18, {fill:C("wood",1), hi:C("wood",3), lo:C("wood",0)});
+  h += box(x+6, y+4, 10, 10, "", glyph("coin", 10));
+  h += box(x+18, y, 44, 18, `display:flex;align-items:center;justify-content:flex-end`,
+    `<span class="t" style="color:${C("brass",4)}">${GS.self.coin}</span>`);
+  h += box(x+68, y+2, 1, 14, `background:${C("wood",0)}`);
+  /* 持ち物 */
+  h += plate(x+74, y+2, 40, 14, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
+  h += box(x+74, y+2, 40, 14,
+    `display:flex;align-items:center;justify-content:center;cursor:pointer`,
+    `<span class="t" style="color:${C("bone",3)}">持ち物</span>`, "hit open");
+  return h;
+}
+
+/* ── 役者。足元の線をそろえ、床に硬い接地影を落とす ──
+   上段が薄いので、HP の帯を足元から dy だけ下に置けるようにした。 */
+function actor(sp, x, foot, d, front, dy){
+  dy = dy === undefined ? 9 : dy;
+  /* 大きさは必ず spriteW / spriteH から取る。SHAPES の w/h は倍率を掛ける前の値で、
+     絵は倍率を掛けた大きさで描かれる。ここを別々に計算すると足元がずれる。
+     （描画と配置に位置を別々に計算させない。同じ間違いを何度もしている） */
+  const sw = spriteW(sp), sh = spriteH(sp);
+  let h = "";
+  h += box(x+2, foot-3, sw-2, 5, `background:${INK};opacity:.55`);   // 接地影
+  h += box(x, foot-sh, sw, sh, "", sprite(sp));
+  const bw = Math.max(sw+6, 50);
+  const bx = x + (sw-bw)/2|0;
+  /* HP。記号＋数字＋色の 3 つで出す。数字だけにしない */
+  h += plate(bx, foot+dy, bw, 9, {fill:C("red",0), hi:C("steel",2), lo:C("steel",0), sunk:true});
+  h += box(bx+1, foot+dy+1, Math.round((bw-2)*d.hp/d.max), 7, `background:${C("red",3)}`);
+  h += box(bx+1, foot+dy+1, Math.round((bw-2)*d.hp/d.max), 1, `background:${C("red",4)}`);
+  h += box(bx, foot+dy, bw, 9, `display:flex;align-items:center;justify-content:center`,
+    `<span class="t sh" style="color:${C("bone",4)}">${d.hp}/${d.max}</span>`);
+  /* 状態の記章。HP の帯の左に、盾・火傷・力の順で積む */
+  let ax2 = bx;
+  [[d.shield,"blue"], [d.burn,"red"], [d.pow,"brass"]].forEach(([v, ramp])=>{
+    if (!v) return;
+    ax2 -= 12;
+    h += plate(ax2, foot+dy, 11, 9, {fill:C(ramp,2), hi:C(ramp,4), lo:C(ramp,0)});
+    h += box(ax2, foot+dy, 11, 9, `display:flex;align-items:center;justify-content:center`,
+      `<span class="t sh" style="color:${C("bone",4)}">${v}</span>`);
+  });
+  /* 次の一手。敵だけ、頭の上に */
+  if (d.act){
+    const aw = d.act.length*22 - 4;
+    let ax = x + (sw-aw)/2|0, ay = foot - sh - 15;
+    d.act.forEach(([k,n])=>{
+      h += box(ax, ay, 10, 10, "", glyph(k,10));
+      h += box(ax+11, ay+1, 10, 9, "", `<span class="t sh" style="color:${C("bone",4)}">${n}</span>`);
+      ax += 22;
+    });
+  }
+  /* 前の敵に印。いま殴られるのはここ、が一目で分かるように */
+  if (front){
+    const mx = x + (sw/2|0) - 3;
+    for (let i=0;i<4;i++)
+      h += box(mx-3+i, foot-sh-24+i, 7-i*2, 1, `background:${C("brass",3)}`);
+  }
+  return h;
+}
+
+
+/* ── 持ち物。いまはテスト用の組み替え画面 ─────────────────────
+   デッキ（どの札を盤に何区画置くか）と玉の数を、その場で変えられる。
+   区画の数がそのまま確率なので、ここを触ると盤の色分けも即座に変わる。
+   本番では買い物・報酬でしか変えられなくなる予定。 */
+function invPanel(){
+  if (!GS.inv) return "";
+  /* 高さは札の数から出す。札が増えても余白が空いたままにならない */
+  const W2 = 552, H2 = 182 + DECK.length*30;
+  const X = Math.round((VW - W2)/2), Y = Math.round((VH - H2)/2);
+  let h = "";
+  h += box(0, 0, VW, VH, `background:${INK};opacity:.72`, "", "hit close");
+  h += shadowOf(X, Y, W2, H2, 4);
+  h += plate(X, Y, W2, H2, {fill:C("wood",2), hi:C("wood",4), lo:C("wood",0)});
+  h += plate(X+4, Y+4, W2-8, H2-8, {fill:C("wood",1), hi:C("wood",0), lo:C("wood",3), sunk:true,
+    dither:ditherCSS(C("wood",1), C("wood",0), 3)});
+  h += box(X+14, Y+12, 300, 12, "", `<span class="t" style="color:${C("brass",4)}">持ち物（テスト用）</span>`);
+  h += box(X+14, Y+26, 400, 10, "",
+    `<span class="lbl">区画の数がそのまま出る確率になる</span>`);
+  h += plate(X+W2-46, Y+10, 34, 16, {fill:C("wood",3), hi:C("brass",3), lo:C("wood",0)});
+  h += box(X+W2-46, Y+10, 34, 16,
+    `display:flex;align-items:center;justify-content:center;cursor:pointer`,
+    `<span class="t" style="color:${C("bone",4)}">閉じる</span>`, "hit close");
+  h += box(X+12, Y+42, W2-24, 1, `background:${C("wood",0)}`);
+
+  /* 見出し */
+  const cx0 = X+16;
+  h += box(cx0+34, Y+48, 200, 10, "", `<span class="lbl">札</span>`);
+  h += box(cx0+250, Y+48, 60, 10, "", `<span class="lbl">属性</span>`);
+  h += box(cx0+310, Y+48, 60, 10, `display:flex;justify-content:flex-end`,
+    `<span class="lbl">区画</span>`);
+  h += box(cx0+400, Y+48, 90, 10, `display:flex;justify-content:flex-end`,
+    `<span class="lbl">出る確率</span>`);
+
+  const tot = Math.max(1, deckTotal());
+  DECK.forEach((c,i)=>{
+    const ry = Y+64 + i*30;
+    h += box(cx0, ry, W2-32, 26, `background:${C("wood",2)};opacity:${i%2?0.5:0.25}`);
+    /* 属性の色見本。盤に出る色そのもの */
+    h += plate(cx0+6, ry+6, 20, 14, {fill:c.col, hi:c.col, lo:C("wood",0)});
+    h += box(cx0+34, ry+8, 210, 10, "", `<span class="t" style="color:${C("bone",4)}">${c.nm}</span>`);
+    h += box(cx0+250, ry+8, 60, 10, "",
+      `<span class="t" style="color:${C("bone",2)}">${(ELEM[c.el]||ELEM.norm).nm}</span>`);
+    /* − 区画 ＋ */
+    h += stepper(cx0+306, ry+5, GS.deck[i], "d"+i);
+    const pct = GS.deck[i] * 100 / tot;
+    h += box(cx0+400, ry+8, 90, 10, `display:flex;justify-content:flex-end`,
+      `<span class="t" style="color:${GS.deck[i] ? C("brass",4) : C("steel",3)}">${pct.toFixed(1)} %</span>`);
+  });
+
+  const ry = Y+64 + DECK.length*30 + 12;
+  h += box(cx0, ry, W2-32, 1, `background:${C("wood",0)}`);
+  h += box(cx0+34, ry+8, 200, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${C("bone",4)}">区画の合計</span>`);
+  const bad = deckTotal() < MIN_N || deckTotal() > MAX_N;
+  h += box(cx0+306, ry+8, 84, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${bad ? C("red",4) : C("bone",3)}">${deckTotal()} / ${MAX_N}</span>`);
+
+  h += box(cx0+34, ry+30, 200, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${C("bone",4)}">1 回転で投げる玉</span>`);
+  h += stepper(cx0+306, ry+30, GS.balls, "b");
+  h += box(cx0+400, ry+30, 90, 14, "display:flex;align-items:center;justify-content:flex-end",
+    `<span class="lbl">最大 ${MAX_BALLS}</span>`);
+  h += box(cx0+34, ry+52, 200, 14, "display:flex;align-items:center",
+    `<span class="t" style="color:${C("bone",4)}">1 手番に回せる数</span>`);
+  h += stepper(cx0+306, ry+52, GS.spins, "s");
+  h += box(cx0+400, ry+52, 90, 14, "display:flex;align-items:center;justify-content:flex-end",
+    `<span class="lbl">最大 ${MAX_SPINS}</span>`);
+  h += box(cx0+34, ry+74, 460, 14, "display:flex;align-items:center",
+    `<span class="lbl">本来は強化で増える。ここはテスト用</span>`);
+  return h;
+}
+
+/** − 値 ＋ の 3 つ組。id は押されたときに何を動かすかの目印 */
+function stepper(x, y, v, id){
+  let h = "";
+  const btn = (bx, t, cls) => {
+    let g = plate(bx, y, 16, 16, {fill:C("wood",3), hi:C("wood",4), lo:C("wood",0)});
+    g += box(bx, y, 16, 16,
+      `display:flex;align-items:center;justify-content:center;cursor:pointer`,
+      `<span class="t" style="color:${C("bone",4)}">${t}</span>`, "hit " + cls);
+    return g;
+  };
+  h += btn(x, "−", "dec " + id);
+  h += box(x+18, y+3, 30, 10, `display:flex;justify-content:center`,
+    `<span class="t" style="color:${C("bone",4)}">${v}</span>`);
+  h += btn(x+50, "＋", "inc " + id);
+  return h;
+}

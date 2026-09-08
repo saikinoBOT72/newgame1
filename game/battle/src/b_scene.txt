@@ -1,0 +1,169 @@
+/* ═══════════════════════════════════════════════════════════════════
+   E. 画面の部品
+   ═══════════════════════════════════════════════════════════════════ */
+const box = (x,y,w,h,style,inner,cls) =>
+  `<div class="${cls||""}" style="position:absolute;left:${x}px;top:${y}px;
+    width:${w}px;height:${h}px;${style||""}">${inner||""}</div>`;
+
+/** 面。光は必ず左上から。上と左が 1 ドット明るく、下と右が 1 ドット暗い。
+    へこませたい時は sunk で反転する。全部の凹凸をこの向きにそろえる。 */
+function plate(x,y,w,h,o){
+  o = o || {};
+  const f = o.fill || C("wood",2);
+  const hi = o.hi || C("wood",4), lo = o.lo || C("wood",0);
+  const a = o.sunk ? lo : hi, b = o.sunk ? hi : lo;
+  return `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px;
+    background:${f};${o.dither||""};${o.z?`z-index:${o.z};`:""}">
+    <div style="position:absolute;left:0;top:0;right:1px;height:1px;background:${a}"></div>
+    <div style="position:absolute;left:0;top:0;bottom:1px;width:1px;background:${a}"></div>
+    <div style="position:absolute;left:1px;right:0;bottom:0;height:1px;background:${b}"></div>
+    <div style="position:absolute;top:1px;right:0;bottom:0;width:1px;background:${b}"></div>
+    ${o.inner ? `<div style="position:absolute;inset:1px">${o.inner}</div>` : ""}
+  </div>`;
+}
+/** 斜めの線は階段で刻む。回転させるとアンチエイリアスでにじむ */
+function stair(x, y, len, dx, thick, col, alpha){
+  let h = "";
+  for (let i=0;i<len;i++)
+    h += `<div style="position:absolute;left:${Math.round(x + i*dx)}px;top:${y+i}px;
+      width:${thick}px;height:1px;background:${col};${alpha?`opacity:${alpha};`:""}"></div>`;
+  return h;
+}
+/** 硬い落ち影。ぼかさない。右下へ 3 ドット */
+const shadowOf = (x,y,w,h,d) =>
+  box(x+(d||3), y+(d||3), w, h, `background:${INK}`);
+
+/* ═══════════════════════════════════════════════════════════════════
+   F. 画面を組む —— 案F「手札」
+
+   上段（0..168）＝ 世界。天井・石の壁・松明・木の床。自分と敵が 1 本の線に立つ
+   下段（168..360）＝ 筐体。左に盤の窓、右に手札と操作
+
+   下段は「机の上に盤を置いた」ではなく、画面の下半分そのものが筐体の面。
+   材質を段ごとに変える。世界＝石と木、筐体＝鉄と真鍮。
+
+   組み方は 3 層に分ける。
+     #bg   … 動かないもの（壁・床・筐体・盤の枠）。1 回だけ組む
+     #whl  … 盤の canvas。ここだけは組み直さない（組み直すと絵が消える）
+     #fg   … 変わるもの（人物・手札・操作・HUD）。手番ごとに組み直す
+   ぜんぶ 1 つの文字列で組み直すと、canvas が毎回作り直されて盤が消える。
+   ═══════════════════════════════════════════════════════════════════ */
+const VW = 640, VH = 360;
+const BAND  = 168;          // 上段（世界）と下段（筐体）の境
+const WALLH = 96;           // 壁と床の境
+const FOOT  = 138;          // 自分も敵も、この線に立つ。手前に床を残す
+const GX = 6, GY = 180;     // 盤の窓の左上（大きさは BW × BH ＝ 焼いた裏画面のまま）
+const HERO_X = 24, FX = [296, 384, 468];      // 立ち位置。数字を出す所もここから出す
+
+function sceneStatic(){
+  let h = "";
+
+  /* ══ 上段：世界 ════════════════════════════════════════════════ */
+
+  /* 壁。上ほど明るく、下ほど暗い。段はディザで作る（にじませない） */
+  h += box(0,0,VW,WALLH, `background:${C("stone",1)}`);
+  [[0,28,4],[28,52,3],[52,76,2],[76,WALLH,1]].forEach(([y0,y1,lv])=>{
+    h += box(0,y0,VW,y1-y0, `background:${C("stone",1)};${ditherCSS(C("stone",1),C("stone",2),lv)}`);
+  });
+  /* 石積み。目地は 1 ドット。奥（上）ほどコントラストを落とす */
+  for (let y=2;y<WALLH-6;y+=13){
+    const row = Math.round((y-2)/13), near = y > 48;
+    for (let x=-16;x<VW;x+=28){
+      h += box(x + (row%2 ? 14 : 0), y, 26, 11, `background:${C("stone",near?2:1)};
+        border-right:1px solid ${C("stone",0)};border-bottom:1px solid ${C("stone",0)};
+        opacity:${near?1:.7}`, "", "bleed");
+    }
+  }
+  /* 天井。上を切っておかないと壁が上へ抜けて、部屋に見えない */
+  h += box(0, 0, VW, 12, `background:${C("stone",0)}`);
+  h += box(0, 12, VW, 1, `background:${C("stone",3)}`);
+  h += box(0, 13, VW, 2, `background:${INK}`);
+  for (let x=-8;x<VW;x+=96)
+    h += box(x, 0, 14, 13, `background:${C("wood",1)};border-right:1px solid ${INK}`, "", "bleed");
+
+  /* 壁の見切り */
+  h += box(0, 64, VW, 3, `background:${C("stone",3)}`);
+  h += box(0, 67, VW, 2, `background:${C("stone",0)}`);
+
+  /* 床。壁と material を変える（木）。境に硬い明線を引くと、人物が
+     「棚に乗っている」ように見えるので、暗い線 1 本＋ディザで受ける */
+  h += box(0,WALLH,VW,BAND-WALLH, `background:${C("wood",1)}`);
+  h += box(0,WALLH-1,VW,1, `background:${INK}`);
+  h += box(0,WALLH,VW,6, ditherCSS(C("wood",0), C("wood",1), 6));
+  h += box(0,WALLH+6,VW,12, ditherCSS(C("wood",1), C("wood",0), 3));
+  h += box(0,WALLH+18,VW,14, ditherCSS(C("wood",1), C("wood",2), 2));
+  h += box(0,WALLH+32,VW,BAND-WALLH-32, ditherCSS(C("wood",1), C("wood",2), 2));
+  for (let x=-20;x<VW;x+=74)
+    h += box(x, WALLH+1, 1, BAND-WALLH-1, `background:${C("wood",0)};opacity:.5`, "", "bleed");
+  h += box(0, WALLH+22, VW, 1, `background:${C("wood",0)};opacity:.6`);
+
+  /* 松明。光がどこから来ているのかを絵の中に置く。左上からの光にそろえて左に寄せる */
+  h += torch(108, 34);
+  h += torch(238, 34);
+
+  /* 筐体の明かりが、床と壁の下のほうを照らす */
+  h += box(0, WALLH, VW, BAND-WALLH, ditherCSS("transparent", C("brass",1), 1));
+  h += box(0, 56, VW, WALLH-56,      ditherCSS("transparent", C("brass",1), 1));
+
+  /* ══ 下段：筐体の面 ════════════════════════════════════════════ */
+  h += box(0, BAND-4, VW, 4, `background:${INK};opacity:.45`);   // 床に落ちる硬い影
+  h += box(0, BAND, VW, VH-BAND, `background:${C("steel",2)}`);
+  h += box(0, BAND, VW, VH-BAND, ditherCSS(C("steel",2), C("steel",1), 3));
+  h += box(0, BAND,   VW, 2, `background:${C("brass",3)}`);
+  h += box(0, BAND+2, VW, 1, `background:${C("brass",1)}`);
+  h += box(0, BAND+3, VW, 3, `background:${C("steel",4)}`);
+  h += box(0, BAND+6, VW, 1, `background:${C("steel",0)}`);
+  /* 鋲は盤側だけ。右側は実況の行が通るので空けておく */
+  for (let x=10;x<226;x+=32)
+    h += plate(x, BAND+9, 3, 3, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
+  h += box(0, VH-40, VW, 40, ditherCSS("transparent", C("steel",3), 2));
+
+  return h;
+}
+
+/* ── 盤の窓。枠は canvas と同じ入れ物に入れる。
+      別々に置くと、拡大したときに枠だけ元の大きさで残る。 ── */
+function wheelFrame(){
+  let h = "";
+  h += plate(0, 0, BW+8, BH+8, {fill:C("steel",3), hi:C("steel",5), lo:C("steel",1)});
+  h += plate(3, 3, BW+2, BH+2, {fill:INK, hi:C("steel",0), lo:C("steel",4), sunk:true});
+  [[1,1],[BW+3,1],[1,BH+3],[BW+3,BH+3]].forEach(([bx,by])=>
+    h += plate(bx,by,4,4,{fill:C("brass",2), hi:C("brass",4), lo:C("brass",0)}));
+  return h;
+}
+
+/* ── 手番ごとに組み直すほう ── */
+function sceneLive(){
+  let h = "";
+  /* 役者 */
+  h += actor("hero", HERO_X, FOOT, GS.self, false, 6);
+  GS.foes.forEach((f,i)=>{
+    if (f.hp <= 0) return;
+    h += actor(f.sp, FX[i], FOOT, f, f === frontFoe(), 6);
+  });
+  h += topRight();
+  h += depth(VW - 116, 42);
+
+  /* 操作 */
+  h += lever(192, 200, 56);
+  /* この手番であと何回まわせるか。玉はまとめて投げるので、回数と玉の数は別 */
+  if (GS.throws > 0 && GS.phase === "idle")
+    h += box(GX, GY + BH + 8, 168, 12, "display:flex;align-items:center;justify-content:center",
+      `<span class="t" style="color:${C("brass",4)}">のこり ${GS.throws} 回　玉 ${GS.balls}</span>`);
+
+  /* 手札。拡大している間は出さない（盤の下に結果を出したいので場所を空ける） */
+  const big = GS.phase === "spin" || GS.phase === "deal";
+  h += hand(big ? [] : GS.hand, GS.active);
+
+  /* 頭の上に出す数字。誰に何が起きたかを、その場所で見せる */
+  GS.pops.forEach(o => h += pop(o));
+
+  h += invPanel();
+  /* 実況。ふだんは敵の HP の下（床の上）、拡大中は盤の下。
+     筐体の上に置くと、いま光っている札とぶつかる。 */
+  if (GS.msg && !GS.inv)
+    h += box(180, big ? 338 : 155, 456, 12,
+      "display:flex;align-items:center;justify-content:center;white-space:nowrap",
+      `<span class="t sh" style="color:${C("brass",4)}">${GS.msg}</span>`);
+  return h;
+}

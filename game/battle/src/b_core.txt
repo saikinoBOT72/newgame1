@@ -1,0 +1,150 @@
+
+<div id="wrap"><div class="hold" id="hold"><div id="scr">
+  <div id="bg"></div>
+  <div id="dim"></div>
+  <div id="whl"><div id="frm"></div><canvas id="wheel"></canvas></div>
+  <div id="fg"></div>
+</div></div></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════════════════
+   1. 色。1 色ずつ選ばず、色相ごとの「段」で持つ
+   ドット絵がプロっぽく見えるかどうかは、明暗が段になっているかで決まる。
+   要素ごとに色を選ぶと、同じ物なのに影の色が違う、が起きる。
+   ═══════════════════════════════════════════════════════════════════ */
+const RAMP = {
+  steel: ["#0d0f12","#1a1f24","#2b333b","#454f59","#6b7885","#98a4b0"],
+  stone: ["#0e1216","#141a20","#1c242b","#26303a","#334049"],
+  wood:  ["#1c1008","#33200f","#4f3319","#754c26","#a06c36"],
+  brass: ["#4a3609","#7a5c12","#ad8619","#dcb434","#f5da79"],
+  red:   ["#360b11","#61151b","#992128","#cc3d46","#e87477"],
+  green: ["#0b241a","#16412c","#276b45","#3e9c63","#66c78d"],
+  blue:  ["#0e1b28","#193348","#275274","#4287ad","#86cbe4"],
+  bone:  ["#3d3830","#6b6456","#9a9080","#c8bda6","#efe7d3"],
+};
+const C = (r,s) => RAMP[r][Math.max(0, Math.min(RAMP[r].length-1, s))];
+const INK = "#07090b";
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. ディザ。グラデーションを使わない
+   にじんだ階調はドット絵の見た目を一発で壊す。
+   2 色を升目で混ぜて、段の途中を作る（順序ディザ・4×4 のベイヤー）。
+   ═══════════════════════════════════════════════════════════════════ */
+const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+/** c0 の上に c1 を level/16 の密度で撒いた 4×4 の模様を返す */
+function dither(c0, c1, level){
+  let r = `<rect width="4" height="4" fill="${c0}"/>`;
+  for (let y=0;y<4;y++) for (let x=0;x<4;x++)
+    if (BAYER[y][x] < level) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${c1}"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4" shape-rendering="crispEdges">${r}</svg>`;
+  /* ★ 引用符は必ずシングルにする。
+     この値は style="..." の中に入る。ダブルにすると url(" のところで
+     style 属性が閉じてしまい、background-image が丸ごと消える。
+     消えても何のエラーも出ないので、ディザが 1 つも効いていないことに
+     ずっと気づかなかった。encodeURIComponent はシングルクォートを
+     encode しないが、この SVG の中に ' は無い（属性は全部ダブル＝%22）。 */
+  return `url('data:image/svg+xml;utf8,${encodeURIComponent(svg)}')`;
+}
+const ditherCSS = (c0,c1,lv) => `background-image:${dither(c0,c1,lv)};background-size:4px 4px`;
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. ドット絵。升目を手で塗らず、形から起こして自動で陰と縁を付ける
+   ここが本格的なドット絵との差がいちばん出るところ。
+   ・光の向きを 1 つに決める（左上）
+   ・当たっている辺は 1 段明るく、影の辺は 1 段暗く
+   ・輪郭は黒ではなく、その色の いちばん暗い段（＝色付きの輪郭）
+   手で 1 マスずつ塗る代わりに、形を置いてから機械的に付ける。
+   ═══════════════════════════════════════════════════════════════════ */
+function raster(w, h, ops){
+  const g = Array.from({length:h}, ()=>new Array(w).fill(null));
+  const put = (x,y,c) => { if (x>=0&&y>=0&&x<w&&y<h) g[y][x] = c; };
+  for (const o of ops){
+    if (o.k === "r"){
+      for (let y=o.y;y<o.y+o.h;y++) for (let x=o.x;x<o.x+o.w;x++) put(x,y,o.c);
+    } else if (o.k === "e"){                       // 升目の楕円
+      const rx = o.w/2, ry = o.h/2, cx = o.x+rx-0.5, cy = o.y+ry-0.5;
+      for (let y=o.y;y<o.y+o.h;y++) for (let x=o.x;x<o.x+o.w;x++){
+        const dx = (x-cx)/rx, dy = (y-cy)/ry;
+        if (dx*dx + dy*dy <= 1.02) put(x,y,o.c);
+      }
+    } else if (o.k === "p"){ put(o.x,o.y,o.c); }
+    else if (o.k === "l"){                          // 太さ 1 の線
+      const n = Math.max(Math.abs(o.x2-o.x), Math.abs(o.y2-o.y));
+      for (let i=0;i<=n;i++)
+        put(Math.round(o.x + (o.x2-o.x)*i/n), Math.round(o.y + (o.y2-o.y)*i/n), o.c);
+    }
+  }
+  return g;
+}
+/** 左上から光を当てる。上か左が空いていれば 1 段明るく、下か右が空いていれば 1 段暗く */
+function shade(g){
+  const h = g.length, w = g[0].length;
+  const at = (x,y) => (x<0||y<0||x>=w||y>=h) ? null : g[y][x];
+  const out = g.map(r=>r.slice());
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const c = g[y][x]; if (!c || c.fix) continue;
+    const lit  = !at(x,y-1) || !at(x-1,y);
+    const dark = !at(x,y+1) || !at(x+1,y);
+    if (lit && !dark) out[y][x] = {r:c.r, s:c.s+1};
+    else if (dark && !lit) out[y][x] = {r:c.r, s:c.s-1};
+  }
+  return out;
+}
+/** 輪郭。塗った升目の外側に、その色のいちばん暗い段を置く */
+function outline(g){
+  const h = g.length, w = g[0].length;
+  const at = (x,y) => (x<0||y<0||x>=w||y>=h) ? null : g[y][x];
+  const out = g.map(r=>r.slice());
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    if (g[y][x]) continue;
+    const n = at(x-1,y) || at(x+1,y) || at(x,y-1) || at(x,y+1);
+    if (n) out[y][x] = {r:n.r, s:0, fix:true};
+  }
+  return out;
+}
+/** 升目 → SVG。横に同じ色が続くところは 1 本の矩形にまとめる */
+function toSVG(g, cls){
+  const h = g.length, w = g[0].length;
+  let r = "";
+  for (let y=0;y<h;y++){
+    let x = 0;
+    while (x < w){
+      const c = g[y][x];
+      if (!c){ x++; continue; }
+      const col = C(c.r, c.s);
+      let n = 1;
+      while (x+n < w){ const d = g[y][x+n]; if (!d || C(d.r,d.s) !== col) break; n++; }
+      r += `<rect x="${x}" y="${y}" width="${n}" height="1" fill="${col}"/>`;
+      x += n;
+    }
+  }
+  return `<svg class="${cls||""}" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"
+    shape-rendering="crispEdges">${r}</svg>`;
+}
+/** 形の座標ごと k 倍する。SVG を引き伸ばすと格子が壊れるので、
+    升目に起こす前に大きくする。こうすれば 1 マスは画面の 1 ドットのまま。 */
+function scaleOps(ops, k){
+  const r = v => Math.round(v*k);
+  return ops.map(o => o.k === "l"
+    ? {...o, x:r(o.x), y:r(o.y), x2:r(o.x2), y2:r(o.y2)}
+    : {...o, x:r(o.x), y:r(o.y), w:o.w!==undefined?Math.max(1,r(o.w)):undefined,
+             h:o.h!==undefined?Math.max(1,r(o.h)):undefined});
+}
+const SPRITE_CACHE = {};
+const kOf = (n,k) => k === undefined ? (SHAPES[n].k || 1) : k;
+const spriteW = (n,k) => Math.round(SHAPES[n].w * kOf(n,k));
+const spriteH = (n,k) => Math.round(SHAPES[n].h * kOf(n,k));
+/** 同じ絵を大きさ違いで使う。SVG を引き伸ばさず、升目に起こす段階で倍率を変える */
+function sprite(name, k){
+  const kk = kOf(name, k), key = name + "@" + kk;
+  if (!SPRITE_CACHE[key]){
+    const d = SHAPES[name];
+    SPRITE_CACHE[key] = toSVG(outline(shade(
+      raster(spriteW(name,kk), spriteH(name,kk), kk === 1 ? d.ops : scaleOps(d.ops, kk)))));
+  }
+  return SPRITE_CACHE[key];
+}
+const S = (r,s) => ({r, s});

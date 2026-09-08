@@ -5,6 +5,9 @@
 set -e
 cd "$(dirname "$0")"
 
+# 戦闘画面の中身を組み立てる（src/ ＋ cards/ ＋ wheel.png → app.html）
+python3 game/battle/build.py
+
 # ルートに出すのは試作版の戦闘画面。ここが本線。
 {
   cat game/battle/head.html

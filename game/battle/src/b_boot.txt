@@ -1,0 +1,322 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GS. 進行。投げる → 盤が真ん中に大きくなる → 収まる → 札が手札に来る
+      → 札が順に効く → 敵が動く → 次の手番
+   ═══════════════════════════════════════════════════════════════════ */
+let spin = null;                       // 進行中の spin
+const rotor = {t:0, w:0.55};           // 盤は席を立つまで回り続ける
+let resting = null;                    // 収まった玉の置き場所（ロータ固定座標）
+
+/** 盤の描画まわりを組み直す。setPockets から呼ばれる */
+function rebuild(){ resting = null; paintRotorFace(); }
+
+/* ── 拡大。回した瞬間に真ん中で 2 倍にする ──────────────────────
+   倍率は整数だけ。1.5 倍などにすると画素が 2px と 3px に割れる。
+
+   ただの scale(2) だと 168 ドットの絵が太くなるだけで、細かさは増えない。
+   そこで<b>寄せ切ったあとに裏画面ごと 336 ドットで焼き直す</b>。
+   物理はメートルで解いているので、絵の解像度を変えても出目は変わらない。
+
+   動きは低解像度のまま scale(2) で見せて、止まってから高解像度に差し替える。
+   （拡大しながら焼き直すと、動いている最中に絵が飛ぶ） */
+const DOTS_SMALL = 168, DOTS_BIG = 336;
+let bigWheel = false;
+
+function setDots(w){
+  if (DOTS_W === w) return;
+  DOTS_W = w;
+  sizeWheel();                                   // BW / BH / SCL が決まり直す
+  const el = $("whl");
+  el.style.width  = (BW+8) + "px";
+  el.style.height = (BH+8) + "px";
+  $("frm").innerHTML = wheelFrame();
+}
+const zoomedXY = () => [Math.round((VW - (BW+8))/2), Math.round((VH - (BH+8))/2)];
+
+async function zoom(on){
+  const el = $("whl");
+  if (on){
+    const dx = Math.round((VW - (BW+8)*2)/2) - (GX-4);
+    const dy = Math.round((VH - (BH+8)*2)/2) - (GY-4);
+    el.style.transform = `translate(${dx}px,${dy}px) scale(2)`;
+    el.style.zIndex = 8;
+    $("dim").style.opacity = .82;
+    await wait(170);
+    setDots(DOTS_BIG); bigWheel = true;
+    const [zx, zy] = zoomedXY();
+    el.style.transition = "none";
+    el.style.transform = "";
+    el.style.left = zx + "px"; el.style.top = zy + "px";
+    el.offsetHeight; el.style.transition = "";
+  } else {
+    /* 低解像度に戻し、いまと同じ見た目になる transform を当ててから外す */
+    const [zx, zy] = zoomedXY();
+    setDots(DOTS_SMALL); bigWheel = false;
+    const dx = Math.round((VW - (BW+8)*2)/2) - (GX-4);
+    const dy = Math.round((VH - (BH+8)*2)/2) - (GY-4);
+    el.style.transition = "none";
+    el.style.left = (GX-4) + "px"; el.style.top = (GY-4) + "px";
+    el.style.transform = `translate(${dx}px,${dy}px) scale(2)`;
+    el.offsetHeight;
+    el.style.transition = "";
+    el.style.transform = "";
+    el.style.zIndex = 3;
+    $("dim").style.opacity = 0;
+  }
+}
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+function live(){ $("fg").innerHTML = sceneLive(); }
+function say(t){ GS.msg = t; live(); }
+
+/* ── 見せ方の間 ──────────────────────────────────────────────
+   一瞬で数字が変わると、何が起きたのか読めない。
+   「札が光る → 数字が飛ぶ → 消える」の 3 拍に分けて、それぞれ間を置く。 */
+const T = {card:640, dmg:1000, gap:240, foe:520, burn:900, draw:1100};
+
+/** 頭の上に数字を出す。誰に何が起きたかを、その場所で見せる */
+function popAt(t, text, ramp){
+  const i = GS.foes.indexOf(t);
+  const sp = i < 0 ? "hero" : GS.foes[i].sp;
+  const x  = (i < 0 ? HERO_X : FX[i]) + (spriteW(sp) >> 1);
+  GS.pops.push({x, y: FOOT - spriteH(sp) - 30, text, ramp});
+}
+
+/* ── 自分の手番のはじめ ── */
+async function playerTurn(){
+  GS.phase = "burn"; GS.hand = []; GS.active = -1; GS.pops = [];
+  if (GS.self.burn > 0){
+    hit(GS.self, GS.self.burn, false, true);        // 火傷は盾で防げない
+    popAt(GS.self, "火傷 " + GS.self.burn, "red");
+    say(`火傷 ${GS.self.burn}`);
+    GS.self.burn--;
+    await wait(T.burn);
+    GS.pops = [];
+    if (GS.self.hp <= 0){ await wipe(); return; }
+  }
+  GS.throws = GS.spins;
+  GS.phase = "idle";
+  say("");
+}
+
+/* ── 盤を回す。玉はまとめて投げる ── */
+async function throwBall(){
+  if (GS.phase !== "idle" || GS.throws <= 0) return;
+  GS.phase = "spin";
+  say("回している");
+  await zoom(true);
+  spin = newSpin(launch(false, GS.balls), rotor.t);
+  spin.wr = Math.max(spin.wr, rotor.w);
+  resting = null;
+}
+
+/* ── 札 1 枚ぶんの見せ方。光らせる → 効かせて数字を出す → 消す ── */
+async function playCard(c){
+  const a = c.act;
+  const tgt = a.tgt === "front" ? [frontFoe()]
+            : a.tgt === "back"  ? [backFoe()]
+            : alive();
+  if (!tgt[0]) return;
+  say(c.nm + "　" + c.fx.replace(/<br>/g, "／"));
+  live();
+  await wait(T.card);                               // 札が光っているあいだ
+
+  GS.pops = [];
+  tgt.forEach(f => {
+    if (a.dmg){
+      const n = a.dmg + GS.self.pow;
+      hit(f, n, a.brk);
+      popAt(f, "−" + n, "red");
+    }
+    if (a.burn){
+      f.burn += a.burn;
+      popAt(f, "炎上 " + a.burn, "brass");
+    }
+  });
+  live();
+  await wait(T.dmg);
+  GS.pops = []; live();
+  await wait(T.gap);
+}
+
+/* ── 玉が収まったあと ── */
+async function settled(balls){
+  const drew = balls.map(b => SLOTS[b.pocket]);
+  const base = GS.hand.length;
+  GS.hand = GS.hand.concat(drew);
+  GS.phase = "deal";
+  say(drew.map(i => DECK[i].nm).join("・") + " が出た");
+  await wait(T.draw);
+  await zoom(false);
+  await wait(200);
+
+  /* 引いた順に 1 枚ずつ。杖のように積み上がらず、独立して効く */
+  GS.phase = "resolve";
+  for (let k = 0; k < drew.length; k++){
+    GS.active = base + k;
+    await playCard(DECK[drew[k]]);
+    if (!frontFoe()) break;
+  }
+  GS.active = -1; GS.pops = [];
+
+  GS.throws--;
+  if (!frontFoe()){ await clearFloor(); return; }
+  if (GS.throws > 0){ GS.phase = "idle"; say(""); return; }
+  await foeTurn();
+}
+
+/* ── 敵の手番 ── */
+async function foeTurn(){
+  GS.phase = "foes";
+  alive().forEach(f => { f.shield = 0; });      // 自分の攻撃が終わったので敵の盾は消える
+  live();
+  await wait(T.gap);
+
+  for (const f of alive()){                      // 敵の火傷
+    if (f.burn <= 0) continue;
+    hit(f, f.burn, false, true);
+    popAt(f, "火傷 " + f.burn, "red");
+    say(`${f.nm} 火傷 ${f.burn}`);
+    f.burn--;
+    live();
+    await wait(T.burn);
+    GS.pops = [];
+  }
+  if (!frontFoe()){ await clearFloor(); return; }
+
+  for (const f of alive()){                      // 敵が動く
+    for (const [k, n] of f.act){
+      GS.pops = [];
+      if (k === "atk"){
+        hit(GS.self, n + f.pow);
+        popAt(GS.self, "−" + (n + f.pow), "red");
+        say(`${f.nm} の攻撃 ${n + f.pow}`);
+      } else {
+        f.shield += n;
+        popAt(f, "盾 +" + n, "blue");
+        say(`${f.nm} が盾 +${n}`);
+      }
+      live();
+      await wait(T.foe);
+      if (GS.self.hp <= 0){ await wipe(); return; }
+    }
+  }
+  GS.pops = [];
+  GS.self.shield = 0;                            // 敵の攻撃が終わったので自分の盾は消える
+  await wait(T.gap);
+  await playerTurn();
+}
+
+async function clearFloor(){
+  GS.phase = "foes"; GS.pops = []; GS.active = -1;
+  say("この階は片づいた");
+  await wait(1100);
+  GS.self.floor = Math.min(GS.self.floors, GS.self.floor + 1);
+  GS.self.coin += 24;
+  GS.self.shield = 0;
+  GS.foes = newFoes();
+  await playerTurn();
+}
+
+async function wipe(){
+  GS.phase = "foes"; GS.pops = []; GS.active = -1;
+  say("倒れた。地下 1 階からやり直し");
+  await wait(1400);
+  Object.assign(GS.self, {hp:GS.self.max, shield:0, burn:0, pow:0, floor:1, coin:0});
+  GS.foes = newFoes();
+  await playerTurn();
+}
+
+/* ── 毎フレーム ── */
+function loop(){
+  requestAnimationFrame(loop);
+  if (spin){
+    const sub = Math.round((1/60) / DT);
+    for (let i = 0; i < sub && spin.phase !== "done"; i++) step(spin);
+    if (spin.phase === "done"){
+      if (spin.hold === undefined){ spin.hold = 0; resting = spin.balls.map(restOf); }
+      spin.hold += 1/60;
+      spin.tr = norm(spin.tr + spin.wr * (1/60));
+      const ps = restPositions(resting, spin.tr);
+      spin.balls.forEach((b,i)=>{ b.p = ps[i]; });
+    }
+    rotor.t = spin.tr; rotor.w = spin.wr;
+    drawWheel(spin.tr, spin.balls.map(b=>b.p), true);
+    if (spin.phase === "done" && spin.hold > 0.8){
+      const balls = spin.balls; spin = null;
+      settled(balls);
+    }
+  } else {
+    rotor.t = norm(rotor.t + rotor.w / 60);
+    rotor.w = Math.max(0.35, rotor.w - 0.006 / 60);
+    const bp = (resting !== null && resting.length) ? restPositions(resting, rotor.t) : null;
+    drawWheel(rotor.t, bp, bp !== null);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   H. 出す。拡大は整数倍だけ。1.5 倍などにするとドットが割れる
+   ═══════════════════════════════════════════════════════════════════ */
+function boot(){
+  sizeWheel();                                   // BW / BH が決まる
+  applyDeck();
+  const wb = $("whl");
+  wb.style.left = (GX-4) + "px";
+  wb.style.top  = (GY-4) + "px";
+  wb.style.width = (BW+8) + "px";
+  wb.style.height = (BH+8) + "px";
+  $("frm").innerHTML = wheelFrame();
+  $("wheel").style.left = "4px"; $("wheel").style.top = "4px";
+  $("bg").innerHTML = sceneStatic();
+  live();
+  fit();
+  loop();
+  playerTurn();
+}
+
+/* 押せるもの。組み直しても効くように、親で受ける */
+$("scr").addEventListener("click", e => {
+  const t = e.target.closest(".hit");
+  if (t){
+    const cl = t.classList;
+    if (cl.contains("open")){ GS.inv = true; live(); return; }
+    if (cl.contains("close")){ GS.inv = false; live(); return; }
+    const d = [...cl].find(c => /^d\d+$/.test(c));
+    const s2 = cl.contains("dec") ? -1 : 1;
+    if (d){
+      const i = +d.slice(1);
+      GS.deck[i] = Math.max(0, Math.min(20, GS.deck[i] + s2));
+      if (deckTotal() < MIN_N || deckTotal() > MAX_N){ GS.deck[i] -= s2; return; }
+      applyDeck(); live(); return;
+    }
+    if (cl.contains("b")){
+      GS.balls = Math.max(1, Math.min(MAX_BALLS, GS.balls + s2));
+      live(); return;
+    }
+    if (cl.contains("s")){
+      GS.spins = Math.max(1, Math.min(MAX_SPINS, GS.spins + s2));
+      if (GS.phase === "idle") GS.throws = Math.min(GS.throws, GS.spins);
+      live(); return;
+    }
+    return;
+  }
+  if (GS.inv) return;
+  if (e.target.closest(".throwhit")) throwBall();
+});
+addEventListener("keydown", e => {
+  if (GS.inv){ if (e.key === "Escape"){ GS.inv = false; live(); } return; }
+  if (e.key === " " || e.key === "Enter") throwBall();
+});
+
+/** 拡大は整数倍だけ。半端な倍率にするとドットが 2px と 3px に割れて、
+    せっかく揃えた格子が壊れる。入りきらないぶんは中央に置いて余白にする。
+    画面が 640 より狭いときだけは、やむを得ず端数を許す。 */
+function fit(){
+  const hold = $("hold"), w = hold.clientWidth;
+  const s = w < VW ? w / VW : Math.floor(w / VW);
+  const left = Math.floor((w - VW*s) / 2);
+  $("scr").style.transform = `translateX(${left}px) scale(${s})`;
+  hold.style.height = Math.round(VH*s) + "px";
+}
+addEventListener("resize", fit);
+boot();
+</script>
